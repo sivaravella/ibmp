@@ -98,6 +98,7 @@ for (const role of ROLES.filter((r) => !only || r.name.includes(only))) {
       }
       // A full screen reached from this one: a button (or the first table row), then back with the "All invoices" button.
       for (const screen of extra.screens ?? []) {
+        if (screen === 'first row' && !(await evaluate("!!document.querySelector('tr.row-click')"))) continue;      // a new account has no invoice to open
         const i = [];
         const clicked2 = screen === 'first row' ? await evaluate("(() => { const r = document.querySelector('tr.row-click'); if (!r) return false; r.click(); return true; })()") : await press(screen);
         if (!clicked2) i.push(`"${screen}" not found`);
@@ -136,9 +137,8 @@ for (const role of ROLES.filter((r) => !only || r.name.includes(only))) {
     }
 
     // Routing: the address follows the screen, a refresh stays on the invoice, the back button returns to the list.
-    if (role.tabs === BUSINESS_TABS) {
+    if (role.tabs === BUSINESS_TABS && (await evaluate("[...document.querySelectorAll('aside nav button')].find((x) => x.textContent.trim().startsWith('Invoices')).click(), new Promise((r) => setTimeout(() => r(!!document.querySelector('tr.row-click')), 1500))"))) {
       const i = [];
-      await evaluate("[...document.querySelectorAll('aside nav button')].find((x) => x.textContent.trim().startsWith('Invoices')).click()"); await sleep(1200);
       await evaluate("document.querySelector('tr.row-click')?.click()"); await sleep(1500);
       if (!/^#\/invoice\?id=\d+$/.test(await evaluate('location.hash'))) i.push('the address did not follow the invoice screen');
       await evaluate('location.reload()'); await sleep(2500);
