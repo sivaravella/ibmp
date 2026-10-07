@@ -5,10 +5,11 @@ import { Icon } from './ui/icons.jsx';
 import { DashboardSkeleton, ErrorBoundary } from './ui/kit.jsx';
 import { fmtDate, initials } from './ui/format.js';
 import { useNavCollapsed } from './ui/nav.js';
+import { loadScreen } from './ui/stale.js';
 import { sectorLabel } from './ui/sectors.js';
 
 // Each screen is its own chunk, loaded when first opened, so signing in downloads only the shell and the dashboard.
-const page = (loader) => lazy(loader);
+const page = (loader) => lazy(loadScreen(loader));
 const Dashboard = page(() => import('./pages/Dashboard.jsx'));
 const Parties = page(() => import('./pages/Parties.jsx'));
 const Items = page(() => import('./pages/Items.jsx'));

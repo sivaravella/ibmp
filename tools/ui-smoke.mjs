@@ -23,6 +23,7 @@ const PLATFORM_TABS = ['Overview', 'Consultants', 'Companies', 'Billing', 'Audit
 const ROLES = [
   { name: 'business owner (rich data)', url: '/v1/auth/login', body: { email: 'demo@ibmp.in', password: 'password123' }, key: 'ibmp_token', path: '/', tabs: BUSINESS_TABS },
   { name: 'business owner (12-month history)', url: '/v1/auth/login', body: { email: 'owner@ibmp.in', password: 'password123' }, key: 'ibmp_token', path: '/', tabs: ['Dashboard', 'Invoices', 'Ledger', 'GST reports'] },
+  { name: 'brand-new business owner (no data)', url: '/v1/auth/register', body: { name: 'Fresh User', email: `fresh${Date.now()}@example.com`, password: 'password123', company: 'Fresh Co', sector: 'trading', stateCode: '29' }, key: 'ibmp_token', path: '/', tabs: BUSINESS_TABS, rapid: true },
   { name: 'professional (practice)', url: '/v1/auth/login', body: { email: 'consultant@ibmp.in', password: 'password123' }, key: 'ibmp_token', path: '/', tabs: ['Dashboard', 'Companies', 'Compliance'] },
   { name: 'platform owner', url: '/v1/platform/login', body: { email: 'platform@ibmp.in', password: 'platform-demo-123' }, key: 'ibmp_platform_token', path: '/platform', tabs: PLATFORM_TABS },
   { name: 'platform support (read-only)', url: '/v1/platform/login', body: { email: 'support@ibmp.in', password: 'platform-demo-123' }, key: 'ibmp_platform_token', path: '/platform', tabs: PLATFORM_TABS },
@@ -30,7 +31,7 @@ const ROLES = [
 
 async function session(role, run) {
   const login = await fetch(BASE + role.url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(role.body) });
-  if (!login.ok) throw new Error(`sign-in failed (${login.status}): run npm run seed:users first`);
+  if (!login.ok && login.status !== 201) throw new Error(`sign-in failed (${login.status}): run npm run seed:users first`);
   const token = (await login.json()).token;
   const port = 9700 + Math.floor(Math.random() * 250), profile = fs.mkdtempSync(path.join(os.tmpdir(), 'ibmp-smoke-'));
   const proc = spawn(chrome, ['--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--window-size=1440,900', '--no-first-run', '--disable-gpu', 'about:blank'], { stdio: 'ignore' });
@@ -119,6 +120,19 @@ for (const role of ROLES.filter((r) => !only || r.name.includes(only))) {
         record(`${tab} › ${button} (drawer)`, i);
         await closeDrawer();
       }
+    }
+
+    // Impatient clicking: every menu item in quick succession (screens still loading when the next is chosen), three times over.
+    if (role.rapid || role.tabs === BUSINESS_TABS) {
+      const i = [];
+      take();
+      for (let pass = 0; pass < 3; pass++) {
+        const n = await evaluate("document.querySelectorAll('aside nav button').length");
+        for (let k = 0; k < n; k++) { await evaluate(`document.querySelectorAll('aside nav button')[${pass % 2 ? n - 1 - k : k}]?.click()`); await sleep(pass === 2 ? 40 : 150); }
+      }
+      await sleep(3000);
+      await inspect(i);
+      record('Rapid navigation (3 passes)', i);
     }
 
     // Routing: the address follows the screen, a refresh stays on the invoice, the back button returns to the list.

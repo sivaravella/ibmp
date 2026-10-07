@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.14.3
+- Fixed "This screen hit a problem" when opening a screen after a new version had been released (or the server restarted on a rebuild): the open tab asked for screen files that no longer existed, and the server answered with the home page instead of a 404. Screens now retry once and the page reloads itself onto the new version (the address keeps you on the same screen); a missing file is a real 404; the error screen offers a reload and shows a short detail for support. `node tools/stale-tab-test.mjs` reproduces the scenario; the smoke test now also covers a brand-new empty account and rapid clicking through the menu.
+
 ## 1.14.2
 - The subscription notice (free trial, renewal, expiry, plan required) moved from a band above every page into the top-right header, with its action button beside it; the duplicate plan pill is gone.
 

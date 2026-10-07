@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from './icons.jsx';
 import { Sparkline } from './charts.jsx';
+import { isChunkError } from './stale.js';
 
 /** The heading of a page: title, a line of context and the actions on the right. */
 export function PageHeader({ title, subtitle, children }) {
@@ -85,11 +86,21 @@ export class ErrorBoundary extends React.Component {
   componentDidUpdate(prev) { if (this.state.error && prev.resetKey !== this.props.resetKey) this.setState({ error: null }); }
   render() {
     if (!this.state.error) return this.props.children;
+    // The screen's files are gone because a newer version was released: reloading fixes it, trying again cannot.
+    if (isChunkError(this.state.error)) return (
+      <div className="panel crash"><div className="panel-body">
+        <EmptyState icon="alert" title="IBMP has been updated" text="A newer version is available. Reload to continue; the page you are on will open again.">
+          <button className="primary" onClick={() => { sessionStorage.removeItem('ibmp_stale_reload'); location.reload(); }}>Reload</button>
+        </EmptyState>
+      </div></div>
+    );
     return (
       <div className="panel crash"><div className="panel-body">
         <EmptyState icon="alert" title="This screen hit a problem" text="Nothing you entered has been lost. Try again, and if it keeps happening tell support what you were doing.">
           <button className="primary" onClick={() => this.setState({ error: null })}>Try again</button>
+          <button onClick={() => location.reload()}>Reload the page</button>
         </EmptyState>
+        <p className="muted" style={{ textAlign: 'center', fontSize: 12, margin: '6px 0 0' }}>Details for support: {String(this.state.error?.message ?? this.state.error).slice(0, 160)}</p>
       </div></div>
     );
   }

@@ -132,6 +132,8 @@ export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp()
       index: false,
       setHeaders: (res, file) => { res.setHeader('Cache-Control', /[\\/]assets[\\/]/.test(file) ? 'public, max-age=31536000, immutable' : 'no-cache'); },
     }));
+    // A missing file is a 404, never the home page: a stale browser tab asking for a screen from an old build must see the failure, not HTML.
+    app.get(/^\/(?!v1\/)(assets\/|.*\.[A-Za-z0-9]{1,5}$)/, (_req, res) => res.status(404).type('text/plain').send('Not found'));
     app.get(/^\/(?!v1\/).*/, (_req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(path.join(config.webDir, 'index.html')); });
   }
 
