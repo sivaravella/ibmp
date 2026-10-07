@@ -7,6 +7,7 @@ import { assertPeriodOpen } from '../filing-lock.js';
 import { A, post, taxLines } from '../ledger.js';
 import { STATES, stateName } from '../states.js';
 import { splitLineTax } from '../gst.js';
+import { fyOf, parseFy } from '../compliance.js';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const invoiceSchema = z.object({
@@ -116,9 +117,20 @@ export function invoiceRoutes(pool) {
       const dueDate = b.dueDate === undefined ? (Number(company.payment_days) > 0 ? new Date(Date.parse(b.date) + Number(company.payment_days) * 86400000).toISOString().slice(0, 10) : null) : b.dueDate;
       const calc = computeInvoice(lines, company.state_code, pos);
 
-      const seq = (await client.query(
-        'UPDATE companies SET invoice_seq = invoice_seq + 1 WHERE id=$1 RETURNING invoice_seq', [cid])).rows[0].invoice_seq;
-      const number = `INV-${String(seq).padStart(4, '0')}`;
+      const prefix = company.invoice_prefix || 'INV';
+      let number;
+      if (company.invoice_numbering === 'financial_year') {
+        // One counter per financial year, started from the invoices already issued in that year so a company that switches mid-year carries on.
+        const fy = fyOf(b.date), s0 = parseFy(fy);
+        const seq = (await client.query(
+          `INSERT INTO invoice_sequences (company_id, fy, seq)
+           VALUES ($1, $2, (SELECT count(*) FROM invoices WHERE company_id=$1 AND date >= $3 AND date <= $4) + 1)
+           ON CONFLICT (company_id, fy) DO UPDATE SET seq = invoice_sequences.seq + 1 RETURNING seq`, [cid, fy, `${s0}-04-01`, `${s0 + 1}-03-31`])).rows[0].seq;
+        number = `${prefix}/${fy.slice(2)}/${String(seq).padStart(4, '0')}`;
+      } else {
+        const seq = (await client.query('UPDATE companies SET invoice_seq = invoice_seq + 1 WHERE id=$1 RETURNING invoice_seq', [cid])).rows[0].invoice_seq;
+        number = `${prefix}-${String(seq).padStart(4, '0')}`;
+      }
       const inv = (await client.query(
         `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total,due_date,reference,notes,ship_to,discount,dispatched_through,destination,payment_terms,other_refs)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,

@@ -215,3 +215,21 @@ test('every listed business type can register, an unknown one cannot', async () 
   }
   assert.equal((await call('POST', '/auth/register', { name: 'T', email: 'sector-bad@example.com', password: 'password123', company: 'Bad', sector: 'spaceships', stateCode: '29' })).status, 400);
 });
+
+test('invoice numbers can restart every financial year, carrying on from invoices already issued in it', async () => {
+  const { t, local, a } = await world();
+  const make = (date) => ok(call('POST', '/invoices', { partyId: local.id, date, lines: [{ itemId: a.id, qty: 1 }] }, t));
+  assert.match((await make('2026-10-07')).number, /^INV-\d{4}$/);                     // the default never restarts
+  assert.equal((await call('PUT', '/company/profile', { invoicePrefix: 'TOOLONG' }, t)).status, 400);
+  assert.equal((await call('PUT', '/company/profile', { invoiceNumbering: 'weekly' }, t)).status, 400);
+  await ok(call('PUT', '/company/profile', { invoiceNumbering: 'financial_year', invoicePrefix: 'ab' }, t));
+  assert.equal((await make('2026-10-08')).number, 'AB/26-27/0002');                  // one invoice already exists in 2026-27
+  assert.equal((await make('2026-11-01')).number, 'AB/26-27/0003');
+  assert.equal((await make('2027-04-02')).number, 'AB/27-28/0001');                  // 1 April starts a new series
+  assert.equal((await make('2027-03-31')).number, 'AB/26-27/0004');                  // a back-dated invoice joins the year it belongs to
+  const all = (await ok(call('GET', '/invoices', undefined, t))).map((i) => i.number);
+  assert.equal(new Set(all).size, all.length);
+  assert.ok(all.every((n) => n.length <= 16));
+  await ok(call('PUT', '/company/profile', { invoiceNumbering: 'continuous' }, t));
+  assert.match((await make('2027-04-03')).number, /^AB-\d{4}$/);
+});

@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.15.0
+- Invoice numbering: choose in Invoice settings between continuous numbers (INV-0001, the default and unchanged) and numbers that restart every 1 April (INV/26-27/0001), with your own prefix of up to 5 characters. Each financial year has its own counter, started from the invoices already issued in it; every number is unique and at most 16 characters (rule 46). Migration 023.
+
 ## 1.14.3
 - Fixed "This screen hit a problem" when opening a screen after a new version had been released (or the server restarted on a rebuild): the open tab asked for screen files that no longer existed, and the server answered with the home page instead of a 404. Screens now retry once and the page reloads itself onto the new version (the address keeps you on the same screen); a missing file is a real 404; the error screen offers a reload and shows a short detail for support. `node tools/stale-tab-test.mjs` reproduces the scenario; the smoke test now also covers a brand-new empty account and rapid clicking through the menu.
 

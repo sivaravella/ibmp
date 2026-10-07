@@ -65,11 +65,12 @@ function shrinkLogo(file) {
   });
 }
 
-const FIELDS = ['legalName', 'tradeName', 'addr1', 'addr2', 'loc', 'pin', 'phone', 'email', 'bankName', 'bankAccount', 'bankIfsc', 'bankBranch', 'upiId', 'signatory', 'invoiceTerms', 'invoiceFooter'];
+const fyShort = () => { const d = new Date(), y = d.getMonth() >= 3 ? d.getFullYear() : d.getFullYear() - 1; return `${String(y).slice(2)}-${String(y + 1).slice(2)}`; };
+const FIELDS = ['legalName', 'tradeName', 'addr1', 'addr2', 'loc', 'pin', 'phone', 'email', 'bankName', 'bankAccount', 'bankIfsc', 'bankBranch', 'upiId', 'signatory', 'invoiceTerms', 'invoiceFooter', 'invoiceNumbering', 'invoicePrefix'];
 
 /** Everything about the business that is printed on an invoice: address, bank and UPI details, terms, signatory and the usual credit period. */
 export function InvoiceSettings({ profile, onClose, onSaved }) {
-  const [f, setF] = useState(() => ({ ...Object.fromEntries(FIELDS.map((k) => [k, profile?.[k] ?? ''])), paymentDays: String(profile?.paymentDays ?? 0) }));
+  const [f, setF] = useState(() => ({ ...Object.fromEntries(FIELDS.map((k) => [k, profile?.[k] ?? { invoiceNumbering: 'continuous', invoicePrefix: 'INV' }[k] ?? ''])), paymentDays: String(profile?.paymentDays ?? 0) }));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [logo, setLogo] = useState(profile?.logo ?? '');
@@ -77,7 +78,7 @@ export function InvoiceSettings({ profile, onClose, onSaved }) {
   const pickLogo = async (e) => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; setErr(''); try { setLogo(await shrinkLogo(file)); } catch (e2) { setErr(e2.message); } };
   async function save(e) {
     e.preventDefault(); setErr(''); setBusy(true);
-    try { onSaved(await api('PUT', '/company/profile', { ...f, logo, paymentDays: Number(f.paymentDays || 0) })); } catch (e2) { setErr(e2.issues?.map((i) => i.message).join(' ') || e2.message); setBusy(false); }
+    try { onSaved(await api('PUT', '/company/profile', { ...f, logo, invoicePrefix: f.invoicePrefix || 'INV', paymentDays: Number(f.paymentDays || 0) })); } catch (e2) { setErr(e2.issues?.map((i) => i.message).join(' ') || e2.message); setBusy(false); }
   }
   return (
     <Drawer open wide title="Invoice settings" subtitle="What is printed on every invoice. The GSTIN and state come from your registration." onClose={onClose}
@@ -108,6 +109,13 @@ export function InvoiceSettings({ profile, onClose, onSaved }) {
           <Field label="IFSC"><input value={f.bankIfsc} onChange={set('bankIfsc')} maxLength={11} style={{ textTransform: 'uppercase' }} /></Field>
           <Field label="UPI ID" hint="Adds a pay-by-UPI QR code to unpaid invoices"><input value={f.upiId} onChange={set('upiId')} placeholder="name@bank" /></Field>
           <Field label="Usual credit period (days)" hint="Sets the due date on new invoices"><input type="number" min="0" max="365" value={f.paymentDays} onChange={set('paymentDays')} /></Field>
+        </div>
+        <div className="form-section">Invoice numbers</div>
+        <div className="form-grid">
+          <Field label="Numbering" hint="Either way each number is unique and at most 16 characters, as GST requires">
+            <select value={f.invoiceNumbering} onChange={set('invoiceNumbering')}><option value="continuous">Continuous, never restarts</option><option value="financial_year">Restart every 1 April</option></select></Field>
+          <Field label="Prefix" hint={`Next looks like ${f.invoiceNumbering === 'financial_year' ? `${f.invoicePrefix || 'INV'}/${fyShort()}/0001` : `${f.invoicePrefix || 'INV'}-0001`}`}>
+            <input value={f.invoicePrefix} onChange={(e) => setF({ ...f, invoicePrefix: e.target.value.toUpperCase() })} maxLength={5} style={{ textTransform: 'uppercase' }} /></Field>
         </div>
         <div className="form-section">Terms and sign-off</div>
         <div className="form-grid">
