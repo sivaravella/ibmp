@@ -46,7 +46,7 @@ import { today as todayFn } from './util.js';
  */
 const VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
-export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp(), channels = resolveChannels(), config = null, social = config?.social ?? {}, socialFetch = fetch, pdf = resolvePdf() } = {}) {
+export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp(), channels = resolveChannels(), config = null, social = config?.social ?? {}, socialFetch = fetch, pdf = resolvePdf(), emailsPerHour = 30 } = {}) {
   const app = express();
   app.disable('x-powered-by');
   if (config?.trustProxy) app.set('trust proxy', config.trustProxy);
@@ -122,7 +122,7 @@ export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp()
   app.use('/v1/webhooks', webhookRoutes(pool, gateway));
   app.use('/v1/admin', adminRoutes(pool, { bcryptRounds: config?.bcryptRounds }));
   app.use('/v1/platform', platformRoutes(pool));
-  app.use('/v1', requireAuth, subscriptionGate(pool), masterRoutes(pool), invoiceRoutes(pool, { channels, pdf, baseUrl: `http://127.0.0.1:${config?.port ?? process.env.PORT ?? 4000}`, appName: 'IBMP' }), analyticsRoutes(pool), purchaseRoutes(pool), returnRoutes(pool), ledgerRoutes(pool),
+  app.use('/v1', requireAuth, subscriptionGate(pool), masterRoutes(pool), invoiceRoutes(pool, { channels, pdf, baseUrl: `http://127.0.0.1:${config?.port ?? process.env.PORT ?? 4000}`, emailsPerHour }), analyticsRoutes(pool), purchaseRoutes(pool), returnRoutes(pool), ledgerRoutes(pool),
     gst, filingRoutes(pool, { gsp, reports: gst.reports }), profileRoutes(pool), edocRoutes(pool, { gsp }), tdsRoutes(pool), tdsNsRoutes(pool), statutoryRoutes(pool), compliance, reminderRoutes(pool, { channels, openItems: compliance.openItems, appUrl: config?.publicUrl || null }),
     companyRoutes(pool, { complianceSummary: compliance.summaryFor }), payrollRoutes(pool), attendanceRoutes(pool), leaveRoutes(pool), billingRoutes(pool, gateway));
   app.use('/v1', (_req, res) => res.status(404).json({ error: 'Not found' }));

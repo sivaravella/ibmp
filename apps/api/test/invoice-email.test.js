@@ -86,3 +86,15 @@ test('bad addresses, other companies, a missing PDF engine, missing email set-up
   const hist = await ok(failing('GET', `/invoices/${w4.inv.id}/emails`, undefined, w4.t));
   assert.deepEqual(hist.map((h) => h.status), ['failed']);
 });
+
+test('a company can only email a limited number of invoices an hour', async () => {
+  const channels = simulatedChannels();
+  const call = mount({ channels, pdf: stubPdf, emailsPerHour: 3 });
+  const { t, inv } = await world(call);
+  for (let i = 0; i < 3; i++) await ok(call('POST', `/invoices/${inv.id}/email`, { to: `p${i}@example.com` }, t));
+  const r = await call('POST', `/invoices/${inv.id}/email`, { to: 'p9@example.com' }, t);
+  assert.deepEqual([r.status, r.body.code], [429, 'EMAIL_LIMIT']);
+  assert.equal(channels.sent.length, 3);                                              // nothing was sent past the limit
+  const other = await world(call);
+  await ok(call('POST', `/invoices/${other.inv.id}/email`, { to: 'q@example.com' }, other.t));       // another company is not affected
+});

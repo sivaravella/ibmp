@@ -38,7 +38,7 @@ const emailSchema = z.object({ to: z.string().trim().email('Enter a valid email 
 const fileSafe = (s) => String(s).replace(/[^A-Za-z0-9._-]+/g, '_');
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-export function invoiceRoutes(pool, { channels = null, pdf = null, baseUrl = 'http://127.0.0.1:4000' } = {}) {
+export function invoiceRoutes(pool, { channels = null, pdf = null, baseUrl = 'http://127.0.0.1:4000', emailsPerHour = 30 } = {}) {
   const r = Router();
 
   r.get('/invoices', h(async (req, res) => {
@@ -111,6 +111,9 @@ export function invoiceRoutes(pool, { channels = null, pdf = null, baseUrl = 'ht
     const cid = req.user.companyId;
     const inv = (await pool.query('SELECT * FROM invoices WHERE id=$1 AND company_id=$2', [req.params.id, cid])).rows[0];
     if (!inv) throw httpError(404, 'Not found');
+    // An open mail feature is a spam channel: each company can send a limited number of invoices an hour (failed attempts count).
+    const recent = Number((await pool.query('SELECT COUNT(*) AS n FROM invoice_emails WHERE company_id=$1 AND created_at > $2', [cid, new Date(Date.now() - 3600_000)])).rows[0].n);
+    if (recent >= emailsPerHour) throw Object.assign(httpError(429, `You have emailed ${recent} invoices in the last hour, which is the limit. Try again later.`), { code: 'EMAIL_LIMIT' });
     const company = (await pool.query('SELECT * FROM companies WHERE id=$1', [cid])).rows[0];
     const party = (await pool.query('SELECT name FROM parties WHERE id=$1', [inv.party_id])).rows[0];
     const sender = company.legal_name || company.name;

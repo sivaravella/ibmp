@@ -3,7 +3,7 @@
 name: ibmp
 services:
   app:
-    image: ibmp/app:${IBMP_VERSION:-1.20.0}
+    image: ibmp/app:${IBMP_VERSION:-1.20.1}
     build:
       context: .
       args:
