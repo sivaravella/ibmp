@@ -46,6 +46,8 @@ export function loadConfig(raw = process.env) {
     adminKeySet: !!env.ADMIN_API_KEY,
     publicUrl: env.PUBLIC_URL || '',                 // the address users open: put in reminder emails
     reminders: bool(env.REMINDERS_JOB, true),
+    // Sign in with Google / LinkedIn: a provider is offered only when both its client id and secret are set.
+    social: Object.fromEntries([['google', 'GOOGLE'], ['linkedin', 'LINKEDIN']].map(([k, P]) => [k, { clientId: env[`${P}_CLIENT_ID`] || '', clientSecret: env[`${P}_CLIENT_SECRET`] || '' }]).filter(([, v]) => v.clientId && v.clientSecret)),
   };
 
   const problems = [];

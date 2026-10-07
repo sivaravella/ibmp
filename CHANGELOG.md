@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.13.0
+- Sign in and sign up with Google and LinkedIn (OpenID Connect, authorization-code flow on the server). A button shows only when its `IBMP_GOOGLE_CLIENT_ID`/`_SECRET` or `IBMP_LINKEDIN_CLIENT_ID`/`_SECRET` are set. Existing accounts are matched by the provider's verified email; first-time users give their company details and start the trial. Migration 021 (`user_identities`).
+
 ## 1.12.0
 - Invoices: create an invoice on its own full screen with a live A4 preview; an invoice view screen (print one copy or all three, record a receipt, return, duplicate); a professional GST tax invoice (rule 46: supplier/recipient GSTIN and state, place of supply, HSN/SAC, per-line discount and CGST/SGST/IGST, tax summary by HSN and rate, total in words, bank details and UPI QR, terms, signatory, e-invoice IRN/QR, e-way bill, Bill of Supply when nothing is taxable).
 - Invoice list: search plus status, overdue, period, customer and sort filters, due-date column, CSV export.

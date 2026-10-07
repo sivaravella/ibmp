@@ -16,7 +16,7 @@ export const consultantSchema = z.object({
   registeredName: z.string().min(2).max(100),
 });
 
-const registerSchema = z.object({
+export const registerBase = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8),
@@ -26,7 +26,38 @@ const registerSchema = z.object({
   stateCode: z.string().regex(/^\d{2}$/).optional(),
   accountType: z.enum(['individual', 'consultant']).default('individual'),
   consultant: consultantSchema.optional(),
-}).refine((b) => b.accountType !== 'consultant' || b.consultant, { message: 'Consultant accounts need professional details', path: ['consultant'] });
+});
+export const needsConsultant = [(b) => b.accountType !== 'consultant' || b.consultant, { message: 'Consultant accounts need professional details', path: ['consultant'] }];
+const registerSchema = registerBase.refine(...needsConsultant);
+
+/** Create a company (chart of accounts, free trial) and its owner in one transaction. b: validated registration fields; passwordHash is already hashed. */
+export async function createAccount(pool, b, passwordHash) {
+  const state = stateFromGstin(b.gstin) || b.stateCode;
+  if (!state) throw httpError(400, 'Provide a GSTIN or a stateCode');
+  if ((await pool.query('SELECT 1 FROM users WHERE email=$1', [b.email.toLowerCase()])).rowCount) throw httpError(409, 'Email already registered');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const c = await client.query('INSERT INTO companies (name, sector, gstin, state_code) VALUES ($1,$2,$3,$4) RETURNING id', [b.company, b.sector, b.gstin || null, state]);
+    const companyId = c.rows[0].id;
+    await seedAccounts(client, companyId);
+    await loadSubscription(client, companyId);   // starts the free trial
+    const u = await client.query(
+      'INSERT INTO users (company_id, name, email, password_hash, account_type, active_company_id) VALUES ($1,$2,$3,$4,$5,$1) RETURNING id, company_id, role',
+      [companyId, b.name, b.email.toLowerCase(), passwordHash, b.accountType]);
+    await client.query("INSERT INTO user_companies (user_id, company_id, role) VALUES ($1,$2,'owner')", [u.rows[0].id, companyId]);
+    if (b.consultant) await saveConsultantProfile(client, u.rows[0].id, b.consultant);
+    await client.query('COMMIT');
+    return u.rows[0];
+  } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+}
+
+/** A token for the company the user was last working in, if they still have access to it. */
+export async function loginToken(pool, u) {
+  const mine = await memberCompanies(pool, u.id);
+  const last = mine.find((c) => c.id === u.active_company_id && !c.archived);
+  return signToken({ id: u.id, role: u.role, company_id: last ? last.id : u.company_id });
+}
 
 /** Store (or replace) the credentials a consultant claims. Verification is a separate, manual step. */
 export const saveConsultantProfile = async (q, userId, c) => {
@@ -44,36 +75,15 @@ export function authRoutes(pool, { bcryptRounds = 10 } = {}) {
 
   r.post('/register', h(async (req, res) => {
     const b = registerSchema.parse(req.body);
-    const state = stateFromGstin(b.gstin) || b.stateCode;
-    if (!state) throw httpError(400, 'Provide a GSTIN or a stateCode');
-    if ((await pool.query('SELECT 1 FROM users WHERE email=$1', [b.email.toLowerCase()])).rowCount)
-      throw httpError(409, 'Email already registered');
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      const c = await client.query('INSERT INTO companies (name, sector, gstin, state_code) VALUES ($1,$2,$3,$4) RETURNING id', [b.company, b.sector, b.gstin || null, state]);
-      const companyId = c.rows[0].id;
-      await seedAccounts(client, companyId);
-      await loadSubscription(client, companyId);   // starts the free trial
-      const u = await client.query(
-        'INSERT INTO users (company_id, name, email, password_hash, account_type, active_company_id) VALUES ($1,$2,$3,$4,$5,$1) RETURNING id, company_id, role',
-        [companyId, b.name, b.email.toLowerCase(), await bcrypt.hash(b.password, bcryptRounds), b.accountType]);
-      await client.query("INSERT INTO user_companies (user_id, company_id, role) VALUES ($1,$2,'owner')", [u.rows[0].id, companyId]);
-      if (b.consultant) await saveConsultantProfile(client, u.rows[0].id, b.consultant);
-      await client.query('COMMIT');
-      res.status(201).json({ token: signToken(u.rows[0]) });
-    } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
+    const u = await createAccount(pool, b, await bcrypt.hash(b.password, bcryptRounds));
+    res.status(201).json({ token: signToken(u) });
   }));
 
   r.post('/login', h(async (req, res) => {
     const b = z.object({ email: z.string().email(), password: z.string() }).parse(req.body);
     const u = (await pool.query('SELECT * FROM users WHERE email=$1', [b.email.toLowerCase()])).rows[0];
     if (!u || !(await bcrypt.compare(b.password, u.password_hash))) throw httpError(401, 'Invalid credentials');
-    // Resume in the company they were last working in, if they still have access to it.
-    const mine = await memberCompanies(pool, u.id);
-    const last = mine.find((c) => c.id === u.active_company_id && !c.archived);
-    res.json({ token: signToken({ id: u.id, role: u.role, company_id: last ? last.id : u.company_id }) });
+    res.json({ token: await loginToken(pool, u) });
   }));
 
   r.get('/me', requireAuth, h(async (req, res) => {

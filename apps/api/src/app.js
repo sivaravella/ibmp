@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { authRoutes } from './routes/auth.js';
+import { socialRoutes } from './social.js';
 import { masterRoutes } from './routes/masters.js';
 import { invoiceRoutes } from './routes/invoices.js';
 import { purchaseRoutes } from './routes/purchases.js';
@@ -44,7 +45,7 @@ import { today as todayFn } from './util.js';
  */
 const VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
-export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp(), channels = resolveChannels(), config = null } = {}) {
+export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp(), channels = resolveChannels(), config = null, social = config?.social ?? {}, socialFetch = fetch } = {}) {
   const app = express();
   app.disable('x-powered-by');
   if (config?.trustProxy) app.set('trust proxy', config.trustProxy);
@@ -115,6 +116,7 @@ export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp()
     try { await Promise.race([pool.query('SELECT 1'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))]); res.json({ ok: true }); }
     catch { res.status(503).json({ ok: false, error: 'Database unavailable' }); }
   });
+  app.use('/v1/auth/social', socialRoutes(pool, { providers: social, publicUrl: config?.publicUrl, bcryptRounds: config?.bcryptRounds, fetchFn: socialFetch }));
   app.use('/v1/auth', authRoutes(pool, { bcryptRounds: config?.bcryptRounds }));
   app.use('/v1/webhooks', webhookRoutes(pool, gateway));
   app.use('/v1/admin', adminRoutes(pool, { bcryptRounds: config?.bcryptRounds }));
