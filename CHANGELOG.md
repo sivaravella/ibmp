@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.14.1
+- The screen is kept in the address (`#/invoice?id=12`), so refresh, the back and forward buttons and a copied link work; the smoke test checks it. Business types: 24 to choose from.
+
 ## 1.14.0
 - Invoice template, following the field set of Tally's free invoice generator: company logo (upload in Invoice settings, resized to fit 320 x 160), mode / terms of payment, buyer's ref. / order no., other references, dispatched through and destination, all on the create screen and printed in the header block. Migration 022.
 

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { api, hasToken, setToken } from './api.js';
 import Login from './pages/Login.jsx';
 import { Icon } from './ui/icons.jsx';
@@ -49,6 +49,17 @@ const HIDDEN = [['invoice-new', 'New invoice', 'file', InvoiceNew], ['invoice', 
 const PARENT = { 'invoice-new': 'invoices', invoice: 'invoices' };
 const TABS = [...NAV.flatMap(([, items]) => items), ...HIDDEN];
 
+// The current screen lives in the URL fragment (#/invoice?id=12) so refresh, the back button and a copied link all work.
+// "created" only carries the one-off "Invoice created" message, so it is not kept in the address.
+const hashOf = (tab, params) => { const q = new URLSearchParams(Object.entries(params ?? {}).filter(([k, v]) => k !== 'created' && v !== undefined && v !== null && v !== false).map(([k, v]) => [k, String(v)])).toString(); return `#/${tab}${q ? `?${q}` : ''}`; };
+function routeFromHash() {
+  const m = location.hash.match(/^#\/([a-z-]+)(?:\?(.*))?$/);
+  if (!m || !TABS.some(([id]) => id === m[1])) return null;
+  const params = Object.fromEntries(new URLSearchParams(m[2] ?? ''));
+  for (const k of ['id', 'from']) if (/^\d+$/.test(params[k] ?? '')) params[k] = Number(params[k]);
+  return { tab: m[1], params };
+}
+
 /** The strip across the top that tells the customer where their subscription stands. */
 function banner(sub) {
   if (!sub) return null;
@@ -70,14 +81,30 @@ async function switchCompany(id) {
 
 export default function App() {
   const [me, setMe] = useState(null);
-  const [tab, setTab] = useState('dashboard');
-  const [params, setParams] = useState({});
+  const [tab, setTab] = useState(() => routeFromHash()?.tab ?? 'dashboard');
+  const [params, setParams] = useState(() => routeFromHash()?.params ?? {});
+  const current = useRef({ tab, params });
+  current.current = { tab, params };
   const [sub, setSub] = useState(null);
   const [blocked, setBlocked] = useState(null);       // a 402 from the server while using a page
   const [menu, setMenu] = useState(false);            // the sidebar on small screens
   const [collapsed, toggleNav] = useNavCollapsed();      // the sidebar folded to icons on large ones
   const [authed, setAuthed] = useState(hasToken());
-  const go = (t, p = {}) => { setParams(p); setTab(t); setBlocked(null); setMenu(false); window.scrollTo(0, 0); };
+  const go = (t, p = {}) => {
+    setParams(p); setTab(t); setBlocked(null); setMenu(false); window.scrollTo(0, 0);
+    const h = hashOf(t, p);
+    if (location.hash !== h) history.pushState(null, '', h);
+  };
+  // Back and forward (and a pasted link) change the fragment without going through go().
+  useEffect(() => {
+    const onNav = () => {
+      const r = routeFromHash() ?? { tab: 'dashboard', params: {} };
+      if (hashOf(r.tab, r.params) === hashOf(current.current.tab, current.current.params)) return;
+      setParams(r.params); setTab(r.tab); setBlocked(null); setMenu(false); window.scrollTo(0, 0);
+    };
+    window.addEventListener('popstate', onNav);
+    return () => window.removeEventListener('popstate', onNav);
+  }, []);
   const refreshSub = () => api('GET', '/billing/subscription').then(setSub).catch(() => {});
   const refreshMe = () => api('GET', '/auth/me').then(setMe).catch(() => {});
 

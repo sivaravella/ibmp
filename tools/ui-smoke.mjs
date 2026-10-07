@@ -120,6 +120,20 @@ for (const role of ROLES.filter((r) => !only || r.name.includes(only))) {
         await closeDrawer();
       }
     }
+
+    // Routing: the address follows the screen, a refresh stays on the invoice, the back button returns to the list.
+    if (role.tabs === BUSINESS_TABS) {
+      const i = [];
+      await evaluate("[...document.querySelectorAll('aside nav button')].find((x) => x.textContent.trim().startsWith('Invoices')).click()"); await sleep(1200);
+      await evaluate("document.querySelector('tr.row-click')?.click()"); await sleep(1500);
+      if (!/^#\/invoice\?id=\d+$/.test(await evaluate('location.hash'))) i.push('the address did not follow the invoice screen');
+      await evaluate('location.reload()'); await sleep(2500);
+      if (!/Place of supply/i.test(await evaluate('document.body.innerText'))) i.push('refresh lost the invoice');
+      await evaluate('history.back()'); await sleep(1500);
+      if (!/Export CSV/.test(await evaluate('document.body.innerText'))) i.push('back did not return to the invoice list');
+      i.push(...take());
+      record('Routing (address, refresh, back)', i);
+    }
   });
 }
 console.log(`\n${checked - failures} of ${checked} screens passed${failures ? `, ${failures} FAILED` : ''}.`);

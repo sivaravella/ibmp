@@ -248,7 +248,7 @@ For the people who run IBMP, at **`/platform`** (its own sign-in, separate from 
 - **List**: search, status chips, an Overdue chip, period (this month, last month, quarter, financial year, custom), customer, sort, due date with days overdue, CSV export; a row opens the invoice. Purchases keep their drawer.
 - **Data**: migration 020 (due date, reference, notes, delivery address, per-line discount and tax, bank/UPI/terms/signatory/credit days); header totals and ledger figures are unchanged.
 - **Also on the invoice (v1.14):** company logo, mode / terms of payment, other references, dispatched through and destination, the field set of Tally's free invoice generator. Not taken from it: "discount on total" and "additional charges", which change the tax base and need a decision on how GST applies to them.
-- **Not done:** reverse charge (printed as "No"), invoice numbering per financial year, no URL routing (refreshing returns to the dashboard).
+- **Not done:** reverse charge (printed as "No"), invoice numbering per financial year.
 
 ## v1.13 - Sign in with Google and LinkedIn
 - **Flow:** the button goes to `/v1/auth/social/<provider>/start`, which redirects to the provider with a signed, 10-minute `state` bound to an HttpOnly cookie (so a callback that did not start in the same browser is refused). The callback (`/v1/auth/social/<provider>/callback`) exchanges the code on the server, reads the OpenID profile, and requires a **verified email**. The result reaches the browser in the URL fragment (`#social=`), which is never sent to a server or logged.
