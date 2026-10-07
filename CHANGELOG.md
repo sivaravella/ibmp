@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.14.2
+- The subscription notice (free trial, renewal, expiry, plan required) moved from a band above every page into the top-right header, with its action button beside it; the duplicate plan pill is gone.
+
 ## 1.14.1
 - The screen is kept in the address (`#/invoice?id=12`), so refresh, the back and forward buttons and a copied link work; the smoke test checks it. Business types: 24 to choose from.
 

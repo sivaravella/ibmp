@@ -63,11 +63,11 @@ function routeFromHash() {
 /** The strip across the top that tells the customer where their subscription stands. */
 function banner(sub) {
   if (!sub) return null;
-  if (sub.status === 'trialing') return { tone: sub.daysLeft <= 3 ? 'warn' : 'info', text: `Free trial: ${sub.daysLeft} day(s) left (ends ${fmtDate(sub.trialEnds)}).`, action: 'Choose a plan' };
-  if (sub.status === 'grace') return { tone: 'warn', text: `Your ${sub.planName} plan ended ${fmtDate(sub.periodEnd)}. Renew within ${sub.graceDays} days to avoid read-only mode.`, action: 'Renew now' };
-  if (sub.status === 'expired') return { tone: 'bad', text: 'Your subscription has expired. The portal is read-only: you can view and export data but not make changes.', action: 'Renew' };
-  if (sub.status === 'active' && sub.daysLeft <= 7 && !sub.cancelAtPeriodEnd) return { tone: 'info', text: `Your ${sub.planName} plan ends in ${sub.daysLeft} day(s) (${fmtDate(sub.periodEnd)}).`, action: 'Renew' };
-  if (sub.status === 'active' && sub.cancelAtPeriodEnd && sub.daysLeft <= 14) return { tone: 'warn', text: `Your ${sub.planName} plan is set not to renew and ends ${fmtDate(sub.periodEnd)}.`, action: 'Keep my plan' };
+  if (sub.status === 'trialing') return { tone: sub.daysLeft <= 3 ? 'warn' : 'info', short: `Free trial: ${sub.daysLeft} day(s) left (ends ${fmtDate(sub.trialEnds)})`, text: `Free trial: ${sub.daysLeft} day(s) left (ends ${fmtDate(sub.trialEnds)}).`, action: 'Choose a plan' };
+  if (sub.status === 'grace') return { tone: 'warn', short: `${sub.planName} plan ended: renew within ${sub.graceDays} days`, text: `Your ${sub.planName} plan ended ${fmtDate(sub.periodEnd)}. Renew within ${sub.graceDays} days to avoid read-only mode.`, action: 'Renew now' };
+  if (sub.status === 'expired') return { tone: 'bad', short: 'Subscription expired: read-only', text: 'Your subscription has expired. The portal is read-only: you can view and export data but not make changes.', action: 'Renew' };
+  if (sub.status === 'active' && sub.daysLeft <= 7 && !sub.cancelAtPeriodEnd) return { tone: 'info', short: `${sub.planName} plan ends in ${sub.daysLeft} day(s)`, text: `Your ${sub.planName} plan ends in ${sub.daysLeft} day(s) (${fmtDate(sub.periodEnd)}).`, action: 'Renew' };
+  if (sub.status === 'active' && sub.cancelAtPeriodEnd && sub.daysLeft <= 14) return { tone: 'warn', short: `${sub.planName} plan ends ${fmtDate(sub.periodEnd)}: not renewing`, text: `Your ${sub.planName} plan is set not to renew and ends ${fmtDate(sub.periodEnd)}.`, action: 'Keep my plan' };
   return null;
 }
 
@@ -121,7 +121,7 @@ export default function App() {
   if (!authed) return <Login onAuth={() => setAuthed(true)} />;
   const [, label, , Page, feature] = TABS.find(([id]) => id === tab);
   const locked = (f) => f && sub && !sub.features.includes(f);
-  const b = blocked?.code === 'PLAN_REQUIRED' || blocked?.code === 'SUBSCRIPTION_EXPIRED' ? { tone: 'bad', text: blocked.message, action: 'View plans' } : banner(sub);
+  const b = blocked?.code === 'PLAN_REQUIRED' || blocked?.code === 'SUBSCRIPTION_EXPIRED' ? { tone: 'bad', short: blocked.code === 'PLAN_REQUIRED' ? 'Not in your plan' : 'Subscription expired: read-only', text: blocked.message, action: 'View plans' } : banner(sub);
   const pill = planPill(sub);
 
   return (
@@ -158,13 +158,12 @@ export default function App() {
           <button className="icon-btn fold-btn" onClick={toggleNav} aria-label={collapsed ? 'Expand the sidebar' : 'Collapse the sidebar'} title={collapsed ? 'Expand the sidebar' : 'Collapse the sidebar'}><Icon name="panel" /></button>
           <div className="crumb"><span>{me?.company ?? 'IBMP'} / </span>{label}</div>
           <div className="spacer" />
-          {pill && <button className={`pill ${pill.tone}`} onClick={() => go('billing')} style={{ minHeight: 0 }}>{pill.text}</button>}
+          {b && tab !== 'billing'
+            ? <div className="topbar-notice" title={b.text}><span className={`pill ${b.tone}`}>{b.short}</span><button className="row-btn primary" onClick={() => go('billing')}>{b.action}</button></div>
+            : pill && <button className={`pill ${pill.tone}`} onClick={() => go('billing')} style={{ minHeight: 0 }}>{pill.text}</button>}
           {me && <div className="avatar" title={`${me.name} · ${me.email}`}>{initials(me.name)}</div>}
         </div>
         <main>
-          {b && tab !== 'billing' && (
-            <div className={`banner ${b.tone}`}><span>{b.text}</span><button onClick={() => go('billing')}>{b.action}</button></div>
-          )}
           <ErrorBoundary resetKey={tab}>
             {locked(feature)
               ? <div className="card"><h2>Not included in your plan</h2><p>Payroll, attendance and leave management are available on the Professional plan and above.</p><button className="primary" onClick={() => go('billing')}>See plans</button></div>
