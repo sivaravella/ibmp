@@ -28,6 +28,7 @@ const EDocs = page(() => import('./pages/EDocs.jsx'));
 const Tds = page(() => import('./pages/Tds.jsx'));
 const Statutory = page(() => import('./pages/Statutory.jsx'));
 const Companies = page(() => import('./pages/Companies.jsx'));
+const Security = page(() => import('./pages/Security.jsx'));
 
 // [id, label, icon, page, feature the plan must include (omit = always available)], grouped for the sidebar.
 const NAV = [
@@ -41,7 +42,7 @@ const NAV = [
   ['People', [
     ['payroll', 'Payroll', 'briefcase', Payroll, 'hr'], ['attendance', 'Attendance', 'userCheck', Attendance, 'hr'],
     ['leave', 'Leave', 'sun', Leave, 'hr'], ['statutory', 'PF & ESI', 'landmark', Statutory, 'hr']]],
-  ['Account', [['companies', 'Companies', 'building', Companies], ['billing', 'Billing', 'card', Billing]]],
+  ['Account', [['companies', 'Companies', 'building', Companies], ['billing', 'Billing', 'card', Billing], ['security', 'Sign-in & security', 'shield', Security]]],
 ];
 // Screens reached from another screen rather than the sidebar; the sidebar keeps the entry they belong to highlighted.
 const InvoiceNew = page(() => import('./pages/InvoiceNew.jsx'));

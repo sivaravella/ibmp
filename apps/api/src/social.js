@@ -88,6 +88,7 @@ export function socialRoutes(pool, { providers = {}, publicUrl = '', bcryptRound
     const s = pending(token);
     const u = await createAccount(pool, { ...b, name: s.name, email: s.email }, await bcrypt.hash(crypto.randomBytes(32).toString('hex'), bcryptRounds));     // no password: they sign in with the provider
     await pool.query('INSERT INTO user_identities (user_id, provider, subject, email) VALUES ($1,$2,$3,$4)', [u.id, s.p, s.sub, s.email]);
+    await pool.query('UPDATE users SET password_set=false WHERE id=$1', [u.id]);
     res.status(201).json({ token: await loginToken(pool, { ...u, active_company_id: u.company_id }) });
   }));
 

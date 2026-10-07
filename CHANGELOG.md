@@ -2,6 +2,10 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.19.0
+- New screen **Sign-in and security** (Account menu): change or set a password, see the Google and LinkedIn accounts linked to your login and unlink them. A person who signed up with Google or LinkedIn has no password until they set one, and cannot unlink their only way in. Migration 026.
+- Additional charges on an invoice take an optional SAC code (default 9965).
+
 ## 1.18.0
 - Reverse charge on purchases: tick "Reverse charge" on a vendor bill when the vendor has not charged GST and the law makes you pay it. The vendor is owed only the taxable value; the tax is booked as your liability and as your input credit. GSTR-3B shows it in 3.1(d) and 4(A)(3) (and in the portal file as `isup_rev` and ISRC), and it is payable in cash, never from credit, though the credit it creates can be set against ordinary output tax. Such bills carry an RCM tag and cannot be returned from the screen (a return changes the tax you assessed: use a manual journal). Migration 025.
 

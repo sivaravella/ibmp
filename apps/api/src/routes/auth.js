@@ -101,6 +101,32 @@ export function authRoutes(pool, { bcryptRounds = 10 } = {}) {
     });
   }));
 
+  // ---- how this person signs in: password and linked Google / LinkedIn accounts ----
+  const security = async (userId) => {
+    const u = (await pool.query('SELECT email, password_set FROM users WHERE id=$1', [userId])).rows[0];
+    const identities = (await pool.query('SELECT provider, email, created_at FROM user_identities WHERE user_id=$1 ORDER BY id', [userId])).rows;
+    return { email: u.email, hasPassword: u.password_set, identities };
+  };
+  r.get('/security', requireAuth, h(async (req, res) => res.json(await security(req.user.id))));
+
+  r.post('/password', requireAuth, h(async (req, res) => {
+    const b = z.object({ currentPassword: z.string().optional(), newPassword: z.string().min(8, 'Use at least 8 characters') }).parse(req.body);
+    const u = (await pool.query('SELECT password_hash, password_set FROM users WHERE id=$1', [req.user.id])).rows[0];
+    if (u.password_set && !(await bcrypt.compare(b.currentPassword ?? '', u.password_hash))) throw httpError(400, 'The current password is not correct.');
+    await pool.query('UPDATE users SET password_hash=$1, password_set=true WHERE id=$2', [await bcrypt.hash(b.newPassword, bcryptRounds), req.user.id]);
+    res.json(await security(req.user.id));
+  }));
+
+  // Unlink a provider. The last way to sign in cannot be removed: without a password a person would be locked out.
+  r.delete('/identities/:provider', requireAuth, h(async (req, res) => {
+    const s = await security(req.user.id);
+    const mine = s.identities.find((i) => i.provider === req.params.provider);
+    if (!mine) throw httpError(404, 'That account is not linked.');
+    if (!s.hasPassword && s.identities.length < 2) throw Object.assign(httpError(400, 'This is your only way to sign in. Set a password first, then unlink it.'), { code: 'LAST_SIGN_IN' });
+    await pool.query('DELETE FROM user_identities WHERE user_id=$1 AND provider=$2', [req.user.id, req.params.provider]);
+    res.json(await security(req.user.id));
+  }));
+
   // Change the active company: issues a new token for a company the user belongs to.
   r.post('/switch', requireAuth, h(async (req, res) => {
     const { companyId } = z.object({ companyId: z.number().int() }).parse(req.body);

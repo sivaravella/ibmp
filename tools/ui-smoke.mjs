@@ -18,7 +18,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const BUSINESS_TABS = ['Dashboard', ['Invoices', { screens: ['New invoice', 'first row'] }], ['Purchases', { opens: ['New bill'] }], 'Returns', ['Parties', { opens: ['Add party'] }], ['Items', { opens: ['Add item'] }],
   ['Ledger', { subs: ['Journal', 'Trial balance', 'Party statements'], opens: ['Chart of accounts>Add account', 'Journal>Manual journal'] }], ['GST reports', { subs: ['GSTR-3B summary'] }], 'GST filing',
   ['E-invoice & e-way', { subs: ['E-way bills', 'Setup'] }], ['TDS & Form 16', { subs: ['Form 16', 'Other payments & 26Q', 'Setup & challans'] }], 'Compliance',
-  ['Payroll', { subs: ['Employees'], opens: ['Employees>Add employee'] }], 'Attendance', ['Leave', { subs: ['Balances', 'Leave types'], opens: ['Applications>Apply for leave'] }], 'PF & ESI', 'Companies', ['Billing', { subs: ['Invoices'] }]];
+  ['Payroll', { subs: ['Employees'], opens: ['Employees>Add employee'] }], 'Attendance', ['Leave', { subs: ['Balances', 'Leave types'], opens: ['Applications>Apply for leave'] }], 'PF & ESI', 'Companies', ['Billing', { subs: ['Invoices'] }], 'Sign-in & security'];
 const PLATFORM_TABS = ['Overview', 'Consultants', 'Companies', 'Billing', 'Audit log', 'Staff & account'];
 const ROLES = [
   { name: 'business owner (rich data)', url: '/v1/auth/login', body: { email: 'demo@ibmp.in', password: 'password123' }, key: 'ibmp_token', path: '/', tabs: BUSINESS_TABS },

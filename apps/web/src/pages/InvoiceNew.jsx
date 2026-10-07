@@ -45,7 +45,7 @@ export default function InvoiceNew({ go, params }) {
     api('GET', `/invoices/${params.from}/document`).then((d) => {
       const i = d.invoice;
       setF((x) => ({ ...x, partyId: String(i.partyId), reference: i.reference ?? '', notes: i.notes ?? '', dispatchedThrough: i.dispatchedThrough ?? '', destination: i.destination ?? '', paymentTerms: i.paymentTerms ?? '', otherRefs: i.otherRefs ?? '', discountPct: Number(i.discountPct) > 0 ? String(Number(i.discountPct)) : '', shipDiff: !!i.shipTo, shipTo: i.shipTo ?? '', pos: i.placeOfSupply !== d.party.stateCode ? i.placeOfSupply : '' }));
-      setCharges(i.lines.filter((l) => l.itemId == null).map((l) => ({ label: l.description, amount: String(Number(l.taxable)) })));
+      setCharges(i.lines.filter((l) => l.itemId == null).map((l) => ({ label: l.description, amount: String(Number(l.taxable)), hsn: l.hsn && l.hsn !== '9965' ? l.hsn : '' })));
       setLines(i.lines.filter((l) => l.itemId != null).map((l) => ({ itemId: String(l.itemId), description: l.description, qty: String(Number(l.qty)), rate: String(Number(l.rate)), discountPct: Number(l.discountPct) ? String(Number(l.discountPct)) : '' })));
     }).catch((e) => setErr(e.message));
   }, [params?.from]);
@@ -66,7 +66,7 @@ export default function InvoiceNew({ go, params }) {
 
   const calcInput = lines.map((l) => { const it = itemOf(l.itemId); return { itemId: l.itemId, description: l.description || it?.name || '', hsn: it?.hsn ?? '', unit: it?.unit ?? 'Nos', qty: N(l.qty), rate: l.rate === '' ? N(it?.rate) : N(l.rate), gstPct: N(it?.gstPct), discountPct: N(l.discountPct), stock: it ? N(it.stock) : null }; });
   // Additional charges follow the highest GST rate on the invoice; they are never discounted.
-  const chargeInput = charges.filter((c) => N(c.amount) > 0).map((c) => ({ charge: true, itemId: '', description: c.label || 'Additional charge', hsn: '9965', unit: 'OTH', qty: 1, rate: N(c.amount), gstPct: 0, stock: null }));
+  const chargeInput = charges.filter((c) => N(c.amount) > 0).map((c) => ({ charge: true, itemId: '', description: c.label || 'Additional charge', hsn: (c.hsn && c.hsn.length >= 4) ? c.hsn : '9965', unit: 'OTH', qty: 1, rate: N(c.amount), gstPct: 0, stock: null }));
   const topRate = Math.max(0, ...calcInput.map((l) => l.gstPct));
   const calc = useMemo(() => computeDraft([...calcInput, ...chargeInput], profile?.stateCode, posCode, N(f.discountPct)), [JSON.stringify(calcInput), JSON.stringify(chargeInput), profile?.stateCode, posCode, f.discountPct]);
 
@@ -95,7 +95,7 @@ export default function InvoiceNew({ go, params }) {
     try {
       const inv = await api('POST', '/invoices', {
         partyId: Number(f.partyId), date: f.date, dueDate: f.dueDate || null, reference: f.reference || undefined, notes: f.notes || undefined, dispatchedThrough: f.dispatchedThrough || undefined, destination: f.destination || undefined, paymentTerms: f.paymentTerms || undefined, otherRefs: f.otherRefs || undefined, ...(N(f.discountPct) > 0 ? { discountPct: N(f.discountPct) } : {}), shipTo: f.shipDiff && f.shipTo ? f.shipTo : undefined, placeOfSupply: f.pos || undefined,
-        ...(chargeInput.length ? { charges: chargeInput.map((c) => ({ label: c.description, amount: c.rate })) } : {}),
+        ...(chargeInput.length ? { charges: chargeInput.map((c) => ({ label: c.description, amount: c.rate, ...(c.hsn !== '9965' ? { hsn: c.hsn } : {}) })) } : {}),
         lines: lines.map((l, i) => ({ itemId: Number(l.itemId), qty: N(l.qty), rate: calcInput[i].rate, ...(N(l.discountPct) > 0 ? { discountPct: N(l.discountPct) } : {}), ...(l.description && l.description !== itemOf(l.itemId)?.name ? { description: l.description } : {}) })),
       });
       if (another) { reset(`Invoice ${inv.number} created.`); setBusy(false); } else go('invoice', { id: inv.id, created: true });
@@ -163,8 +163,9 @@ export default function InvoiceNew({ go, params }) {
               <div className="form-section" style={{ margin: '14px 0 6px' }}>Additional charges</div>
               {charges.map((c, i) => (
                 <div className="row" key={i} style={{ marginBottom: 6, flexWrap: 'nowrap' }}>
-                  <input list="charge-names" value={c.label} onChange={(e) => setCharges(charges.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Freight, packing, insurance..." maxLength={60} aria-label="Charge" />
-                  <input type="number" min="0" step="0.01" value={c.amount} onChange={(e) => setCharges(charges.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} placeholder="Amount (₹)" style={{ width: 130 }} aria-label="Charge amount" />
+                  <input list="charge-names" value={c.label} onChange={(e) => setCharges(charges.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Freight, packing, insurance..." maxLength={60} aria-label="Charge" style={{ flex: 1, minWidth: 0 }} />
+                  <input value={c.hsn ?? ''} onChange={(e) => setCharges(charges.map((x, j) => (j === i ? { ...x, hsn: e.target.value.replace(/\D/g, '').slice(0, 8) } : x)))} placeholder="SAC 9965" inputMode="numeric" style={{ width: 92, flex: "none" }} aria-label="SAC code" title="Service accounting code; 9965 (goods transport) if left empty" />
+                  <input type="number" min="0" step="0.01" value={c.amount} onChange={(e) => setCharges(charges.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} placeholder="Amount (₹)" style={{ width: 112, flex: "none" }} aria-label="Charge amount" />
                   <button type="button" className="icon-btn" onClick={() => setCharges(charges.filter((_, j) => j !== i))} aria-label="Remove charge"><Icon name="x" size={15} /></button>
                 </div>))}
               <datalist id="charge-names"><option value="Freight" /><option value="Packing" /><option value="Insurance" /><option value="Loading and unloading" /><option value="Installation" /></datalist>

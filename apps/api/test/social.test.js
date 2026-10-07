@@ -121,3 +121,25 @@ test('a sign-up token cannot be used as a session and a session token cannot fin
   const reg = await post('/v1/auth/login', { email: 'sam@example.com', password: 'password123' });
   assert.equal((await post('/v1/auth/social/complete', { token: reg.body.token, company: 'X', sector: 'trading', stateCode: '29' })).status, 400);
 });
+
+test('unlinking: a social-only account must set a password before it can remove its only provider', async () => {
+  profile = { sub: 'u-1', email: 'unlink@example.com', email_verified: true, name: 'Una Link' };
+  const first = await signIn('google');
+  const done = await post('/v1/auth/social/complete', { token: first.value, company: 'Unlink Co', sector: 'trading', stateCode: '29' });
+  const auth = { authorization: `Bearer ${done.body.token}`, 'content-type': 'application/json' };
+  const sec = async (method, path, body) => { const r = await fetch(origin + '/v1/auth' + path, { method, headers: auth, body: body ? JSON.stringify(body) : undefined }); return { status: r.status, body: await r.json() }; };
+
+  let s = await sec('GET', '/security');
+  assert.deepEqual([s.body.email, s.body.hasPassword, s.body.identities.map((i) => i.provider)], ['unlink@example.com', false, ['google']]);
+  assert.equal((await sec('DELETE', '/identities/google')).status, 400);                              // the only way in
+  assert.equal((await sec('POST', '/password', { newPassword: 'short' })).status, 400);
+  s = await sec('POST', '/password', { newPassword: 'a-good-password' });
+  assert.equal(s.body.hasPassword, true);
+  assert.equal((await post('/v1/auth/login', { email: 'unlink@example.com', password: 'a-good-password' })).status, 200);
+  assert.equal((await sec('POST', '/password', { currentPassword: 'wrong', newPassword: 'another-password' })).status, 400);
+  assert.equal((await sec('POST', '/password', { currentPassword: 'a-good-password', newPassword: 'another-password' })).status, 200);
+  assert.equal((await sec('DELETE', '/identities/linkedin')).status, 404);                            // never linked
+  s = await sec('DELETE', '/identities/google');
+  assert.deepEqual([s.status, s.body.identities.length], [200, 0]);
+  assert.equal((await post('/v1/auth/login', { email: 'unlink@example.com', password: 'another-password' })).status, 200);   // the password still works
+});
