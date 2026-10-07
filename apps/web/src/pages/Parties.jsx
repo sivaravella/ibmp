@@ -78,7 +78,7 @@ export default function Parties() {
   );
 }
 
-function NewParty({ onClose, onDone }) {
+export function NewParty({ onClose, onDone }) {
   const [f, setF] = useState({ type: 'customer', name: '', gstin: '', stateCode: '', pan: '', phone: '', email: '' });
   const [found, setFound] = useState(null);
   const [err, setErr] = useState('');

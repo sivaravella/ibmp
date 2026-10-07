@@ -5,15 +5,25 @@ import { computeInvoice } from '../gst.js';
 import { recordPayment } from '../payments.js';
 import { assertPeriodOpen } from '../filing-lock.js';
 import { A, post, taxLines } from '../ledger.js';
+import { STATES, stateName } from '../states.js';
+import { splitLineTax } from '../gst.js';
 
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const invoiceSchema = z.object({
   partyId: z.number().int(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: isoDate,
+  dueDate: isoDate.nullable().optional(),
+  reference: z.string().trim().max(60).optional(),
+  notes: z.string().trim().max(500).optional(),
+  shipTo: z.string().trim().max(300).optional(),
+  placeOfSupply: z.string().refine((v) => v in STATES, 'Unknown state code').optional(),     // when it differs from the buyer's state
   lines: z.array(z.object({
     itemId: z.number().int(),
     qty: z.number().positive(),
     rate: z.number().nonnegative().optional(),
-  })).min(1),
+    discountPct: z.number().min(0).max(100).optional(),
+    description: z.string().trim().min(1).max(200).optional(),
+  })).min(1).max(100),
 });
 
 export function invoiceRoutes(pool) {
@@ -35,6 +45,49 @@ export function invoiceRoutes(pool) {
     res.json(inv);
   }));
 
+  /**
+   * The invoice as a document: supplier, buyer, lines with each line's tax, the tax summary by HSN and rate, and the e-invoice and
+   * e-way bill details when they exist. Invoices made before per-line tax was stored have it worked out here the same way.
+   */
+  r.get('/invoices/:id/document', h(async (req, res) => {
+    const cid = req.user.companyId;
+    const inv = (await pool.query('SELECT * FROM invoices WHERE id=$1 AND company_id=$2', [req.params.id, cid])).rows[0];
+    if (!inv) throw httpError(404, 'Not found');
+    const company = (await pool.query('SELECT * FROM companies WHERE id=$1', [cid])).rows[0];
+    const party = (await pool.query('SELECT * FROM parties WHERE id=$1', [inv.party_id])).rows[0];
+    const rows = (await pool.query('SELECT * FROM invoice_lines WHERE invoice_id=$1 ORDER BY id', [inv.id])).rows;
+    const paise = (n) => Math.round(Number(n) * 100), rupees = (p) => p / 100;
+    const intra = company.state_code === inv.place_of_supply;
+    let lines = rows;
+    if (rows.some((l) => l.cgst === null)) {
+      const taxes = rows.map((l) => Math.round((paise(l.taxable) * Number(l.gst_pct)) / 100));
+      const sp = splitLineTax(taxes);
+      lines = rows.map((l, i) => ({ ...l, cgst: intra ? rupees(sp[i].cgst) : 0, sgst: intra ? rupees(sp[i].sgst) : 0, igst: intra ? 0 : rupees(taxes[i]) }));
+    }
+    // HSN and rate summary (table 12 of GSTR-1 is the same idea): what each code and rate contributed.
+    const sum = new Map();
+    for (const l of lines) {
+      const k = `${l.hsn ?? ''}|${Number(l.gst_pct)}`;
+      const x = sum.get(k) ?? { hsn: l.hsn ?? '', rate: Number(l.gst_pct), taxable: 0, cgst: 0, sgst: 0, igst: 0 };
+      x.taxable += paise(l.taxable); x.cgst += paise(l.cgst); x.sgst += paise(l.sgst); x.igst += paise(l.igst);
+      sum.set(k, x);
+    }
+    const taxSummary = [...sum.values()].map((x) => ({ hsn: x.hsn, rate: x.rate, taxable: rupees(x.taxable), cgst: rupees(x.cgst), sgst: rupees(x.sgst), igst: rupees(x.igst), tax: rupees(x.cgst + x.sgst + x.igst) }));
+    const einv = (await pool.query("SELECT status, irn, ack_no, ack_date, signed_qr FROM einvoices WHERE company_id=$1 AND doc_type='INV' AND doc_id=$2", [cid, inv.id])).rows[0] ?? null;
+    const ewb = (await pool.query("SELECT ewb_no, valid_upto, status FROM ewaybills WHERE company_id=$1 AND invoice_id=$2 ORDER BY id DESC LIMIT 1", [cid, inv.id])).rows[0] ?? null;
+    res.json({
+      invoice: { ...inv, lines, intra, placeOfSupplyName: stateName(inv.place_of_supply), balance: Math.max(0, Number(inv.total) - Number(inv.paid) - Number(inv.returned)) },
+      company: {
+        name: company.legal_name || company.name, tradeName: company.trade_name, gstin: company.gstin, pan: company.pan || (company.gstin ? company.gstin.slice(2, 12) : null),
+        stateCode: company.state_code, stateName: stateName(company.state_code), addr1: company.addr1, addr2: company.addr2, loc: company.loc, pin: company.pin, phone: company.phone, email: company.email,
+        bankName: company.bank_name, bankAccount: company.bank_account, bankIfsc: company.bank_ifsc, bankBranch: company.bank_branch, upiId: company.upi_id,
+        terms: company.invoice_terms, footer: company.invoice_footer, signatory: company.signatory,
+      },
+      party: { name: party.name, gstin: party.gstin, pan: party.pan, stateCode: party.state_code, stateName: stateName(party.state_code), addr1: party.addr1, addr2: party.addr2, loc: party.loc, pin: party.pin, phone: party.phone, email: party.email },
+      taxSummary, einvoice: einv, ewaybill: ewb,
+    });
+  }));
+
   r.post('/invoices', h(async (req, res) => {
     const b = invoiceSchema.parse(req.body);
     const cid = req.user.companyId;
@@ -52,22 +105,25 @@ export function invoiceRoutes(pool) {
         const it = (await client.query('SELECT * FROM items WHERE id=$1 AND company_id=$2', [l.itemId, cid])).rows[0];
         if (!it) throw httpError(400, `Unknown item ${l.itemId}`);
         if (Number(it.stock) < l.qty) throw httpError(400, `Insufficient stock for ${it.name}`);
-        lines.push({ item: it, qty: l.qty, rate: l.rate ?? Number(it.rate), gst_pct: Number(it.gst_pct) });
+        lines.push({ item: it, qty: l.qty, rate: l.rate ?? Number(it.rate), gst_pct: Number(it.gst_pct), discount_pct: l.discountPct ?? 0, description: l.description ?? it.name });
       }
-      const calc = computeInvoice(lines, company.state_code, party.state_code);
+      if (b.dueDate && b.dueDate < b.date) throw httpError(400, 'The due date cannot be before the invoice date.');
+      const pos = b.placeOfSupply ?? party.state_code;       // the state the supply is made in decides CGST+SGST or IGST
+      const dueDate = b.dueDate === undefined ? (Number(company.payment_days) > 0 ? new Date(Date.parse(b.date) + Number(company.payment_days) * 86400000).toISOString().slice(0, 10) : null) : b.dueDate;
+      const calc = computeInvoice(lines, company.state_code, pos);
 
       const seq = (await client.query(
         'UPDATE companies SET invoice_seq = invoice_seq + 1 WHERE id=$1 RETURNING invoice_seq', [cid])).rows[0].invoice_seq;
       const number = `INV-${String(seq).padStart(4, '0')}`;
       const inv = (await client.query(
-        `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
-        [cid, party.id, number, b.date, party.state_code, calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total])).rows[0];
+        `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total,due_date,reference,notes,ship_to,discount)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+        [cid, party.id, number, b.date, pos, calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total, dueDate, b.reference || null, b.notes || null, b.shipTo || null, calc.discount])).rows[0];
 
       for (const l of calc.lines) {
         await client.query(
-          `INSERT INTO invoice_lines (invoice_id,item_id,description,hsn,qty,rate,gst_pct,taxable) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-          [inv.id, l.item.id, l.item.name, l.item.hsn, l.qty, l.rate, l.gst_pct, l.taxable]);
+          `INSERT INTO invoice_lines (invoice_id,item_id,description,hsn,qty,rate,gst_pct,taxable,discount_pct,discount,cgst,sgst,igst,unit) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+          [inv.id, l.item.id, l.description, l.item.hsn, l.qty, l.rate, l.gst_pct, l.taxable, l.discount_pct, l.discount, l.cgst, l.sgst, l.igst, l.item.unit]);
         await client.query('UPDATE items SET stock = stock - $1 WHERE id=$2', [l.qty, l.item.id]);
       }
       await post(client, {

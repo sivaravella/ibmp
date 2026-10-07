@@ -71,7 +71,7 @@ export function buildEinvoice({ type, company, party, doc, lines, against, units
     const sac = hsn.startsWith('99');
     return {
       SlNo: String(i + 1), PrdDesc: l.description, IsServc: sac ? 'Y' : 'N', HsnCd: hsn, Qty: qty, Unit: u.code,
-      UnitPrice: valueOnly ? n2(R(a.taxable)) : n2(l.rate), TotAmt: n2(R(a.taxable)), Discount: 0, PreTaxVal: n2(R(a.taxable)), AssAmt: n2(R(a.taxable)),
+      UnitPrice: valueOnly ? n2(R(a.taxable)) : n2(l.rate), TotAmt: n2(R(valueOnly ? a.taxable : Math.max(a.taxable, Math.round(qty * P(l.rate))))), Discount: n2(R(valueOnly ? 0 : Math.max(0, Math.round(qty * P(l.rate)) - a.taxable))), PreTaxVal: n2(R(a.taxable)), AssAmt: n2(R(a.taxable)),
       GstRt: rate, IgstAmt: n2(R(a.igst)), CgstAmt: n2(R(a.cgst)), SgstAmt: n2(R(a.sgst)), CesRt: 0, CesAmt: 0, CesNonAdvlAmt: 0, StateCesRt: 0, StateCesAmt: 0, StateCesNonAdvlAmt: 0, OthChrg: 0,
       TotItemVal: n2(R(a.taxable + a.igst + a.cgst + a.sgst)), _a: a,
     };

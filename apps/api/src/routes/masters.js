@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { h, httpError } from '../util.js';
 import { GSTIN_RE, stateFromGstin } from '../gst.js';
 import { PAN_RE } from '../tds.js';
+import { STATES } from '../states.js';
 
 const partySchema = z.object({
   type: z.enum(['customer', 'vendor']),
@@ -51,6 +52,9 @@ export function masterRoutes(pool) {
     if (!rows[0]) throw httpError(404, 'Not found');
     res.json(rows[0]);
   }));
+
+  // State and union territory codes, for place of supply and the tax invoice.
+  r.get('/meta/states', h(async (_req, res) => res.json(Object.entries(STATES).map(([code, name]) => ({ code, name })))));
 
   r.get('/items', h(async (req, res) => {
     const { rows } = await pool.query('SELECT * FROM items WHERE company_id=$1 ORDER BY name', [req.user.companyId]);

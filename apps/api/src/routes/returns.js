@@ -45,6 +45,9 @@ async function returnable(q, K, docId) {
     };
   });
 }
+/** What one unit actually cost the buyer, in paise: the rate, or the rate less the line's discount. */
+const netUnit = (l) => (Number(l.discount) > 0 ? (Math.round(Number(l.taxable) * 100)) / Number(l.qty) : Math.round(Number(l.rate) * 100));
+
 export function returnRoutes(pool) {
   const r = Router();
 
@@ -97,7 +100,7 @@ export function returnRoutes(pool) {
           if (!p.qty) throw httpError(400, 'qty is required for goods returns');
           if (p.qty > l.remaining_qty + 1e-9) throw httpError(400, `Return qty for ${l.description} exceeds balance (${l.remaining_qty})`);
           qty = p.qty;
-          taxable = Math.abs(p.qty - l.remaining_qty) < 1e-9 ? remTax : Math.min(Math.round(p.qty * paise(l.rate)), remTax);
+          taxable = Math.abs(p.qty - l.remaining_qty) < 1e-9 ? remTax : Math.min(Math.round(p.qty * netUnit(l)), remTax);
         } else {
           if (!p.amount) throw httpError(400, 'amount is required for value-only notes');
           taxable = paise(p.amount);
@@ -136,7 +139,7 @@ export function returnRoutes(pool) {
       for (const o of out) {
         await client.query(
           `INSERT INTO note_lines (note_id,source_line_id,item_id,description,hsn,qty,rate,gst_pct,taxable) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-          [note.id, o.l.id, o.l.item_id, o.l.description, o.l.hsn, o.qty, o.l.rate, o.l.gst_pct, rupees(o.taxable)]);
+          [note.id, o.l.id, o.l.item_id, o.l.description, o.l.hsn, o.qty, Number(o.l.discount) > 0 ? rupees(Math.round(netUnit(o.l))) : o.l.rate, o.l.gst_pct, rupees(o.taxable)]);
         if (b.type === 'goods')
           await client.query('UPDATE items SET stock = stock + $1 WHERE id=$2', [K.stockSign * o.qty, o.l.item_id]);
       }

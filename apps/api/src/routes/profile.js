@@ -10,12 +10,17 @@ const pin = z.string().regex(PIN_RE, 'PIN code must be 6 digits').nullable();
 const profileSchema = z.object({
   legalName: text(100), tradeName: text(100), addr1: text(100), addr2: text(100), loc: text(50), pin,
   phone: z.string().regex(/^\d{6,12}$/, 'Phone must be 6 to 12 digits').nullable(), email: z.string().email().nullable(),
+  // printed on tax invoices
+  bankName: text(80), bankAccount: z.string().trim().regex(/^\d{6,20}$/, 'Account number is 6 to 20 digits').nullable(), bankIfsc: z.string().trim().toUpperCase().regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, 'IFSC looks like HDFC0001234').nullable(),
+  bankBranch: text(80), upiId: z.string().trim().regex(/^[\w.\-]{2,}@[\w]{2,}$/, 'UPI ID looks like name@bank').nullable(),
+  invoiceTerms: text(1000), invoiceFooter: text(200), signatory: text(80), paymentDays: z.number().int().min(0).max(365),
 }).partial();
 
-const COLS = { legalName: 'legal_name', tradeName: 'trade_name' };
+const snake = (k) => k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+const COLS = new Proxy({}, { get: (_t, k) => (typeof k === 'string' ? snake(k) : undefined) });
 const blank = (v) => (v === '' ? null : v);
 
-const PROFILE_FIELDS = 'id, name, legal_name, trade_name, gstin, state_code, addr1, addr2, loc, pin, phone, email';
+const PROFILE_FIELDS = 'id, name, legal_name, trade_name, gstin, state_code, addr1, addr2, loc, pin, phone, email, pan, bank_name, bank_account, bank_ifsc, bank_branch, upi_id, invoice_terms, invoice_footer, signatory, payment_days';
 const AATO_LIMIT = 5_00_00_000;      // e-invoicing applies above ₹5 crore aggregate turnover (check the current notification)
 
 export function profileRoutes(pool) {

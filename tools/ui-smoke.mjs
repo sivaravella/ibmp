@@ -15,7 +15,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // A screen is its menu text, or [menu text, { subs: other views to open (exact button text), opens: buttons that open a drawer }].
 // A drawer button written as 'View>Button' first opens the view, then the drawer.
-const BUSINESS_TABS = ['Dashboard', ['Invoices', { opens: ['New invoice'] }], ['Purchases', { opens: ['New bill'] }], 'Returns', ['Parties', { opens: ['Add party'] }], ['Items', { opens: ['Add item'] }],
+const BUSINESS_TABS = ['Dashboard', ['Invoices', { screens: ['New invoice', 'first row'] }], ['Purchases', { opens: ['New bill'] }], 'Returns', ['Parties', { opens: ['Add party'] }], ['Items', { opens: ['Add item'] }],
   ['Ledger', { subs: ['Journal', 'Trial balance', 'Party statements'], opens: ['Chart of accounts>Add account', 'Journal>Manual journal'] }], ['GST reports', { subs: ['GSTR-3B summary'] }], 'GST filing',
   ['E-invoice & e-way', { subs: ['E-way bills', 'Setup'] }], ['TDS & Form 16', { subs: ['Form 16', 'Other payments & 26Q', 'Setup & challans'] }], 'Compliance',
   ['Payroll', { subs: ['Employees'], opens: ['Employees>Add employee'] }], 'Attendance', ['Leave', { subs: ['Balances', 'Leave types'], opens: ['Applications>Apply for leave'] }], 'PF & ESI', 'Companies', ['Billing', { subs: ['Invoices'] }]];
@@ -94,6 +94,19 @@ for (const role of ROLES.filter((r) => !only || r.name.includes(only))) {
         await sleep(1300);
         await inspect(i);
         record(`${tab} › ${sub}`, i);
+      }
+      // A full screen reached from this one: a button (or the first table row), then back with the "All invoices" button.
+      for (const screen of extra.screens ?? []) {
+        const i = [];
+        const clicked2 = screen === 'first row' ? await evaluate("(() => { const r = document.querySelector('tr.row-click'); if (!r) return false; r.click(); return true; })()") : await press(screen);
+        if (!clicked2) i.push(`"${screen}" not found`);
+        await sleep(2200);
+        const t2 = await inspect(i);
+        if (t2.trim().length < 150) i.push('screen is almost empty');
+        if (screen === 'New invoice' && !/Preview|TAX INVOICE|Tax Invoice/i.test(t2)) i.push('no invoice preview');
+        if (screen === 'first row' && !/Place of supply/i.test(t2)) i.push('no invoice document');
+        record(`${tab} › ${screen} (screen)`, i);
+        await press('‹ All invoices'); await sleep(900);
       }
       for (const open of extra.opens ?? []) {
         const [view, button] = open.includes('>') ? open.split('>') : [null, open];

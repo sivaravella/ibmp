@@ -51,6 +51,7 @@ try {
   if (storage.length) await send('Page.addScriptToEvaluateOnNewDocument', { source: storage.map(([k, v]) => `localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)})`).join(';') });
   await send('Page.navigate', { url: `${BASE}${route}` }); await sleep(wait);
   for (const click of clicks) {
+    if (click === '@row') { await send('Runtime.evaluate', { expression: "document.querySelector('tr.row-click')?.click()" }); await sleep(wait); continue; }     // the first clickable table row
     await send('Runtime.evaluate', { expression: `(() => { const b = [...document.querySelectorAll('button, a')].find((x) => (${JSON.stringify(click)}[0] === '=' ? x.textContent.trim() === ${JSON.stringify(click)}.slice(1) : x.textContent.trim().startsWith(${JSON.stringify(click)}))); if (b) b.click(); return !!b; })()` });
     await sleep(wait);
   }

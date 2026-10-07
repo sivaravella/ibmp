@@ -2,6 +2,11 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.12.0
+- Invoices: create an invoice on its own full screen with a live A4 preview; an invoice view screen (print one copy or all three, record a receipt, return, duplicate); a professional GST tax invoice (rule 46: supplier/recipient GSTIN and state, place of supply, HSN/SAC, per-line discount and CGST/SGST/IGST, tax summary by HSN and rate, total in words, bank details and UPI QR, terms, signatory, e-invoice IRN/QR, e-way bill, Bill of Supply when nothing is taxable).
+- Invoice list: search plus status, overdue, period, customer and sort filters, due-date column, CSV export.
+- Due date and credit period, buyer reference/PO, delivery address, notes, place-of-supply override; invoice settings (bank, UPI, terms, signatory). Migration 020.
+
 ## 1.11.0
 - Data-entry screens redesigned with drawers, summary cards, search and filters (invoices, purchases, parties, items, returns, ledger, payroll, leave, GST reports, e-invoice); full-width layout, collapsible sidebar, 12-column dashboard grid; the UI smoke test now covers 58 views including drawers.
 

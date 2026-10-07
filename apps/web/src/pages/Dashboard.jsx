@@ -43,7 +43,7 @@ export default function Dashboard({ go, me }) {
     <>
       <PageHeader title={`${greeting()}${first ? `, ${first}` : ''}`} subtitle={`${me?.company ?? ''} · figures exclude GST unless stated · as of ${a.asOf.split('-').reverse().join('-')}`}>
         <Segmented label="Period" value={months} onChange={setMonths} options={[[6, '6 months'], [12, '12 months'], [24, '24 months']]} />
-        <button className="primary" onClick={() => go('invoices')}><Icon name="plus" size={15} /> New invoice</button>
+        <button className="primary" onClick={() => go('invoice-new')}><Icon name="plus" size={15} /> New invoice</button>
       </PageHeader>
 
       <div className="kpi-grid">
@@ -55,7 +55,7 @@ export default function Dashboard({ go, me }) {
 
       {noActivity && (
         <Panel className="mb"><EmptyState icon="file" title="No sales or purchases yet" text="Create your first invoice or record a vendor bill and this page fills with trends, ageing and tax figures.">
-          <div className="row"><button className="primary" onClick={() => go('invoices')}>Create an invoice</button><button onClick={() => go('purchases')}>Record a bill</button></div>
+          <div className="row"><button className="primary" onClick={() => go('invoice-new')}>Create an invoice</button><button onClick={() => go('purchases')}>Record a bill</button></div>
         </EmptyState></Panel>
       )}
 

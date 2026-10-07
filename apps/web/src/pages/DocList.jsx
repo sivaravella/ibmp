@@ -11,6 +11,20 @@ import ReturnForm from './ReturnForm.jsx';
 const SLABS = [0, 5, 12, 18, 28];
 const today = () => new Date().toISOString().slice(0, 10);
 const num = (v) => Number(v) || 0;
+const isoDay = (d) => d.toISOString().slice(0, 10);
+const RANGES = [['all', 'All time'], ['month', 'This month'], ['last', 'Last month'], ['quarter', 'This quarter'], ['fy', 'This financial year'], ['custom', 'Custom…']];
+/** [from, to] (inclusive ISO dates) for a preset; the Indian financial year starts in April. */
+function rangeOf(r, from, to) {
+  const n = new Date(), y = n.getUTCFullYear(), m = n.getUTCMonth(), u = (yy, mm, dd) => isoDay(new Date(Date.UTC(yy, mm, dd)));
+  if (r === 'month') return [u(y, m, 1), u(y, m + 1, 0)];
+  if (r === 'last') return [u(y, m - 1, 1), u(y, m, 0)];
+  if (r === 'quarter') { const q = m - (m % 3); return [u(y, q, 1), u(y, q + 3, 0)]; }
+  if (r === 'fy') { const s0 = m >= 3 ? y : y - 1; return [u(s0, 3, 1), u(s0 + 1, 2, 31)]; }
+  if (r === 'custom') return [from || '0000-01-01', to || '9999-12-31'];
+  return ['0000-01-01', '9999-12-31'];
+}
+const SORTS = [['new', 'Newest first'], ['old', 'Oldest first'], ['high', 'Highest amount'], ['due', 'Highest balance'], ['duedate', 'Due date']];
+const csvCell = (v) => { const t = String(v ?? ''); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
 const due = (r) => Math.max(0, num(r.total) - num(r.paid) - num(r.returned) - num(r.tds));
 const gst = (r) => num(r.cgst) + num(r.sgst) + num(r.igst);
 
@@ -65,11 +79,26 @@ export default function DocList({ kind, go }) {
     api('GET', `/parties?type=${K.partyType}`).then(setParties);
   }, [kind]);
 
-  const table = useTable(rows ?? [], {
+  const [range, setRange] = useState('all');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [partyF, setPartyF] = useState('');
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [sort, setSort] = useState('new');
+  const isOverdue = (r) => !purchase && r.dueDate && String(r.dueDate).slice(0, 10) < today() && due(r) > 0.005 && r.status !== 'returned';
+  const pre = useMemo(() => {
+    const [a, b] = rangeOf(range, from, to);
+    const out = (rows ?? []).filter((r) => { const d = String(r.date).slice(0, 10); return d >= a && d <= b && (!partyF || String(r.partyId) === partyF) && (!overdueOnly || isOverdue(r)); });
+    const by = { new: (x, y) => y.id - x.id, old: (x, y) => x.id - y.id, high: (x, y) => num(y.total) - num(x.total), due: (x, y) => due(y) - due(x), duedate: (x, y) => String(x.dueDate ?? '9999').localeCompare(String(y.dueDate ?? '9999')) };
+    return out.sort(by[sort]);
+  }, [rows, range, from, to, partyF, overdueOnly, sort]);
+  const filtered = range !== 'all' || partyF || overdueOnly;
+  const table = useTable(pre, {
     filter: (r) => r.status,
     match: (r, q) => [r.number, r.partyName, r.supplierBillNo].some((x) => String(x ?? '').toLowerCase().includes(q)),
   });
-  const counts = useMemo(() => { const c = { all: 0, unpaid: 0, partial: 0, paid: 0, returned: 0 }; for (const r of rows ?? []) { c.all++; c[r.status] = (c[r.status] ?? 0) + 1; } return c; }, [rows]);
+  const counts = useMemo(() => { const c = { all: 0, unpaid: 0, partial: 0, paid: 0, returned: 0 }; for (const r of pre) { c.all++; c[r.status] = (c[r.status] ?? 0) + 1; } return c; }, [pre]);
+  const overdueCount = useMemo(() => (rows ?? []).filter(isOverdue).length, [rows]);
 
   if (!rows) return <><PageHeader title={K.title} subtitle={K.subtitle} /><Skeleton rows={5} height={44} /></>;
 
@@ -79,12 +108,22 @@ export default function DocList({ kind, go }) {
   const outstanding = rows.reduce((s, r) => s + due(r), 0);
   const openCount = rows.filter((r) => due(r) > 0.005 && r.status !== 'returned').length;
   const mtd = monthToDate(rows, (r) => num(r.taxable));
+  const exportCsv = () => {
+    const head = [K.docLabel, 'Date', 'Due date', K.partyLabel, 'Taxable', K.gstLabel, 'Total', 'Paid', 'Returned', K.dueLabel, 'Status'];
+    const body = pre.map((r) => [r.number, String(r.date).slice(0, 10), r.dueDate ? String(r.dueDate).slice(0, 10) : '', r.partyName, num(r.taxable), gst(r), num(r.total), num(r.paid), num(r.returned), due(r), r.status]);
+    const url = URL.createObjectURL(new Blob(['\ufeff' + [head, ...body].map((l) => l.map(csvCell).join(',')).join('\n')], { type: 'text/csv' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: `${K.base}-${today()}.csv` });
+    a.click(); URL.revokeObjectURL(url);
+  };
+  const newDoc = () => (purchase ? (setFlash(''), setDrawer({ type: 'new' })) : go('invoice-new'));
+  const open = (r) => (purchase ? undefined : go('invoice', { id: r.id }));
   const done = (msg) => { setDrawer(null); setFlash(msg); setErr(''); load(); };
 
   return (
     <>
       <PageHeader title={K.title} subtitle={K.subtitle}>
-        <button className="primary" onClick={() => { setFlash(''); setDrawer({ type: 'new' }); }}><Icon name="plus" size={15} /> {K.newLabel}</button>
+        <button onClick={exportCsv} disabled={!pre.length}>Export CSV</button>
+        <button className="primary" onClick={newDoc}><Icon name="plus" size={15} /> {K.newLabel}</button>
       </PageHeader>
 
       <div className="kpi-grid">
@@ -99,30 +138,41 @@ export default function DocList({ kind, go }) {
 
       <Toolbar search={table.q} onSearch={table.setQ} placeholder={`Search ${purchase ? 'bills, vendors' : 'invoices, customers'}`}
         active={table.active} onFilter={table.setActive}
-        filters={[['all', 'All'], ['unpaid', 'Unpaid'], ['partial', 'Part paid'], ['paid', 'Paid'], ['returned', 'Returned']].filter(([v]) => v === 'all' || counts[v]).map(([value, label]) => ({ value, label, count: counts[value] ?? 0 }))} />
+        filters={[['all', 'All'], ['unpaid', 'Unpaid'], ['partial', 'Part paid'], ['paid', 'Paid'], ['returned', 'Returned']].filter(([v]) => v === 'all' || counts[v]).map(([value, label]) => ({ value, label, count: counts[value] ?? 0 }))}>
+        {!purchase && <button type="button" className={`chip overdue-chip${overdueOnly ? ' on' : ''}`} aria-pressed={overdueOnly} onClick={() => setOverdueOnly(!overdueOnly)}>Overdue<span>{overdueCount}</span></button>}
+      </Toolbar>
+      <div className="toolbar filter-row">
+        <label>Period <select value={range} onChange={(e) => setRange(e.target.value)}>{RANGES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+        {range === 'custom' && <><label>From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label><label>To <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} /></label></>}
+        <label>{K.partyLabel} <select value={partyF} onChange={(e) => setPartyF(e.target.value)}><option value="">All</option>{parties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <label>Sort <select value={sort} onChange={(e) => setSort(e.target.value)}>{SORTS.filter(([v]) => !purchase || v !== 'duedate').map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
+        {filtered && <button type="button" className="row-btn" onClick={() => { setRange('all'); setFrom(''); setTo(''); setPartyF(''); setOverdueOnly(false); }}>Clear filters</button>}
+        <span className="muted" style={{ marginLeft: 'auto', fontSize: 12.5 }}>{table.total} of {rows.length} shown</span>
+      </div>
 
       {rows.length === 0 ? (
         <div className="panel"><EmptyState icon={purchase ? 'cart' : 'file'} title={purchase ? 'No vendor bills yet' : 'No invoices yet'} text={purchase ? 'Record a bill from a supplier and stock, input GST and what you owe are updated for you.' : 'Create your first invoice. GST, stock and the ledger are updated for you.'}>
-          <button className="primary" onClick={() => setDrawer({ type: 'new' })}>{K.newLabel}</button></EmptyState></div>
+          <button className="primary" onClick={newDoc}>{K.newLabel}</button></EmptyState></div>
       ) : (
         <>
           <table>
-            <thead><tr><th>{K.docLabel}</th><th>{K.partyLabel}</th><th className="num">Taxable</th><th className="num">{K.gstLabel}</th><th className="num">Total</th><th className="num">{K.dueLabel}</th><th>Status</th><th /></tr></thead>
+            <thead><tr><th>{K.docLabel}</th><th>{K.partyLabel}</th><th className="num">Taxable</th><th className="num">{K.gstLabel}</th><th className="num">Total</th><th className="num">{K.dueLabel}</th>{!purchase && <th>Due</th>}<th>Status</th><th /></tr></thead>
             <tbody>
               {table.visible.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} className={purchase ? undefined : 'row-click'} onClick={purchase ? undefined : () => open(r)}>
                   <td><Cell main={r.number} sub={fmtDate(r.date)} /></td>
                   <td><Cell main={r.partyName} sub={purchase ? `Vendor bill ${r.supplierBillNo}` : undefined} /></td>
                   <td className="num">{inr(r.taxable)}</td><td className="num">{inr(gst(r))}</td>
                   <td className="num"><b>{inr(r.total)}</b>{num(r.returned) > 0 && <div className="muted" style={{ fontSize: 12 }}>returned {inr(r.returned)}</div>}</td>
                   <td className="num">{due(r) > 0.005 ? <span className={r.status === 'unpaid' ? 'due-pos' : ''}>{inr(due(r))}</span> : <span className="dim">—</span>}{num(r.tds) > 0 && <div className="muted" style={{ fontSize: 12 }}>TDS {inr(r.tds)}</div>}</td>
+                  {!purchase && <td>{r.dueDate ? <Cell main={fmtDate(r.dueDate)} sub={isOverdue(r) ? <span className="overdue-tag">{Math.max(1, Math.round((Date.parse(today()) - Date.parse(String(r.dueDate).slice(0, 10))) / 86400000))} days overdue</span> : undefined} /> : <span className="dim">On receipt</span>}</td>}
                   <td><StatusBadge status={r.status} /></td>
-                  <td className="actions">
+                  <td className="actions" onClick={(e) => e.stopPropagation()}>
                     {due(r) > 0.005 && r.status !== 'returned' && <button className="row-btn primary" onClick={() => setDrawer({ type: 'pay', doc: r })}>{purchase ? 'Pay' : 'Receive'}</button>}
                     {r.status !== 'returned' && <button className="row-btn" onClick={() => setDrawer({ type: 'return', doc: r })}><Icon name="undo" size={13} /> Return</button>}
                   </td>
                 </tr>))}
-              {!table.visible.length && <tr><td colSpan={8} className="table-empty">Nothing matches your search or filter.</td></tr>}
+              {!table.visible.length && <tr><td colSpan={purchase ? 8 : 9} className="table-empty">Nothing matches your search or filters.</td></tr>}
             </tbody>
           </table>
           <Pager page={table.page} pages={table.pages} total={table.total} size={table.size} onPage={table.setPage} />

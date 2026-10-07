@@ -41,7 +41,12 @@ const NAV = [
     ['leave', 'Leave', 'sun', Leave, 'hr'], ['statutory', 'PF & ESI', 'landmark', Statutory, 'hr']]],
   ['Account', [['companies', 'Companies', 'building', Companies], ['billing', 'Billing', 'card', Billing]]],
 ];
-const TABS = NAV.flatMap(([, items]) => items);
+// Screens reached from another screen rather than the sidebar; the sidebar keeps the entry they belong to highlighted.
+const InvoiceNew = page(() => import('./pages/InvoiceNew.jsx'));
+const InvoiceView = page(() => import('./pages/InvoiceView.jsx'));
+const HIDDEN = [['invoice-new', 'New invoice', 'file', InvoiceNew], ['invoice', 'Invoice', 'file', InvoiceView]];
+const PARENT = { 'invoice-new': 'invoices', invoice: 'invoices' };
+const TABS = [...NAV.flatMap(([, items]) => items), ...HIDDEN];
 
 /** The strip across the top that tells the customer where their subscription stands. */
 function banner(sub) {
@@ -101,7 +106,7 @@ export default function App() {
             <React.Fragment key={group}>
               <div className="nav-label">{group}</div>
               {items.map(([id, text, icon, , f]) => (
-                <button key={id} className={id === tab ? 'active' : ''} aria-current={id === tab ? 'page' : undefined} onClick={() => go(id)} title={collapsed ? text : undefined}>
+                <button key={id} className={id === (PARENT[tab] ?? tab) ? 'active' : ''} aria-current={id === (PARENT[tab] ?? tab) ? 'page' : undefined} onClick={() => go(id)} title={collapsed ? text : undefined}>
                   <Icon name={icon} /><span className="nav-text">{text}</span>{locked(f) && <span className="lock nav-text" title="Not in your plan">Upgrade</span>}
                 </button>
               ))}

@@ -241,5 +241,13 @@ For the people who run IBMP, at **`/platform`** (its own sign-in, separate from 
 - **Fixed:** the form drawer could not be a plain `<aside>` (the sidebar's styles leaked into it) and, inside an animated page, a fixed panel is sized to the page, so drawers render in a portal.
 - **Not done:** attendance, GST filing, PF and ESI and the TDS screens keep their existing layouts under the new styling; no dark theme.
 
+## v1.12 - Invoice module: create screen with preview, GST tax invoice, search and filters
+- **Create invoice** (`InvoiceNew`) is its own screen: customer (with a quick "New customer" drawer), invoice and due date (the due date follows your usual credit period), buyer's reference/PO, place-of-supply override, item cards with description, rate, discount % and stock warnings, a different delivery address, notes. Beside the form is the invoice exactly as it will print, updating as you type; the preview maths is the server's (`computeInvoice`), and a test compares the two on 300 random invoices. "Save and add another" and "Duplicate" are supported.
+- **Invoice view** (`InvoiceView`): the document, payment summary and balance, print one copy or all three (Original for Recipient, Duplicate for Transporter, Triplicate for Supplier; Save as PDF from the print dialog), record a receipt, return, duplicate, e-invoice link.
+- **Tax invoice** (`InvoiceDocument`): rule 46 fields (supplier and recipient with GSTIN and state, serial number and date, HSN/SAC, description, quantity and unit, discount, taxable value, rate and amount of CGST/SGST/IGST per line, place of supply, reverse-charge statement, total in words, signature), tax summary by HSN and rate, bank details and a pay-by-UPI QR on unpaid invoices, terms, e-invoice IRN and QR, e-way bill, and a Bill of Supply when nothing on it is taxable. Business details are edited in **Invoice settings**.
+- **List**: search, status chips, an Overdue chip, period (this month, last month, quarter, financial year, custom), customer, sort, due date with days overdue, CSV export; a row opens the invoice. Purchases keep their drawer.
+- **Data**: migration 020 (due date, reference, notes, delivery address, per-line discount and tax, bank/UPI/terms/signatory/credit days); header totals and ledger figures are unchanged.
+- **Not done:** reverse charge (printed as "No"), invoice numbering per financial year, no URL routing (refreshing returns to the dashboard).
+
 ## Next
 A real GSP adapter. **Blocked on the provider:** Masters India's public docs lack response formats, the OTP/EVC session flow and the e-invoice and e-way bill endpoints, and Tera publishes none. It needs the full API documentation and sandbox credentials (see `apps/api/src/gsp.js` for the interface to implement).
