@@ -36,6 +36,7 @@ In production the API refuses to start with a missing or weak JWT secret, no dat
 
 ## Tests
 `npm test`: runs against in-memory Postgres (pg-mem), no database needed (fast; 3 real-database tests are skipped).
+`npm run smoke:ui` (portal running, demo users seeded): opens every screen for every role in headless Chrome and fails on a crash, a console or page error, a 5xx response, the error-boundary message, or values like `undefined` and `NaN` on screen (37 screens; verified to fail on a deliberately corrupted screen). Needs Chrome or Edge.
 `npm run test:pg`: the same suite against a **real PostgreSQL 18** (a throwaway embedded instance, one fresh database per test file, started and removed by `apps/api/scripts/test-pg.js`). A loader shim in `apps/api/test/support/` swaps `pg-mem` for it, so the test files are unchanged. It adds tests only a real database can run: concurrent migrations under the advisory lock, rollback of a failed migration, and key constraints. Last run: 187 of 187 passing on PostgreSQL 18.4. Run one file with `npm run test:pg -- test/tds.test.js`.
 
 ## Portal MVP (v0.1)

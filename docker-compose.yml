@@ -3,7 +3,7 @@
 name: ibmp
 services:
   app:
-    image: ibmp/app:1.10.0
+    image: ibmp/app:1.10.1
     build: .
     restart: unless-stopped
     ports: ["4000:4000"]
