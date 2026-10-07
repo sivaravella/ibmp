@@ -90,7 +90,7 @@ export default function Login({ onAuth }) {
             <div className="auth-or"><span>or use your email</span></div>
           </>}
           {(mode === 'register' || mode === 'social') && <>
-            <Segmented wide label="Account type" value={f.accountType} onChange={(v) => setF({ ...f, accountType: v })} options={[['individual', 'My own business'], ['consultant', 'CA / CS / CMA']]} />
+            <Segmented wide label="Account type" value={f.accountType} onChange={(v) => setF({ ...f, accountType: v })} options={[['individual', 'Business Owner'], ['consultant', 'CA / CS / CMA']]} />
             {mode === 'register' && <input placeholder="Your name" autoComplete="name" onChange={set('name')} required />}
             <input placeholder={consultant ? 'Practice or firm name' : 'Company name'} autoComplete="organization" onChange={set('company')} required />
             <select value={f.sector} onChange={set('sector')} aria-label="Sector">{SECTORS.map((s) => <option key={s}>{s}</option>)}</select>
