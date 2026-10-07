@@ -17,6 +17,7 @@ const invoiceSchema = z.object({
   reference: z.string().trim().max(60).optional(),
   notes: z.string().trim().max(500).optional(),
   shipTo: z.string().trim().max(300).optional(),
+  discountPct: z.number().min(0).max(100).optional(),       // a discount on the whole invoice, shared over the lines before tax
   dispatchedThrough: z.string().trim().max(80).optional(),
   destination: z.string().trim().max(80).optional(),
   paymentTerms: z.string().trim().max(120).optional(),
@@ -115,7 +116,7 @@ export function invoiceRoutes(pool) {
       if (b.dueDate && b.dueDate < b.date) throw httpError(400, 'The due date cannot be before the invoice date.');
       const pos = b.placeOfSupply ?? party.state_code;       // the state the supply is made in decides CGST+SGST or IGST
       const dueDate = b.dueDate === undefined ? (Number(company.payment_days) > 0 ? new Date(Date.parse(b.date) + Number(company.payment_days) * 86400000).toISOString().slice(0, 10) : null) : b.dueDate;
-      const calc = computeInvoice(lines, company.state_code, pos);
+      const calc = computeInvoice(lines, company.state_code, pos, b.discountPct ?? 0);
 
       const prefix = company.invoice_prefix || 'INV';
       let number;
@@ -132,9 +133,9 @@ export function invoiceRoutes(pool) {
         number = `${prefix}-${String(seq).padStart(4, '0')}`;
       }
       const inv = (await client.query(
-        `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total,due_date,reference,notes,ship_to,discount,dispatched_through,destination,payment_terms,other_refs)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
-        [cid, party.id, number, b.date, pos, calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total, dueDate, b.reference || null, b.notes || null, b.shipTo || null, calc.discount, b.dispatchedThrough || null, b.destination || null, b.paymentTerms || null, b.otherRefs || null])).rows[0];
+        `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total,due_date,reference,notes,ship_to,discount,dispatched_through,destination,payment_terms,other_refs,discount_pct)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
+        [cid, party.id, number, b.date, pos, calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total, dueDate, b.reference || null, b.notes || null, b.shipTo || null, calc.discount, b.dispatchedThrough || null, b.destination || null, b.paymentTerms || null, b.otherRefs || null, b.discountPct ?? 0])).rows[0];
 
       for (const l of calc.lines) {
         await client.query(

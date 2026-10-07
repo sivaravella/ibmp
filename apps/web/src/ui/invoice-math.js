@@ -15,12 +15,13 @@ export function splitLineTax(taxes) {
 }
 
 /** lines: [{ qty, rate, gstPct, discountPct }]. Returns the totals and each line with its discount, taxable value and tax split. */
-export function computeDraft(lines, sellerState, placeOfSupply) {
+export function computeDraft(lines, sellerState, placeOfSupply, totalDiscountPct = 0) {
   const intra = !!sellerState && sellerState === placeOfSupply;
   let taxable = 0, tax = 0, discount = 0;
   const parts = lines.map((l) => {
     const gross = Math.round(Number(l.qty || 0) * paise(l.rate || 0));
-    const disc = Math.min(gross, Math.round((gross * Number(l.discountPct || 0)) / 100));
+    const own = Math.min(gross, Math.round((gross * Number(l.discountPct || 0)) / 100));
+    const disc = Math.min(gross, own + Math.round(((gross - own) * Number(totalDiscountPct || 0)) / 100));
     const t = gross - disc;
     const lineTax = Math.round((t * Number(l.gstPct || 0)) / 100);
     taxable += t; tax += lineTax; discount += disc;
@@ -31,7 +32,8 @@ export function computeDraft(lines, sellerState, placeOfSupply) {
   return {
     intra,
     lines: parts.map((p, i) => ({
-      ...p.l, gross: rupees(p.gross), discount: rupees(p.disc), taxable: rupees(p.t),
+      ...p.l, gross: rupees(p.gross), discount: rupees(p.disc),
+      ...(Number(totalDiscountPct) > 0 ? { discountPct: p.gross > 0 ? Math.round((p.disc / p.gross) * 100000) / 1000 : 0 } : {}), taxable: rupees(p.t),
       cgst: intra ? rupees(split[i].cgst) : 0, sgst: intra ? rupees(split[i].sgst) : 0, igst: intra ? 0 : rupees(p.lineTax),
     })),
     taxable: rupees(taxable), discount: rupees(discount), cgst: intra ? rupees(half) : 0, sgst: intra ? rupees(tax - half) : 0, igst: intra ? 0 : rupees(tax), total: rupees(taxable + tax),

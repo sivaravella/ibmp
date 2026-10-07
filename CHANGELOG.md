@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.16.0
+- Discount on the whole invoice: one percentage on the create screen, taken off every item (after its own discount) before GST, so each item is still taxed at its own rate; the printed invoice shows each line's combined discount and "Total discount (incl. 10% on the invoice)". Migration 024.
+
 ## 1.15.0
 - Invoice numbering: choose in Invoice settings between continuous numbers (INV-0001, the default and unchanged) and numbers that restart every 1 April (INV/26-27/0001), with your own prefix of up to 5 characters. Each financial year has its own counter, started from the invoices already issued in it; every number is unique and at most 16 characters (rule 46). Migration 023.
 

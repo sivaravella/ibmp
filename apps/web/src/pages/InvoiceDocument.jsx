@@ -128,7 +128,7 @@ export default function InvoiceDocument({ doc, copy = 'Original for Recipient', 
         </div>
         <table>
           <tbody>
-            {discounted && <tr><td>Total discount</td><td className="r">{inr(inv.discount)}</td></tr>}
+            {discounted && <tr><td>Total discount{num(inv.discountPct) > 0 && ` (incl. ${num(inv.discountPct)}% on the invoice)`}</td><td className="r">{inr(inv.discount)}</td></tr>}
             <tr><td>{bill ? 'Total value' : 'Taxable value'}</td><td className="r">{inr(inv.taxable)}</td></tr>
             {!bill && intra && <><tr><td>CGST</td><td className="r">{inr(inv.cgst)}</td></tr><tr><td>SGST</td><td className="r">{inr(inv.sgst)}</td></tr></>}
             {!bill && !intra && <tr><td>IGST</td><td className="r">{inr(inv.igst)}</td></tr>}

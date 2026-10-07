@@ -26,20 +26,23 @@ export function splitLineTax(taxes) {
  * A line's discount is taken off qty x rate and the tax is charged on what is left. Each returned line carries its discount,
  * taxable value and tax split (lines add up to the invoice totals exactly).
  */
-export function computeInvoice(lines, sellerState, placeOfSupply) {
+export function computeInvoice(lines, sellerState, placeOfSupply, totalDiscountPct = 0) {
   const intra = sellerState === placeOfSupply;
   let taxable = 0, tax = 0, discount = 0;
   const parts = lines.map((l) => {
     const gross = Math.round(Number(l.qty) * paise(l.rate));
-    const disc = Math.min(gross, Math.round((gross * Number(l.discount_pct ?? 0)) / 100));
+    // The line's own discount first, then the invoice-wide discount on what is left; both come off before tax.
+    const own = Math.min(gross, Math.round((gross * Number(l.discount_pct ?? 0)) / 100));
+    const disc = Math.min(gross, own + Math.round(((gross - own) * Number(totalDiscountPct || 0)) / 100));
     const t = gross - disc;
     const lineTax = Math.round((t * Number(l.gst_pct)) / 100);
     taxable += t; tax += lineTax; discount += disc;
-    return { l, t, disc, lineTax };
+    return { l, t, disc, lineTax, gross };
   });
   const split = splitLineTax(parts.map((p) => p.lineTax));
   const out = parts.map((p, i) => ({
     ...p.l, taxable: rupees(p.t), discount: rupees(p.disc),
+    ...(Number(totalDiscountPct) > 0 ? { discount_pct: p.gross > 0 ? Math.round((p.disc / p.gross) * 100000) / 1000 : 0 } : {}),     // what the buyer sees on the line: both discounts together
     cgst: intra ? rupees(split[i].cgst) : 0, sgst: intra ? rupees(split[i].sgst) : 0, igst: intra ? 0 : rupees(p.lineTax),
   }));
   const half = Math.floor(tax / 2);

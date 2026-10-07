@@ -22,7 +22,7 @@ export default function InvoiceNew({ go, params }) {
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
   const [states, setStates] = useState([]);
-  const [f, setF] = useState({ partyId: '', date: today(), dueDate: '', reference: '', notes: '', shipDiff: false, shipTo: '', pos: '', dispatchedThrough: '', destination: '', paymentTerms: '', otherRefs: '' });
+  const [f, setF] = useState({ partyId: '', date: today(), dueDate: '', reference: '', notes: '', shipDiff: false, shipTo: '', pos: '', dispatchedThrough: '', destination: '', paymentTerms: '', otherRefs: '', discountPct: '' });
   const [dueTouched, setDueTouched] = useState(false);
   const [lines, setLines] = useState([blankLine()]);
   const [pane, setPane] = useState('form');
@@ -43,7 +43,7 @@ export default function InvoiceNew({ go, params }) {
     if (!params?.from) return;
     api('GET', `/invoices/${params.from}/document`).then((d) => {
       const i = d.invoice;
-      setF((x) => ({ ...x, partyId: String(i.partyId), reference: i.reference ?? '', notes: i.notes ?? '', dispatchedThrough: i.dispatchedThrough ?? '', destination: i.destination ?? '', paymentTerms: i.paymentTerms ?? '', otherRefs: i.otherRefs ?? '', shipDiff: !!i.shipTo, shipTo: i.shipTo ?? '', pos: i.placeOfSupply !== d.party.stateCode ? i.placeOfSupply : '' }));
+      setF((x) => ({ ...x, partyId: String(i.partyId), reference: i.reference ?? '', notes: i.notes ?? '', dispatchedThrough: i.dispatchedThrough ?? '', destination: i.destination ?? '', paymentTerms: i.paymentTerms ?? '', otherRefs: i.otherRefs ?? '', discountPct: Number(i.discountPct) > 0 ? String(Number(i.discountPct)) : '', shipDiff: !!i.shipTo, shipTo: i.shipTo ?? '', pos: i.placeOfSupply !== d.party.stateCode ? i.placeOfSupply : '' }));
       setLines(i.lines.map((l) => ({ itemId: String(l.itemId), description: l.description, qty: String(Number(l.qty)), rate: String(Number(l.rate)), discountPct: Number(l.discountPct) ? String(Number(l.discountPct)) : '' })));
     }).catch((e) => setErr(e.message));
   }, [params?.from]);
@@ -63,11 +63,11 @@ export default function InvoiceNew({ go, params }) {
   const pickItem = (i, id) => { const it = itemOf(id); setLine(i, { itemId: id, description: it?.name ?? '', rate: it ? String(Number(it.rate)) : '' }); };
 
   const calcInput = lines.map((l) => { const it = itemOf(l.itemId); return { itemId: l.itemId, description: l.description || it?.name || '', hsn: it?.hsn ?? '', unit: it?.unit ?? 'Nos', qty: N(l.qty), rate: l.rate === '' ? N(it?.rate) : N(l.rate), gstPct: N(it?.gstPct), discountPct: N(l.discountPct), stock: it ? N(it.stock) : null }; });
-  const calc = useMemo(() => computeDraft(calcInput, profile?.stateCode, posCode), [JSON.stringify(calcInput), profile?.stateCode, posCode]);
+  const calc = useMemo(() => computeDraft(calcInput, profile?.stateCode, posCode, N(f.discountPct)), [JSON.stringify(calcInput), profile?.stateCode, posCode, f.discountPct]);
 
   const doc = useMemo(() => profile && ({
     invoice: {
-      number: null, date: f.date, dueDate: f.dueDate || null, reference: f.reference, notes: f.notes, dispatchedThrough: f.dispatchedThrough, destination: f.destination, paymentTerms: f.paymentTerms, otherRefs: f.otherRefs, shipTo: f.shipDiff ? f.shipTo : '',
+      number: null, date: f.date, dueDate: f.dueDate || null, reference: f.reference, notes: f.notes, dispatchedThrough: f.dispatchedThrough, destination: f.destination, paymentTerms: f.paymentTerms, otherRefs: f.otherRefs, discountPct: N(f.discountPct), shipTo: f.shipDiff ? f.shipTo : '',
       placeOfSupply: posCode, placeOfSupplyName: stateName(posCode), intra: calc.intra, lines: calc.lines,
       taxable: calc.taxable, discount: calc.discount, cgst: calc.cgst, sgst: calc.sgst, igst: calc.igst, total: calc.total, paid: 0, returned: 0, balance: calc.total,
     },
@@ -84,12 +84,12 @@ export default function InvoiceNew({ go, params }) {
   const missing = profile ? [!profile.addr1 && 'address', !profile.loc && 'town', !profile.pin && 'PIN code', !profile.gstin && 'GSTIN'].filter(Boolean) : [];
   const ready = !!f.partyId && lines.every((l) => l.itemId && N(l.qty) > 0);
 
-  function reset(msg) { setF({ partyId: '', date: today(), dueDate: '', reference: '', notes: '', shipDiff: false, shipTo: '', pos: '', dispatchedThrough: '', destination: '', paymentTerms: '', otherRefs: '' }); setDueTouched(false); setLines([blankLine()]); setFlash(msg); setPane('form'); window.scrollTo(0, 0); }
+  function reset(msg) { setF({ partyId: '', date: today(), dueDate: '', reference: '', notes: '', shipDiff: false, shipTo: '', pos: '', dispatchedThrough: '', destination: '', paymentTerms: '', otherRefs: '', discountPct: '' }); setDueTouched(false); setLines([blankLine()]); setFlash(msg); setPane('form'); window.scrollTo(0, 0); }
   async function save(another) {
     setErr(''); setBusy(true);
     try {
       const inv = await api('POST', '/invoices', {
-        partyId: Number(f.partyId), date: f.date, dueDate: f.dueDate || null, reference: f.reference || undefined, notes: f.notes || undefined, dispatchedThrough: f.dispatchedThrough || undefined, destination: f.destination || undefined, paymentTerms: f.paymentTerms || undefined, otherRefs: f.otherRefs || undefined, shipTo: f.shipDiff && f.shipTo ? f.shipTo : undefined, placeOfSupply: f.pos || undefined,
+        partyId: Number(f.partyId), date: f.date, dueDate: f.dueDate || null, reference: f.reference || undefined, notes: f.notes || undefined, dispatchedThrough: f.dispatchedThrough || undefined, destination: f.destination || undefined, paymentTerms: f.paymentTerms || undefined, otherRefs: f.otherRefs || undefined, ...(N(f.discountPct) > 0 ? { discountPct: N(f.discountPct) } : {}), shipTo: f.shipDiff && f.shipTo ? f.shipTo : undefined, placeOfSupply: f.pos || undefined,
         lines: lines.map((l, i) => ({ itemId: Number(l.itemId), qty: N(l.qty), rate: calcInput[i].rate, ...(N(l.discountPct) > 0 ? { discountPct: N(l.discountPct) } : {}), ...(l.description && l.description !== itemOf(l.itemId)?.name ? { description: l.description } : {}) })),
       });
       if (another) { reset(`Invoice ${inv.number} created.`); setBusy(false); } else go('invoice', { id: inv.id, created: true });
@@ -153,7 +153,10 @@ export default function InvoiceNew({ go, params }) {
                 );
               })}
             </div>
-            <div style={{ marginTop: 10 }}><button type="button" onClick={() => setLines([...lines, blankLine()])}><Icon name="plus" size={14} /> Add another item</button></div>
+            <div className="row" style={{ marginTop: 10, marginBottom: 0, justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <button type="button" onClick={() => setLines([...lines, blankLine()])}><Icon name="plus" size={14} /> Add another item</button>
+              <Field label="Discount on the whole invoice (%)" hint="Shared over every item before GST"><input type="number" min="0" max="100" step="0.01" value={f.discountPct} onChange={set('discountPct')} style={{ width: 150 }} /></Field>
+            </div>
           </Panel>
 
           <Panel title="Payment, delivery and notes" className="mb">
