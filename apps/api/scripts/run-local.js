@@ -19,6 +19,8 @@ const secrets = fs.existsSync(secretsFile) ? JSON.parse(fs.readFileSync(secretsF
   secretsKey: crypto.randomBytes(32).toString('hex'),
   dbPassword: crypto.randomBytes(16).toString('hex'),
 };
+// The platform owner's back-office key (x-admin-key) for the /v1/admin API; older installs get one added.
+secrets.adminKey ??= crypto.randomBytes(24).toString('hex');
 fs.writeFileSync(secretsFile, JSON.stringify(secrets, null, 2));
 
 const pgPort = Number(process.env.PG_PORT || 54329);
@@ -38,6 +40,7 @@ const api = spawn(process.execPath, [path.join(root, 'src', 'server.js')], {
     IBMP_JWT_SECRET: secrets.jwtSecret,
     IBMP_SECRETS_KEY: secrets.secretsKey,
     IBMP_ENABLE_SIMULATORS: 'true',
+    IBMP_ADMIN_API_KEY: secrets.adminKey,
   },
 });
 console.log(`IBMP: http://localhost:${port}  (PostgreSQL on ${pgPort}, data in ${dataDir})`);

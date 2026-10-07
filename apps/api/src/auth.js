@@ -17,3 +17,17 @@ export function requireAuth(req, res, next) {
     res.status(401).json({ error: 'Unauthorized' });
   }
 }
+
+// ---- platform console tokens ----
+// A different signing key, derived from the main one, and a `typ` claim: a business token is not valid on /v1/platform and a
+// platform token is not valid on any business route.
+import crypto from 'node:crypto';
+const platformSecret = () => crypto.createHmac('sha256', secret()).update('ibmp-platform-console').digest('hex');
+
+export const signPlatformToken = (admin) => jwt.sign({ aid: admin.id, role: admin.role, typ: 'platform' }, platformSecret(), { expiresIn: '4h' });
+
+export function verifyPlatformToken(header) {
+  const p = jwt.verify(String(header || '').replace(/^Bearer /, ''), platformSecret());
+  if (p.typ !== 'platform') throw new Error('not a platform token');
+  return { id: p.aid, role: p.role };
+}

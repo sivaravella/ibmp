@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { COLORS, StackBar } from '../ui/charts.jsx';
+import { Badge, KpiCard, PageHeader, Panel } from '../ui/kit.jsx';
 import { api, setToken } from '../api.js';
 
 const SECTORS = ['retail', 'trading', 'service', 'wholesale', 'hospital', 'pharmacy'];
@@ -30,7 +32,7 @@ export default function Companies({ go, refreshMe }) {
 
   return (
     <>
-      <h2>Companies</h2>
+      <PageHeader title="Companies" subtitle={consultant ? 'Every client you look after, and what needs doing for each' : 'Your company, and options for professionals who manage several'} />
       {err && <p className="err">{err} {limitHit && <button onClick={() => go('billing')}>View plans</button>}</p>}
 
       {consultant ? <Practice data={data} profile={profile} /> : <BecomeConsultant onDone={() => { load(); refreshMe?.(); }} />}
@@ -79,16 +81,43 @@ function Practice({ data, profile }) {
 }
 
 function Overview({ o }) {
+  const rows = [...o.companies].sort((a, b) => b.overdue - a.overdue || b.dueSoon - a.dueSoon);
+  const max = Math.max(1, ...rows.map((c) => c.overdue + c.dueSoon));
+  const worst = rows[0];
+  const clear = rows.filter((c) => !c.overdue && !c.dueSoon).length;
   return (
     <>
-      <h3>Practice overview</h3>
-      <p className="muted">{o.totals.companies} companies · <span style={{ color: '#b91c1c' }}>{o.totals.overdue} overdue</span> · <span style={{ color: '#92400e' }}>{o.totals.dueSoon} due within 7 days</span></p>
+      <div className="kpi-grid">
+        <KpiCard label="Companies in your practice" value={o.totals.companies} icon="building" tone="brand" hint={`${clear} with nothing pending`} />
+        <KpiCard label="Overdue items" value={o.totals.overdue} icon="alert" tone="rose" hint={worst && worst.overdue ? `Most at ${worst.name} (${worst.overdue})` : 'None overdue'} />
+        <KpiCard label="Due within 7 days" value={o.totals.dueSoon} icon="clock" tone="amber" hint="Across all clients" />
+        <KpiCard label="Average overdue per client" value={(o.totals.overdue / Math.max(1, o.totals.companies)).toFixed(1)} icon="chart" tone="violet" hint="Lower is better" />
+      </div>
+      <div className="grid g-3-1">
+        <Panel title="Deadlines by client" hint="Overdue and due this week, most behind first">
+          <ul className="hbars">
+            {rows.map((c) => (
+              <li key={c.id}>
+                <div className="hb-top"><span>{c.name}</span><b>{c.overdue} overdue · {c.dueSoon} soon</b></div>
+                <div style={{ width: `${((c.overdue + c.dueSoon) / max) * 100}%`, minWidth: c.overdue + c.dueSoon ? 8 : 0 }}><StackBar height={8} segments={[{ label: 'Overdue', value: c.overdue, color: COLORS.rose }, { label: 'Due soon', value: c.dueSoon, color: COLORS.amber }]} /></div>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+        <Panel title="Next deadlines" hint="Soonest first">
+          <ul className="list">
+            {[...o.companies].filter((c) => c.next).sort((a, b) => a.next.daysToDue - b.next.daysToDue).slice(0, 5).map((c) => (
+              <li key={c.id}><span className="dot" style={{ background: c.next.daysToDue <= 7 ? COLORS.amber : COLORS.sky }} /><div className="grow"><b title={c.next.name}>{c.next.name}</b><span>{c.name} · {c.next.daysToDue === 0 ? 'due today' : `in ${c.next.daysToDue} day(s)`}</span></div></li>
+            ))}
+          </ul>
+        </Panel>
+      </div>
       <table>
         <thead><tr><th>Company</th><th>Overdue</th><th>Due soon</th><th>Most overdue</th><th>Next deadline</th><th /></tr></thead>
         <tbody>{o.companies.map((c) => (
           <tr key={c.id}>
             <td>{c.name}</td>
-            <td style={{ color: c.overdue ? '#b91c1c' : undefined }}>{c.overdue}</td><td style={{ color: c.dueSoon ? '#92400e' : undefined }}>{c.dueSoon}</td>
+            <td>{c.overdue ? <Badge tone="bad">{c.overdue}</Badge> : <Badge tone="ok">0</Badge>}</td><td>{c.dueSoon ? <Badge tone="warn">{c.dueSoon}</Badge> : <Badge tone="neutral">0</Badge>}</td>
             <td>{c.mostOverdue ? `${c.mostOverdue.name} (${-c.mostOverdue.daysToDue}d)` : '—'}</td>
             <td>{c.next ? `${c.next.name} (${c.next.daysToDue}d)` : '—'}</td>
             <td>{!c.active && <button onClick={() => switchCompany(c.id)}>Open</button>}</td>

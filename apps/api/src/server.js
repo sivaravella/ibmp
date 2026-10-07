@@ -33,6 +33,7 @@ if (config.production && !gsp) log('warn', 'No GSP is configured: returns, e-inv
 
 const channels = resolveChannels(env);
 if (config.production && !channels.email) log('warn', 'No email is configured (IBMP_SMTP_URL, IBMP_MAIL_FROM): email reminders cannot be sent.');
+if (config.production && !channels.sms) log('warn', 'No SMS is configured (IBMP_TWILIO_ACCOUNT_SID, _AUTH_TOKEN, IBMP_SMS_FROM or _TWILIO_MESSAGING_SERVICE_SID, and a DLT-registered IBMP_SMS_TEMPLATE): SMS reminders cannot be sent.');
 if (config.production && !channels.whatsapp) log('warn', 'No WhatsApp is configured (IBMP_WHATSAPP_TOKEN, _PHONE_ID, _TEMPLATE): WhatsApp reminders cannot be sent.');
 
 const app = createApp(pool, { gateway, gsp, channels, config });

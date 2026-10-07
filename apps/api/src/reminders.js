@@ -2,6 +2,11 @@
 // The decision logic is pure; the runner reads settings and items, sends through the channels (see notify.js) and logs every message.
 import { addDays, daysBetween } from './billing.js';
 import { subscriptionStatus } from './billing.js';
+import { DEFAULT_SMS_TEMPLATE, renderSmsTemplate } from './notify.js';
+
+export const CHANNEL_LABEL = { email: 'Email', whatsapp: 'WhatsApp', sms: 'SMS' };
+/** Channels where a message may only go to someone whose agreement the owner has confirmed. */
+export const NEEDS_CONSENT = new Set(['whatsapp', 'sms']);
 import { loadSubscription } from './subscription.js';
 
 export const DEFAULT_LEAD = [7, 3, 1, 0];
@@ -64,9 +69,14 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
  * The message for one recipient. Email lists everything; WhatsApp gets the two template variables on a single line (the
  * template parameter may not contain line breaks), kept short.
  */
-export function buildMessage({ company, items, channel, appUrl = null, templateName = null, templateLang = 'en' }) {
+export function buildMessage({ company, items, channel, appUrl = null, templateName = null, templateLang = 'en', smsTemplate = DEFAULT_SMS_TEMPLATE, smsVarMax = 30 }) {
   const overdue = items.filter((i) => i.days < 0), soon = items.filter((i) => i.days >= 0);
   const line = (i) => `${i.name}: ${dmy(i.due)} (${when(i.days)})`;
+  if (channel === 'sms') {
+    // Registered SMS templates are fixed text with a few short variables: say how many, and name the most urgent one.
+    const first = items[0];
+    return { text: renderSmsTemplate(smsTemplate, [company, String(items.length), first.name, dmy(first.due)], smsVarMax) };
+  }
   if (channel === 'whatsapp') {
     let summary = items.map(line).join(' | ');
     if (summary.length > 900) summary = `${summary.slice(0, 880).replace(/\s*\|[^|]*$/, '')} | and more`;
@@ -89,7 +99,7 @@ const q1 = async (pool, sql, p) => (await pool.query(sql, p)).rows[0];
 export async function loadSettings(pool, companyId) {
   const r = await q1(pool, 'SELECT * FROM reminder_settings WHERE company_id=$1', [companyId]);
   return {
-    emailEnabled: !!r?.email_enabled, whatsappEnabled: !!r?.whatsapp_enabled,
+    emailEnabled: !!r?.email_enabled, whatsappEnabled: !!r?.whatsapp_enabled, smsEnabled: !!r?.sms_enabled,
     lead: parseDays(r?.lead_days ?? daysText(DEFAULT_LEAD), { min: 0, max: 30 }) ?? DEFAULT_LEAD,
     overdue: parseDays(r?.overdue_days ?? daysText(DEFAULT_OVERDUE), { min: 1, max: 60, order: 'asc' }) ?? DEFAULT_OVERDUE,
     since: ymdOf(r?.enabled_since),
@@ -116,18 +126,18 @@ export async function runForCompany(pool, { companyId, today, channels, openItem
   const sentRows = (await pool.query("SELECT recipient_id, channel, item_key FROM reminder_log WHERE company_id=$1 AND status='sent' AND kind='reminder' AND item_key <> ''", [companyId])).rows;
   const results = [];
 
-  for (const channel of ['email', 'whatsapp']) {
-    if (!(channel === 'email' ? settings.emailEnabled : settings.whatsappEnabled)) continue;
+  for (const channel of ['email', 'whatsapp', 'sms']) {
+    if (!settings[`${channel}Enabled`]) continue;
     const provider = channels[channel];
     for (const rc of recipients.filter((x) => x.channel === channel)) {
       const sent = new Set(sentRows.filter((s) => s.recipient_id === rc.id && s.channel === channel).map((s) => s.item_key));
       const pending = dueReminders({ items, today, lead: settings.lead, overdue: settings.overdue, since: settings.since, sent });
       if (!pending.length) continue;
       const base = { recipient: rc.id, channel, to: maskAddress(channel, rc.address), items: pending.map((i) => ({ name: i.name, due: i.due, stage: i.stage, days: i.days })) };
-      if (channel === 'whatsapp' && !rc.consent_at) { results.push({ ...base, status: 'skipped', reason: 'No recorded consent for WhatsApp.' }); continue; }
-      if (!provider) { results.push({ ...base, status: 'skipped', reason: `${channel === 'email' ? 'Email' : 'WhatsApp'} sending is not configured on this server.` }); continue; }
+      if (NEEDS_CONSENT.has(channel) && !rc.consent_at) { results.push({ ...base, status: 'skipped', reason: `No recorded consent for ${CHANNEL_LABEL[channel]}.` }); continue; }
+      if (!provider) { results.push({ ...base, status: 'skipped', reason: `${CHANNEL_LABEL[channel]} sending is not configured on this server.` }); continue; }
       if (dryRun) { results.push({ ...base, status: 'would_send' }); continue; }
-      const msg = buildMessage({ company: name, items: pending, channel, appUrl, templateName: channels.templateName, templateLang: channels.templateLang });
+      const msg = buildMessage({ company: name, items: pending, channel, appUrl, templateName: channels.templateName, templateLang: channels.templateLang, smsTemplate: channels.smsTemplate, smsVarMax: channels.smsVarMax });
       try {
         const out = await provider.send({ to: rc.address, ...msg });
         for (const i of pending) await log(pool, { companyId, recipientId: rc.id, channel, address: rc.address, itemKey: i.key, ruleCode: i.rule_code, periodKey: i.period_key, stage: i.stage, due: i.due, status: 'sent', provider: provider.name, ref: out?.id });
@@ -144,7 +154,7 @@ export async function runForCompany(pool, { companyId, today, channels, openItem
 /** The daily job: every company with reminders switched on and a usable subscription. One company's failure never stops the rest. */
 export async function runAll(pool, { today, channels, openItems, appUrl = null, onError = () => {} }) {
   const cos = (await pool.query(
-    `SELECT c.id, c.billing_company_id, c.archived FROM companies c JOIN reminder_settings s ON s.company_id=c.id WHERE s.email_enabled OR s.whatsapp_enabled ORDER BY c.id`)).rows;
+    `SELECT c.id, c.billing_company_id, c.archived FROM companies c JOIN reminder_settings s ON s.company_id=c.id WHERE s.email_enabled OR s.whatsapp_enabled OR s.sms_enabled ORDER BY c.id`)).rows;
   const done = [];
   for (const c of cos) {
     try {

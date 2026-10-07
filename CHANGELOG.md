@@ -2,6 +2,16 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.10.0
+- New design system and analytical dashboards (business, platform, compliance, practice); `GET /v1/analytics`; lazy-loaded screens; 38 database indexes; error boundaries, offline and server-error messages; `no-store` on API responses; version in the health check.
+- Fixed: the compliance "Due soon" filter count was blank after the camelCase change.
+
+## 1.9.0
+- Platform owner console at `/platform`: separate sign-in, overview, consultant verification, company directory with suspend, trial extension and complimentary plans, billing view, audit log, staff management. Company suspension locks a company out of the portal.
+
+## 1.8.0
+- SMS reminders (Twilio adapter, DLT-template-based wording, simulator), third channel in Compliance > Reminders.
+
 ## 1.7.1
 - `npm run test:pg` runs the whole suite against a real PostgreSQL 18, plus real-database-only tests (concurrent migrations, rollback, constraints).
 

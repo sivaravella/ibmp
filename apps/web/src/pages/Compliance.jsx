@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import Reminders from './Reminders.jsx';
+import { COLORS, Donut, HBars, Legend } from '../ui/charts.jsx';
+import { Badge, PageHeader, Panel } from '../ui/kit.jsx';
+import { Icon } from '../ui/icons.jsx';
 
 const STATUS = {
   overdue: { label: 'Overdue', color: '#b91c1c', bg: '#fee2e2' },
@@ -46,25 +49,26 @@ export default function Compliance({ go }) {
 
   return (
     <>
-      <h2>Compliance calendar</h2>
-      <div className="row">
-        <button onClick={() => setFy(fyShift(data.fy, -1))}>‹</button>
+      <PageHeader title="Compliance calendar" subtitle={`Statutory deadlines for FY ${data.fy}, and where you stand against them`}>
+        <button onClick={() => setFy(fyShift(data.fy, -1))} aria-label="Previous year">‹</button>
         <strong>FY {data.fy}</strong>
-        <button onClick={() => setFy(fyShift(data.fy, 1))}>›</button>
-        <button onClick={() => setShowCustom(!showCustom)}>+ Custom item</button>
-        <button onClick={() => setShowSettings(!showSettings)}>Applicability settings</button>
-        <button onClick={() => setShowReminders(!showReminders)}>Reminders</button>
-      </div>
+        <button onClick={() => setFy(fyShift(data.fy, 1))} aria-label="Next year">›</button>
+        <button onClick={() => setShowCustom(!showCustom)}><Icon name="plus" size={14} /> Custom item</button>
+        <button onClick={() => setShowSettings(!showSettings)}>Applicability</button>
+        <button onClick={() => setShowReminders(!showReminders)}><Icon name="bell" size={14} /> Reminders</button>
+      </PageHeader>
 
       {showSettings && <Settings onSaved={() => { setShowSettings(false); load(); }} />}
       {showReminders && <Reminders />}
       {showCustom && <Custom onSaved={() => { setShowCustom(false); load(); }} />}
 
+      <Health data={data} />
+
       <div className="row">
         {['overdue', 'due_soon', 'upcoming', 'completed'].map((s) => (
           <button key={s} onClick={() => setFilter(filter === s ? 'all' : s)}
             style={{ background: STATUS[s].bg, color: STATUS[s].color, borderColor: filter === s ? STATUS[s].color : 'transparent' }}>
-            {STATUS[s].label}: <strong>{data.summary[s]}</strong>
+            {STATUS[s].label}: <strong>{data.summary[s === 'due_soon' ? 'dueSoon' : s]}</strong>
           </button>
         ))}
         <select value={cat} onChange={(e) => setCat(e.target.value)}>
@@ -183,5 +187,42 @@ function Custom({ onSaved }) {
       <button className="primary">Add</button>
       {err && <span className="err">{err}</span>}
     </form>
+  );
+}
+
+/** The calendar at a glance: how many items are in each state, how on time you have been, which areas are behind, what is next. */
+function Health({ data }) {
+  const sm = data.summary;
+  const dueSoFar = sm.completed + sm.overdue;
+  const onTime = dueSoFar ? Math.round((sm.completed / dueSoFar) * 100) : null;
+  const seg = [['Overdue', sm.overdue, COLORS.rose], ['Due this week', sm.due_soon ?? sm.dueSoon, COLORS.amber], ['Upcoming', sm.upcoming, COLORS.sky], ['Completed', sm.completed, COLORS.green]].map(([label, value, color]) => ({ label, value: value ?? 0, color }));
+  const byCat = {};
+  for (const i of data.items) if (i.status === 'overdue') byCat[i.category] = (byCat[i.category] ?? 0) + 1;
+  const behind = Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value }));
+  const next = data.items.filter((i) => i.status !== 'completed' && i.status !== 'overdue' && i.daysToDue <= 30).slice(0, 5);
+  return (
+    <div className="grid g-3">
+      <Panel title="Calendar health" hint={onTime === null ? 'Nothing has fallen due yet' : `${onTime}% of what has fallen due is done`}>
+        <div className="split">
+          <Donut size={132} thickness={16} centerValue={onTime === null ? '—' : `${onTime}%`} centerLabel="on time" segments={seg} ariaLabel="Compliance items by status" />
+          <Legend items={seg} />
+        </div>
+      </Panel>
+      <Panel title="Where you are behind" hint="Overdue items by area">
+        <HBars rows={behind} color={COLORS.rose} format={(v) => String(v)} empty="Nothing overdue. Well done." />
+      </Panel>
+      <Panel title="Next 30 days" hint="Not yet done">
+        <ul className="list">
+          {next.map((i) => (
+            <li key={i.ruleCode + i.periodKey}>
+              <span className="dot" style={{ background: i.daysToDue <= 7 ? COLORS.amber : COLORS.sky }} />
+              <div className="grow"><b title={i.name}>{i.name}</b><span>{i.daysToDue === 0 ? 'Due today' : `Due in ${i.daysToDue} day(s)`}</span></div>
+              <Badge tone="neutral">{i.category}</Badge>
+            </li>
+          ))}
+          {!next.length && <li><span className="dot" style={{ background: COLORS.green }} /><div className="grow"><b>Nothing due in the next 30 days</b></div></li>}
+        </ul>
+      </Panel>
+    </div>
   );
 }

@@ -30,6 +30,8 @@ import { requireAuth } from './auth.js';
 import { camelizeKeys } from './util.js';
 import { resolveGateway } from './gateway.js';
 import { reminderRoutes } from './routes/reminders.js';
+import { platformRoutes } from './routes/platform.js';
+import { analyticsRoutes } from './routes/analytics.js';
 import { resolveChannels } from './notify.js';
 import { runAll } from './reminders.js';
 import { today as todayFn } from './util.js';
@@ -40,6 +42,8 @@ import { today as todayFn } from './util.js';
  * channels: reminder delivery (see notify.js); defaults to SMTP / WhatsApp Cloud when configured, the simulator outside production, else none.
  * config: from config.js. Without it the app behaves as in development and tests (permissive CORS, no rate limits, no static files).
  */
+const VERSION = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+
 export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp(), channels = resolveChannels(), config = null } = {}) {
   const app = express();
   app.disable('x-powered-by');
@@ -91,26 +95,31 @@ export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp()
   if (config?.rateLimit) {
     const limited = (limit, message) => rateLimit({ windowMs: 60_000, limit, standardHeaders: 'draft-8', legacyHeaders: false, message: { error: message }, skip: (req) => req.path.startsWith('/webhooks') || req.path === '/health' || req.path === '/ready' });
     app.use('/v1/auth', limited(config.authRateLimitPerMin, 'Too many sign-in attempts. Wait a minute and try again.'));
+    app.use('/v1/platform/login', limited(config.authRateLimitPerMin, 'Too many sign-in attempts. Wait a minute and try again.'));
     app.use('/v1', limited(config.apiRateLimitPerMin, 'Too many requests. Slow down and try again shortly.'));
   }
 
   // Keep the exact bytes of the body: webhook signatures are computed over them.
   app.use(express.json({ limit: '300kb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 
+  // Business data is private: never let a browser or a proxy keep a copy.
+  app.use('/v1', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+
   // Every JSON response leaves as camelCase (see camelizeKeys).
   app.use('/v1', (_req, res, next) => { const json = res.json.bind(res); res.json = (body) => json(camelizeKeys(body)); next(); });
 
   const compliance = complianceRoutes(pool);
   const gst = gstRoutes(pool);
-  app.get('/v1/health', (_req, res) => res.json({ ok: true }));                       // liveness: the process is up
+  app.get('/v1/health', (_req, res) => res.json({ ok: true, version: VERSION }));                       // liveness: the process is up
   app.get('/v1/ready', async (_req, res) => {                                          // readiness: it can reach its database
     try { await Promise.race([pool.query('SELECT 1'), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))]); res.json({ ok: true }); }
     catch { res.status(503).json({ ok: false, error: 'Database unavailable' }); }
   });
   app.use('/v1/auth', authRoutes(pool, { bcryptRounds: config?.bcryptRounds }));
   app.use('/v1/webhooks', webhookRoutes(pool, gateway));
-  app.use('/v1/admin', adminRoutes(pool));
-  app.use('/v1', requireAuth, subscriptionGate(pool), masterRoutes(pool), invoiceRoutes(pool), purchaseRoutes(pool), returnRoutes(pool), ledgerRoutes(pool),
+  app.use('/v1/admin', adminRoutes(pool, { bcryptRounds: config?.bcryptRounds }));
+  app.use('/v1/platform', platformRoutes(pool));
+  app.use('/v1', requireAuth, subscriptionGate(pool), masterRoutes(pool), invoiceRoutes(pool), analyticsRoutes(pool), purchaseRoutes(pool), returnRoutes(pool), ledgerRoutes(pool),
     gst, filingRoutes(pool, { gsp, reports: gst.reports }), profileRoutes(pool), edocRoutes(pool, { gsp }), tdsRoutes(pool), tdsNsRoutes(pool), statutoryRoutes(pool), compliance, reminderRoutes(pool, { channels, openItems: compliance.openItems, appUrl: config?.publicUrl || null }),
     companyRoutes(pool, { complianceSummary: compliance.summaryFor }), payrollRoutes(pool), attendanceRoutes(pool), leaveRoutes(pool), billingRoutes(pool, gateway));
   app.use('/v1', (_req, res) => res.status(404).json({ error: 'Not found' }));

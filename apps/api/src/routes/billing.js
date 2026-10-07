@@ -36,11 +36,14 @@ export const bid = (req) => req.billingCompanyId ?? req.user.companyId;
 export function subscriptionGate(pool) {
   return h(async (req, res, next) => {
     const m = (await pool.query(
-      'SELECT c.billing_company_id, c.archived FROM user_companies uc JOIN companies c ON c.id=uc.company_id WHERE uc.user_id=$1 AND uc.company_id=$2',
+      'SELECT c.billing_company_id, c.archived, c.suspended_at, c.suspended_reason FROM user_companies uc JOIN companies c ON c.id=uc.company_id WHERE uc.user_id=$1 AND uc.company_id=$2',
       [req.user.id, req.user.companyId])).rows[0];
     if (!m) return res.status(403).json({ error: 'You no longer have access to this company. Sign in again.', code: 'NO_ACCESS' });
     if (m.archived) return res.status(403).json({ error: 'This company is archived.', code: 'COMPANY_ARCHIVED' });
     req.billingCompanyId = m.billing_company_id ?? req.user.companyId;
+    let held = m.suspended_at ? m : null;
+    if (!held && m.billing_company_id) held = (await pool.query('SELECT suspended_at, suspended_reason FROM companies WHERE id=$1 AND suspended_at IS NOT NULL', [m.billing_company_id])).rows[0] ?? null;
+    if (held) return res.status(403).json({ error: `This account has been suspended${held.suspended_reason ? `: ${held.suspended_reason}` : ''}. Contact IBMP support.`, code: 'COMPANY_SUSPENDED' });
 
     if (req.path.startsWith('/billing')) return next();
     const today = todayFn();

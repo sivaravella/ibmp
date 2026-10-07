@@ -1,6 +1,6 @@
 {
   "name": "@ibmp/api",
-  "version": "1.7.1",
+  "version": "1.10.0",
   "description": "IBMP API: Express + PostgreSQL",
   "private": true,
   "type": "module",
@@ -12,7 +12,9 @@
     "test": "node --test \"test/*.test.js\"",
     "local": "node scripts/run-local.js",
     "seed": "node scripts/seed-demo.js",
-    "test:pg": "node scripts/test-pg.js"
+    "test:pg": "node scripts/test-pg.js",
+    "seed:users": "node scripts/seed-users.js",
+    "admin:create": "node scripts/create-platform-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

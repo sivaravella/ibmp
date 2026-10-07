@@ -7,6 +7,7 @@ import { seedAccounts } from '../ledger.js';
 import { loadSubscription } from '../subscription.js';
 import { companyLimit, subscriptionStatus } from '../billing.js';
 import { PLANS } from '../plans.js';
+import { createPlatformAdmin } from '../platform.js';
 import { SECTORS, consultantSchema, memberCompanies, saveConsultantProfile } from './auth.js';
 
 const err = (status, message, code, extra = {}) => Object.assign(httpError(status, message), { code, ...extra });
@@ -146,9 +147,15 @@ async function withTx(pool, fn) {
  * Back-office endpoints for IBMP staff, outside user authentication. They exist only when ADMIN_API_KEY is set, and then
  * require it in the x-admin-key header. This is the manual verification step for consultants' professional credentials.
  */
-export function adminRoutes(pool) {
+export function adminRoutes(pool, { bcryptRounds = 12 } = {}) {
   const r = Router();
   r.use((req, res, next) => (adminKeyOk(req) ? next() : res.status(process.env.ADMIN_API_KEY ? 401 : 404).json({ error: process.env.ADMIN_API_KEY ? 'Unauthorized' : 'Not found' })));
+
+  // Bootstrap: create a platform console login (the console itself has no sign-up). Also available as scripts/create-platform-admin.js.
+  r.post('/platform-admins', h(async (req, res) => {
+    const b = z.object({ email: z.string(), name: z.string(), password: z.string(), role: z.string().optional() }).parse(req.body);
+    res.status(201).json(await createPlatformAdmin(pool, { ...b, rounds: bcryptRounds }));
+  }));
 
   r.get('/consultants', h(async (req, res) => {
     const status = ['pending', 'verified', 'rejected'].includes(String(req.query.status)) ? String(req.query.status) : null;
