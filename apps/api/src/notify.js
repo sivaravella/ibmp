@@ -76,8 +76,8 @@ export function smtpEmail({ url, from, transport = null }) {
   const t = transport ?? nodemailer.createTransport(url);
   return {
     name: 'smtp', mode: 'live',
-    send: async ({ to, subject, text, html }) => {
-      const info = await t.sendMail({ from, to, subject, text, html });
+    send: async ({ to, subject, text, html, attachments }) => {
+      const info = await t.sendMail({ from, to, subject, text, html, attachments });
       return { id: info.messageId };
     },
   };

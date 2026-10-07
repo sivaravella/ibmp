@@ -2,6 +2,10 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.20.0
+- **Email invoice**: a button on the invoice screen sends the invoice to a customer through your email settings (Brevo SMTP or any SMTP) with the PDF attached, a short summary and your bank or UPI details; every attempt is recorded and shown on the invoice. The PDF is made by a headless browser opening the app's own print page, so it is exactly the printed invoice. The Docker image now includes the browser (about 1 GB more); `--build-arg PDF_ENGINE=false` (or `IBMP_PDF_ENGINE=false` in compose) builds a slim image without it. Migration 027.
+- Fixed: the invoice print layout broke at A4 width (a mobile style rule applied to the tables) and spilled onto a second page; it is now one full-width page.
+
 ## 1.19.1
 - Docker re-verified at 1.19.0 (build, 26 migrations, health, headers, 404 for a missing file, data across a restart, rate limiting, weak-secret refusal, 103-screen browser smoke test). `docker-compose.yml`: `IBMP_HOST_PORT` and `IBMP_VERSION` can be set, and the Google and LinkedIn variables are passed through; the image tag was stale at 1.11.0.
 

@@ -47,8 +47,9 @@ const NAV = [
 // Screens reached from another screen rather than the sidebar; the sidebar keeps the entry they belong to highlighted.
 const InvoiceNew = page(() => import('./pages/InvoiceNew.jsx'));
 const InvoiceView = page(() => import('./pages/InvoiceView.jsx'));
-const HIDDEN = [['invoice-new', 'New invoice', 'file', InvoiceNew], ['invoice', 'Invoice', 'file', InvoiceView]];
-const PARENT = { 'invoice-new': 'invoices', invoice: 'invoices' };
+const InvoicePrint = page(() => import('./pages/InvoicePrint.jsx'));
+const HIDDEN = [['invoice-new', 'New invoice', 'file', InvoiceNew], ['invoice', 'Invoice', 'file', InvoiceView], ['invoice-print', 'Invoice', 'file', InvoicePrint]];
+const PARENT = { 'invoice-new': 'invoices', invoice: 'invoices', 'invoice-print': 'invoices' };
 const TABS = [...NAV.flatMap(([, items]) => items), ...HIDDEN];
 
 // The current screen lives in the URL fragment (#/invoice?id=12) so refresh, the back button and a copied link all work.

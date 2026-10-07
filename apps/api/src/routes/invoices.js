@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { h, httpError } from '../util.js';
+import { h, httpError, ymd } from '../util.js';
+import { signToken } from '../auth.js';
 import { computeInvoice } from '../gst.js';
 import { recordPayment } from '../payments.js';
 import { assertPeriodOpen } from '../filing-lock.js';
@@ -33,7 +34,11 @@ const invoiceSchema = z.object({
   })).min(1).max(100),
 });
 
-export function invoiceRoutes(pool) {
+const emailSchema = z.object({ to: z.string().trim().email('Enter a valid email address').max(120), message: z.string().trim().max(1000).optional() });
+const fileSafe = (s) => String(s).replace(/[^A-Za-z0-9._-]+/g, '_');
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+export function invoiceRoutes(pool, { channels = null, pdf = null, baseUrl = 'http://127.0.0.1:4000' } = {}) {
   const r = Router();
 
   r.get('/invoices', h(async (req, res) => {
@@ -93,6 +98,52 @@ export function invoiceRoutes(pool) {
       party: { name: party.name, gstin: party.gstin, pan: party.pan, stateCode: party.state_code, stateName: stateName(party.state_code), addr1: party.addr1, addr2: party.addr2, loc: party.loc, pin: party.pin, phone: party.phone, email: party.email },
       taxSummary, einvoice: einv, ewaybill: ewb,
     });
+  }));
+
+  /**
+   * Email the invoice to a customer with the PDF attached. The PDF is the app's own print page, opened in a headless browser as this user
+   * with a token that lasts three minutes (see pdf.js). Every attempt is recorded.
+   */
+  r.post('/invoices/:id/email', h(async (req, res) => {
+    if (!channels?.email) throw Object.assign(httpError(503, 'Email is not set up on this server. Ask your administrator to configure SMTP.'), { code: 'EMAIL_OFF' });
+    if (!pdf) throw Object.assign(httpError(503, 'The PDF engine is not installed on this server, so the invoice cannot be attached.'), { code: 'PDF_OFF' });
+    const b = emailSchema.parse(req.body);
+    const cid = req.user.companyId;
+    const inv = (await pool.query('SELECT * FROM invoices WHERE id=$1 AND company_id=$2', [req.params.id, cid])).rows[0];
+    if (!inv) throw httpError(404, 'Not found');
+    const company = (await pool.query('SELECT * FROM companies WHERE id=$1', [cid])).rows[0];
+    const party = (await pool.query('SELECT name FROM parties WHERE id=$1', [inv.party_id])).rows[0];
+    const sender = company.legal_name || company.name;
+    const balance = Math.max(0, Number(inv.total) - Number(inv.paid) - Number(inv.returned));
+    const money = (n) => `Rs. ${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    let file;
+    try { file = await pdf.render({ url: `${baseUrl}/#/invoice-print?id=${inv.id}`, token: signToken({ id: req.user.id, company_id: cid, role: req.user.role }, '3m') }); }
+    catch { throw httpError(502, 'The PDF could not be created. Try again in a moment.'); }
+
+    const lines = [
+      `Dear ${party.name},`, '', `Please find attached invoice ${inv.number} dated ${ymd(inv.date)} from ${sender}.`, '',
+      `Invoice total: ${money(inv.total)}`, ...(balance > 0 ? [`Amount due: ${money(balance)}`] : []), ...(inv.due_date ? [`Due date: ${ymd(inv.due_date)}`] : []),
+      ...(b.message ? ['', b.message] : []),
+      ...(balance > 0 && (company.bank_account || company.upi_id) ? ['', 'To pay:', ...(company.bank_account ? [`Bank: ${company.bank_name ?? ''} account ${company.bank_account}${company.bank_ifsc ? `, IFSC ${company.bank_ifsc}` : ''}`] : []), ...(company.upi_id ? [`UPI: ${company.upi_id}`] : [])] : []),
+      '', `Regards,`, sender,
+    ];
+    const text = lines.join('\n');
+    const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1f2937;line-height:1.5">${lines.map((l) => (l ? `<p style="margin:0 0 8px">${esc(l)}</p>` : '<br>')).join('')}</div>`;
+    try {
+      await channels.email.send({ to: b.to, subject: `Invoice ${inv.number} from ${sender}`, text, html, attachments: [{ filename: `${fileSafe(inv.number)}.pdf`, content: file, contentType: 'application/pdf' }] });
+    } catch (e) {
+      await pool.query("INSERT INTO invoice_emails (company_id, invoice_id, to_address, sent_by, status, error) VALUES ($1,$2,$3,$4,'failed',$5)", [cid, inv.id, b.to, req.user.id, String(e.message).slice(0, 300)]);
+      throw httpError(502, 'The email could not be sent. Check the address and the email settings, then try again.');
+    }
+    const row = (await pool.query("INSERT INTO invoice_emails (company_id, invoice_id, to_address, sent_by, status) VALUES ($1,$2,$3,$4,'sent') RETURNING id, to_address, status, created_at", [cid, inv.id, b.to, req.user.id])).rows[0];
+    res.status(201).json(row);
+  }));
+
+  r.get('/invoices/:id/emails', h(async (req, res) => {
+    const cid = req.user.companyId;
+    if (!(await pool.query('SELECT 1 FROM invoices WHERE id=$1 AND company_id=$2', [req.params.id, cid])).rowCount) throw httpError(404, 'Not found');
+    res.json((await pool.query('SELECT id, to_address, status, created_at FROM invoice_emails WHERE company_id=$1 AND invoice_id=$2 ORDER BY id DESC LIMIT 20', [cid, req.params.id])).rows);
   }));
 
   r.post('/invoices', h(async (req, res) => {

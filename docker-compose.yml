@@ -3,8 +3,11 @@
 name: ibmp
 services:
   app:
-    image: ibmp/app:${IBMP_VERSION:-1.19.1}
-    build: .
+    image: ibmp/app:${IBMP_VERSION:-1.20.0}
+    build:
+      context: .
+      args:
+        PDF_ENGINE: ${IBMP_PDF_ENGINE:-true}      # false: a slim image without the browser that makes invoice PDFs
     restart: unless-stopped
     ports: ["${IBMP_HOST_PORT:-4000}:4000"]
     environment:

@@ -261,5 +261,10 @@ For the people who run IBMP, at **`/platform`** (its own sign-in, separate from 
 - **GSTR-3B:** the bill goes in 3.1(d), the credit in 4(A)(3), and the tax is paid in cash. The credit it creates is set against ordinary output tax in the same return. The portal file carries `isup_rev` and ISRC. The ledger reconciliation includes it.
 - **Not covered:** reverse charge on **sales** (the supplier's side), returns against a reverse-charge bill (blocked on the screen; use a journal), time of supply rules, and ITC restrictions. Which of your purchases are under reverse charge is for you and your accountant to decide; IBMP does not look at the HSN or SAC.
 
+## v1.20 - Email invoices with a PDF
+- **How:** *Email invoice* on the invoice screen. The server opens the print page of that invoice in a headless Chrome (signed in as the sender with a token that lasts three minutes), saves it as an A4 PDF and sends it with Nodemailer. The email has the invoice number, total, amount due, due date, an optional note and the bank or UPI details. Sends and failures are recorded (`invoice_emails`) and listed on the invoice. SMTP details of a failure stay in the server log, not on screen.
+- **Where the browser comes from:** found automatically (Chrome, Edge or Chromium), or `IBMP_CHROME_PATH`. The Docker image installs Alpine's `chromium-headless-shell` and fonts that cover the rupee sign (full image about 1.3 GB, 317 MB without: `--build-arg PDF_ENGINE=false`, after which the button reports that PDF attachments are unavailable).
+- **Verified:** a real PDF from local Chrome (one A4 page), and from the container's headless shell (the email endpoint answered in about 3 seconds). Delivery was tested with the Brevo test mail only; no invoice was emailed to a real customer.
+
 ## Next
 A real GSP adapter. **Blocked on the provider:** Masters India's public docs lack response formats, the OTP/EVC session flow and the e-invoice and e-way bill endpoints, and Tera publishes none. It needs the full API documentation and sandbox credentials (see `apps/api/src/gsp.js` for the interface to implement).

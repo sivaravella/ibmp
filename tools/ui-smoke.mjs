@@ -107,6 +107,9 @@ for (const role of ROLES.filter((r) => !only || r.name.includes(only))) {
         if (t2.trim().length < 150) i.push('screen is almost empty');
         if (screen === 'New invoice' && !/Preview|TAX INVOICE|Tax Invoice/i.test(t2)) i.push('no invoice preview');
         if (screen === 'first row' && !/Place of supply/i.test(t2)) i.push('no invoice document');
+        if (screen === 'first row') {          // the email drawer opens with the customer's address filled in where there is one
+          if (!(await press('Email invoice'))) i.push('"Email invoice" not found'); else { await sleep(700); if (!(await evaluate("!!document.querySelector('[role=dialog] input[type=email]')"))) i.push('the email drawer did not open'); await closeDrawer(); }
+        }
         record(`${tab} › ${screen} (screen)`, i);
         await press('‹ All invoices'); await sleep(900);
       }

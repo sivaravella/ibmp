@@ -4,8 +4,8 @@ let configured = null;
 export const setJwtSecret = (s) => { configured = s; };
 const secret = () => configured || process.env.JWT_SECRET || 'dev-only-secret-change-me';
 
-export const signToken = (user) =>
-  jwt.sign({ uid: user.id, cid: user.company_id, role: user.role }, secret(), { expiresIn: '12h' });
+export const signToken = (user, expiresIn = '12h') =>
+  jwt.sign({ uid: user.id, cid: user.company_id, role: user.role }, secret(), { expiresIn });
 
 export function requireAuth(req, res, next) {
   const h = req.headers.authorization || '';

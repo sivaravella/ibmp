@@ -301,7 +301,7 @@ td.actions { white-space: nowrap; text-align: right; } td.actions button { margi
 .inv-meta span, .inv-words span, .inv-irn span, .inv-bank span { display: block; color: #64748b; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; }
 .inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .inv-parties > div { border: 1px solid #d5dbee; border-radius: 8px; padding: 9px 12px; }
 .inv-doc h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: 4px; } .inv-name { font-size: 13px; display: block; margin-bottom: 1px; }
-.inv-doc table { width: 100%; border: 0; border-radius: 0; box-shadow: none; margin: 0; background: transparent; border-collapse: collapse; overflow: visible; }
+.inv-doc table { display: table; white-space: normal; width: 100%; border: 0; border-radius: 0; box-shadow: none; margin: 0; background: transparent; border-collapse: collapse; overflow: visible; }
 .inv-doc th, .inv-doc td { padding: 5px 7px; border-bottom: 1px solid #e3e7f4; vertical-align: top; } .inv-doc tbody tr:hover { background: transparent; }
 .inv-doc th { background: #1f2a5a; color: #fff; font-size: 9.5px; font-weight: 600; text-transform: none; letter-spacing: 0; white-space: nowrap; }
 .inv-lines td small { display: block; color: #64748b; font-size: 9.5px; }
@@ -324,6 +324,7 @@ td.actions { white-space: nowrap; text-align: right; } td.actions button { margi
 @media print {
   body.print-invoice #root { display: none !important; } body.print-invoice #print-root { display: block; }
   body.print-invoice .inv-doc { width: 100%; min-height: 0; box-shadow: none; padding: 0; page-break-after: always; break-after: page; } body.print-invoice .inv-doc:last-child { page-break-after: auto; break-after: auto; }
+  body.print-invoice .inv-doc { gap: 8px; } body.print-invoice .inv-totals, body.print-invoice .inv-foot, body.print-invoice .inv-summary, body.print-invoice .inv-parties, body.print-invoice .inv-lines tr { break-inside: avoid; page-break-inside: avoid; }
   body.print-invoice .inv-doc th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } body.print-invoice .inv-logo, body.print-invoice .inv-totals .grand td, body.print-invoice .inv-summary th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
