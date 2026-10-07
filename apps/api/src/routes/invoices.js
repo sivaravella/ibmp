@@ -16,6 +16,10 @@ const invoiceSchema = z.object({
   reference: z.string().trim().max(60).optional(),
   notes: z.string().trim().max(500).optional(),
   shipTo: z.string().trim().max(300).optional(),
+  dispatchedThrough: z.string().trim().max(80).optional(),
+  destination: z.string().trim().max(80).optional(),
+  paymentTerms: z.string().trim().max(120).optional(),
+  otherRefs: z.string().trim().max(120).optional(),
   placeOfSupply: z.string().refine((v) => v in STATES, 'Unknown state code').optional(),     // when it differs from the buyer's state
   lines: z.array(z.object({
     itemId: z.number().int(),
@@ -81,7 +85,7 @@ export function invoiceRoutes(pool) {
         name: company.legal_name || company.name, tradeName: company.trade_name, gstin: company.gstin, pan: company.pan || (company.gstin ? company.gstin.slice(2, 12) : null),
         stateCode: company.state_code, stateName: stateName(company.state_code), addr1: company.addr1, addr2: company.addr2, loc: company.loc, pin: company.pin, phone: company.phone, email: company.email,
         bankName: company.bank_name, bankAccount: company.bank_account, bankIfsc: company.bank_ifsc, bankBranch: company.bank_branch, upiId: company.upi_id,
-        terms: company.invoice_terms, footer: company.invoice_footer, signatory: company.signatory,
+        terms: company.invoice_terms, footer: company.invoice_footer, signatory: company.signatory, logo: company.logo,
       },
       party: { name: party.name, gstin: party.gstin, pan: party.pan, stateCode: party.state_code, stateName: stateName(party.state_code), addr1: party.addr1, addr2: party.addr2, loc: party.loc, pin: party.pin, phone: party.phone, email: party.email },
       taxSummary, einvoice: einv, ewaybill: ewb,
@@ -116,9 +120,9 @@ export function invoiceRoutes(pool) {
         'UPDATE companies SET invoice_seq = invoice_seq + 1 WHERE id=$1 RETURNING invoice_seq', [cid])).rows[0].invoice_seq;
       const number = `INV-${String(seq).padStart(4, '0')}`;
       const inv = (await client.query(
-        `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total,due_date,reference,notes,ship_to,discount)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
-        [cid, party.id, number, b.date, pos, calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total, dueDate, b.reference || null, b.notes || null, b.shipTo || null, calc.discount])).rows[0];
+        `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total,due_date,reference,notes,ship_to,discount,dispatched_through,destination,payment_terms,other_refs)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
+        [cid, party.id, number, b.date, pos, calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total, dueDate, b.reference || null, b.notes || null, b.shipTo || null, calc.discount, b.dispatchedThrough || null, b.destination || null, b.paymentTerms || null, b.otherRefs || null])).rows[0];
 
       for (const l of calc.lines) {
         await client.query(

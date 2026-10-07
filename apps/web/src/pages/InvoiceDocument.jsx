@@ -50,7 +50,7 @@ export default function InvoiceDocument({ doc, copy = 'Original for Recipient', 
 
       <header className="inv-head">
         <div className="inv-seller">
-          <div className="inv-logo" aria-hidden="true">{(co.tradeName || co.name || '?').trim().charAt(0).toUpperCase()}</div>
+          {co.logo ? <img className="inv-logo-img" src={co.logo} alt="" /> : <div className="inv-logo" aria-hidden="true">{(co.tradeName || co.name || '?').trim().charAt(0).toUpperCase()}</div>}
           <div>
             <h1>{co.name}</h1>
             {co.tradeName && co.tradeName !== co.name && <div className="inv-sub">Trading as {co.tradeName}</div>}
@@ -74,7 +74,11 @@ export default function InvoiceDocument({ doc, copy = 'Original for Recipient', 
         <div><span>Due date</span><b>{inv.dueDate ? fmtDate(inv.dueDate) : 'On receipt'}</b></div>
         <div><span>Place of supply</span><b>{inv.placeOfSupply ? `${inv.placeOfSupplyName} (${inv.placeOfSupply})` : '—'}</b></div>
         <div><span>Reverse charge</span><b>No</b></div>
-        {inv.reference && <div><span>Buyer's reference</span><b>{inv.reference}</b></div>}
+        {inv.paymentTerms && <div><span>Mode / terms of payment</span><b>{inv.paymentTerms}</b></div>}
+        {inv.reference && <div><span>Buyer's ref. / order no.</span><b>{inv.reference}</b></div>}
+        {inv.otherRefs && <div><span>Other references</span><b>{inv.otherRefs}</b></div>}
+        {inv.dispatchedThrough && <div><span>Dispatched through</span><b>{inv.dispatchedThrough}</b></div>}
+        {inv.destination && <div><span>Destination</span><b>{inv.destination}</b></div>}
         {ewaybill?.ewbNo && <div><span>E-way bill</span><b>{ewaybill.ewbNo}</b></div>}
       </section>
 

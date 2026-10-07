@@ -48,6 +48,23 @@ export function usePrintInvoice(doc) {
   return { print: (which) => setLabels(which === 'all' ? COPIES : [which ?? COPIES[0]]), portal };
 }
 
+/** Shrink a chosen image to fit 320 x 160 and return it as a data URL, so the logo stays small enough to store and print crisply. */
+function shrinkLogo(file) {
+  return new Promise((resolve, reject) => {
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return reject(new Error('Choose a PNG, JPEG or WebP image.'));
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 320 / img.width, 160 / img.height), c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL(file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png', 0.88));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('That image could not be read.')); };
+    img.src = url;
+  });
+}
+
 const FIELDS = ['legalName', 'tradeName', 'addr1', 'addr2', 'loc', 'pin', 'phone', 'email', 'bankName', 'bankAccount', 'bankIfsc', 'bankBranch', 'upiId', 'signatory', 'invoiceTerms', 'invoiceFooter'];
 
 /** Everything about the business that is printed on an invoice: address, bank and UPI details, terms, signatory and the usual credit period. */
@@ -55,10 +72,12 @@ export function InvoiceSettings({ profile, onClose, onSaved }) {
   const [f, setF] = useState(() => ({ ...Object.fromEntries(FIELDS.map((k) => [k, profile?.[k] ?? ''])), paymentDays: String(profile?.paymentDays ?? 0) }));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [logo, setLogo] = useState(profile?.logo ?? '');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const pickLogo = async (e) => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; setErr(''); try { setLogo(await shrinkLogo(file)); } catch (e2) { setErr(e2.message); } };
   async function save(e) {
     e.preventDefault(); setErr(''); setBusy(true);
-    try { onSaved(await api('PUT', '/company/profile', { ...f, paymentDays: Number(f.paymentDays || 0) })); } catch (e2) { setErr(e2.issues?.map((i) => i.message).join(' ') || e2.message); setBusy(false); }
+    try { onSaved(await api('PUT', '/company/profile', { ...f, logo, paymentDays: Number(f.paymentDays || 0) })); } catch (e2) { setErr(e2.issues?.map((i) => i.message).join(' ') || e2.message); setBusy(false); }
   }
   return (
     <Drawer open wide title="Invoice settings" subtitle="What is printed on every invoice. The GSTIN and state come from your registration." onClose={onClose}
@@ -66,6 +85,11 @@ export function InvoiceSettings({ profile, onClose, onSaved }) {
       <form id="inv-settings" onSubmit={save} style={{ display: 'contents' }}>
         <Notice>{err}</Notice>
         <div className="form-section">Business</div>
+        <div className="logo-pick">
+          <div className="logo-box">{logo ? <img src={logo} alt="Company logo" /> : <span>No logo</span>}</div>
+          <div><label className="row-btn" style={{ cursor: 'pointer' }}>{logo ? 'Change logo' : 'Add your logo'}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={pickLogo} hidden /></label>{logo && <button type="button" className="row-btn" onClick={() => setLogo('')}>Remove</button>}
+            <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>PNG, JPEG or WebP. It is resized to fit 320 x 160 and printed at the top left of every invoice.</p></div>
+        </div>
         <div className="form-grid">
           <Field label="Legal name" hint="As on your GST registration"><input value={f.legalName} onChange={set('legalName')} /></Field>
           <Field label="Trade name"><input value={f.tradeName} onChange={set('tradeName')} /></Field>

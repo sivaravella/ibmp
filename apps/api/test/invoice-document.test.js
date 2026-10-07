@@ -191,3 +191,17 @@ test('the tax summary groups by code and rate and a bill of supply is only for u
   assert.equal(isBillOfSupply([{ gstPct: 0 }, { gstPct: 5 }]), false);
   assert.equal(isBillOfSupply([]), false);
 });
+
+test('the transport and payment-terms fields and the company logo come back on the document', async () => {
+  const { t, local, a } = await world();
+  const logo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  await ok(call('PUT', '/company/profile', { logo }, t));
+  assert.equal((await call('PUT', '/company/profile', { logo: 'data:image/svg+xml;base64,PHN2Zz4=' }, t)).status, 400);
+  assert.equal((await call('PUT', '/company/profile', { logo: `data:image/png;base64,${'A'.repeat(210000)}` }, t)).status, 400);
+  const inv = await ok(call('POST', '/invoices', { partyId: local.id, date: '2026-10-07', paymentTerms: '30 days by bank transfer', dispatchedThrough: 'Blue Dart', destination: 'Mysuru', otherRefs: 'Rate contract 12', lines: [{ itemId: a.id, qty: 1 }] }, t));
+  const d = await ok(call('GET', `/invoices/${inv.id}/document`, undefined, t));
+  assert.deepEqual([d.invoice.paymentTerms, d.invoice.dispatchedThrough, d.invoice.destination, d.invoice.otherRefs], ['30 days by bank transfer', 'Blue Dart', 'Mysuru', 'Rate contract 12']);
+  assert.equal(d.company.logo, logo);
+  await ok(call('PUT', '/company/profile', { logo: '' }, t));
+  assert.equal((await ok(call('GET', `/invoices/${inv.id}/document`, undefined, t))).company.logo, null);
+});

@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.14.0
+- Invoice template, following the field set of Tally's free invoice generator: company logo (upload in Invoice settings, resized to fit 320 x 160), mode / terms of payment, buyer's ref. / order no., other references, dispatched through and destination, all on the create screen and printed in the header block. Migration 022.
+
 ## 1.13.0
 - Sign in and sign up with Google and LinkedIn (OpenID Connect, authorization-code flow on the server). A button shows only when its `IBMP_GOOGLE_CLIENT_ID`/`_SECRET` or `IBMP_LINKEDIN_CLIENT_ID`/`_SECRET` are set. Existing accounts are matched by the provider's verified email; first-time users give their company details and start the trial. Migration 021 (`user_identities`).
 
