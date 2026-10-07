@@ -83,9 +83,11 @@ export default function Login({ onAuth }) {
         <form className="auth" onSubmit={submit}>
           <h2>{mode === 'login' ? 'Welcome back' : mode === 'social' ? `Welcome, ${pending.name.split(' ')[0]}` : 'Create your account'}</h2>
           <p className="lead">{mode === 'login' ? 'Sign in to continue to your dashboard.' : mode === 'social' ? `One last step: tell us about your business. You are signing up with ${pending.providerName} as ${pending.email}.` : 'Start a free 14-day trial. No card needed.'}</p>
-          {mode !== 'social' && SOCIAL.some(([k]) => providers[k]) && <>
+          {mode !== 'social' && <>
             <div className="social-row">
-              {SOCIAL.filter(([k]) => providers[k]).map(([k, label, Logo]) => <a key={k} className="social-btn" href={`/v1/auth/social/${k}/start`}><Logo /> {mode === 'login' ? 'Continue' : 'Sign up'} with {label}</a>)}
+              {SOCIAL.map(([k, label, Logo]) => (providers[k]
+                ? <a key={k} className="social-btn" href={`/v1/auth/social/${k}/start`}><Logo /> {mode === 'login' ? 'Continue' : 'Sign up'} with {label}</a>
+                : <button key={k} type="button" className="social-btn" onClick={() => setErr(`${label} sign-in is not switched on for this site yet. Use your email below for now, or ask your administrator to add the ${label} credentials.`)}><Logo /> {mode === 'login' ? 'Continue' : 'Sign up'} with {label}</button>))}
             </div>
             <div className="auth-or"><span>or use your email</span></div>
           </>}

@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.20.2
+- The Google and LinkedIn buttons are always shown on the sign-in and create-account screens. If a provider has not been set up on the server yet, its button says so when clicked and points to email sign-in; once the credentials are set it goes straight to the provider.
+
 ## 1.20.1
 - Emailing invoices is limited to 30 an hour per company (failed attempts count), so the feature cannot be used to send spam; the limit message names the number.
 
@@ -41,7 +44,7 @@ Versions follow semantic versioning. Feature history before 1.5.0 is in README.m
 - Invoice template, following the field set of Tally's free invoice generator: company logo (upload in Invoice settings, resized to fit 320 x 160), mode / terms of payment, buyer's ref. / order no., other references, dispatched through and destination, all on the create screen and printed in the header block. Migration 022.
 
 ## 1.13.0
-- Sign in and sign up with Google and LinkedIn (OpenID Connect, authorization-code flow on the server). A button shows only when its `IBMP_GOOGLE_CLIENT_ID`/`_SECRET` or `IBMP_LINKEDIN_CLIENT_ID`/`_SECRET` are set. Existing accounts are matched by the provider's verified email; first-time users give their company details and start the trial. Migration 021 (`user_identities`).
+- Sign in and sign up with Google and LinkedIn (OpenID Connect, authorization-code flow on the server). Both buttons always show; a provider works only when its `IBMP_GOOGLE_CLIENT_ID`/`_SECRET` or `IBMP_LINKEDIN_CLIENT_ID`/`_SECRET` are set. Existing accounts are matched by the provider's verified email; first-time users give their company details and start the trial. Migration 021 (`user_identities`).
 
 ## 1.12.0
 - Invoices: create an invoice on its own full screen with a live A4 preview; an invoice view screen (print one copy or all three, record a receipt, return, duplicate); a professional GST tax invoice (rule 46: supplier/recipient GSTIN and state, place of supply, HSN/SAC, per-line discount and CGST/SGST/IGST, tax summary by HSN and rate, total in words, bank details and UPI QR, terms, signatory, e-invoice IRN/QR, e-way bill, Bill of Supply when nothing is taxable).
