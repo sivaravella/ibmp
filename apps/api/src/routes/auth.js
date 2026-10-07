@@ -7,7 +7,8 @@ import { GSTIN_RE, stateFromGstin } from '../gst.js';
 import { seedAccounts } from '../ledger.js';
 import { loadSubscription } from '../subscription.js';
 
-export const SECTORS = ['retail', 'trading', 'service', 'wholesale', 'hospital', 'pharmacy'];
+import { SECTORS } from '../sectors.js';
+export { SECTORS };
 export const PROFESSIONAL_BODIES = ['ICAI', 'ICSI', 'ICMAI'];
 
 export const consultantSchema = z.object({

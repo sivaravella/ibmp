@@ -1,3 +1,4 @@
+import { sectorLabel } from '../ui/sectors.js';
 import React, { useEffect, useState } from 'react';
 import { hasPlatformToken, issueText, papi, setPlatformToken } from './platformApi.js';
 import { Icon } from '../ui/icons.jsx';
@@ -266,7 +267,7 @@ function CompanyDetail({ id, canEdit, back, openOther }) {
   return (
     <>
       <div className="row"><button onClick={back}>‹ Back</button><h2 style={{ margin: 0 }}>{c.name}</h2>{c.suspended && <Chip text="suspended" color="#b91c1c" />}{c.archived && <Chip text="archived" color="#64748b" />}</div>
-      <p className="muted">#{c.id} · {c.gstin ?? 'no GSTIN'} · state {c.stateCode} · {c.sector} · registered {fmt(c.createdAt)}</p>
+      <p className="muted">#{c.id} · {c.gstin ?? 'no GSTIN'} · state {c.stateCode} · {sectorLabel(c.sector)} · registered {fmt(c.createdAt)}</p>
       {c.suspended && <p className="card err">Suspended on {fmt(c.suspended.at)}: {c.suspended.reason}</p>}
       {err && <p className="err">{err}</p>}{msg && <p style={{ color: '#15803d' }}>{msg}</p>}
 

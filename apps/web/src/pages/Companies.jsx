@@ -3,7 +3,7 @@ import { COLORS, StackBar } from '../ui/charts.jsx';
 import { Badge, KpiCard, PageHeader, Panel } from '../ui/kit.jsx';
 import { api, setToken } from '../api.js';
 
-const SECTORS = ['retail', 'trading', 'service', 'wholesale', 'hospital', 'pharmacy'];
+import { SECTOR_LIST } from '../ui/sectors.js';
 const VERIFY = { pending: ['Awaiting verification', '#92400e', '#fef3c7'], verified: ['Verified', '#15803d', '#dcfce7'], rejected: ['Not verified', '#b91c1c', '#fee2e2'] };
 
 /** Make another of the user's companies the active one. A fresh token is issued, so reload to reset all page state. */
@@ -142,7 +142,7 @@ function AddCompany({ onAdded, onError }) {
     <form className="card row" onSubmit={add}>
       <strong>Add a client company</strong>
       <input placeholder="Company name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} required />
-      <select value={f.sector} onChange={(e) => setF({ ...f, sector: e.target.value })}>{SECTORS.map((s) => <option key={s}>{s}</option>)}</select>
+      <select value={f.sector} onChange={(e) => setF({ ...f, sector: e.target.value })}>{SECTOR_LIST.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
       <input placeholder="GSTIN" value={f.gstin} onChange={(e) => setF({ ...f, gstin: e.target.value })} />
       {f.gstin.length === 15 && <button type="button" onClick={async () => { try { const g = await api('GET', `/filing/gstin/${f.gstin.trim()}`); setF({ ...f, gstin: g.gstin, name: f.name || g.tradeName || g.legalName }); } catch (e) { onError(e); } }}>Fetch</button>}
       {!f.gstin && <input placeholder="State code" maxLength={2} value={f.stateCode} onChange={(e) => setF({ ...f, stateCode: e.target.value })} required style={{ width: 110 }} />}

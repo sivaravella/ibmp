@@ -5,6 +5,7 @@ import { Icon } from './ui/icons.jsx';
 import { DashboardSkeleton, ErrorBoundary } from './ui/kit.jsx';
 import { fmtDate, initials } from './ui/format.js';
 import { useNavCollapsed } from './ui/nav.js';
+import { sectorLabel } from './ui/sectors.js';
 
 // Each screen is its own chunk, loaded when first opened, so signing in downloads only the shell and the dashboard.
 const page = (loader) => lazy(loader);
@@ -119,7 +120,7 @@ export default function App() {
               {me.companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             : me && <strong>{me.company}</strong>}
-          {me && <span>{me.sector} · GST state {me.stateCode}{me.accountType === 'consultant' ? ' · professional' : ''}</span>}
+          {me && <span>{sectorLabel(me.sector)} · GST state {me.stateCode}{me.accountType === 'consultant' ? ' · professional' : ''}</span>}
           {sub && <span className="plan-chip">{sub.planName}{sub.status === 'trialing' ? ` · ${sub.daysLeft}d left` : ''}</span>}
           <button onClick={() => { setToken(null); setAuthed(false); setMe(null); setSub(null); }} title="Sign out"><Icon name="logout" size={15} /><span className="nav-text">Sign out</span></button>
         </div>

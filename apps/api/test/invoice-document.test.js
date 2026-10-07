@@ -205,3 +205,13 @@ test('the transport and payment-terms fields and the company logo come back on t
   await ok(call('PUT', '/company/profile', { logo: '' }, t));
   assert.equal((await ok(call('GET', `/invoices/${inv.id}/document`, undefined, t))).company.logo, null);
 });
+
+test('every listed business type can register, an unknown one cannot', async () => {
+  const { SECTOR_LIST } = await import('../src/sectors.js');
+  assert.ok(SECTOR_LIST.length >= 20 && ['trading', 'wholesale', 'retail', 'service', 'hospital', 'pharmacy'].every((s) => SECTOR_LIST.some(([v]) => v === s)));
+  for (const [v] of [['manufacturing'], ['restaurant'], ['other']]) {
+    const r = await call('POST', '/auth/register', { name: 'T', email: `sector-${v}@example.com`, password: 'password123', company: `Co ${v}`, sector: v, stateCode: '29' });
+    assert.equal(r.status, 201, v);
+  }
+  assert.equal((await call('POST', '/auth/register', { name: 'T', email: 'sector-bad@example.com', password: 'password123', company: 'Bad', sector: 'spaceships', stateCode: '29' })).status, 400);
+});

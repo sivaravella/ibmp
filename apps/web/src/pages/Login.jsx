@@ -3,7 +3,7 @@ import { api, setToken } from '../api.js';
 import { Icon } from '../ui/icons.jsx';
 import { Segmented } from '../ui/kit.jsx';
 
-const SECTORS = ['retail', 'trading', 'service', 'wholesale', 'hospital', 'pharmacy'];
+import { SECTOR_LIST } from '../ui/sectors.js';
 const POINTS = [
   ['percent', 'GST done properly', 'Invoices, returns, GSTR-1 and GSTR-3B from the same books, checked before they go to the portal.'],
   ['calendar', 'Never miss a due date', 'A compliance calendar with reminders by email, WhatsApp and SMS.'],
@@ -93,7 +93,7 @@ export default function Login({ onAuth }) {
             <Segmented wide label="Account type" value={f.accountType} onChange={(v) => setF({ ...f, accountType: v })} options={[['individual', 'Business Owner'], ['consultant', 'CA / CS / CMA']]} />
             {mode === 'register' && <input placeholder="Your name" autoComplete="name" onChange={set('name')} required />}
             <input placeholder={consultant ? 'Practice or firm name' : 'Company name'} autoComplete="organization" onChange={set('company')} required />
-            <select value={f.sector} onChange={set('sector')} aria-label="Sector">{SECTORS.map((s) => <option key={s}>{s}</option>)}</select>
+            <select value={f.sector} onChange={set('sector')} aria-label="Business type">{SECTOR_LIST.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
             <input placeholder="GSTIN (or fill the state code below)" onChange={set('gstin')} />
             {!f.gstin && <input placeholder="State code, e.g. 29" maxLength={2} onChange={set('stateCode')} required />}
             {consultant && <>
