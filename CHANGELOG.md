@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.19.1
+- Docker re-verified at 1.19.0 (build, 26 migrations, health, headers, 404 for a missing file, data across a restart, rate limiting, weak-secret refusal, 103-screen browser smoke test). `docker-compose.yml`: `IBMP_HOST_PORT` and `IBMP_VERSION` can be set, and the Google and LinkedIn variables are passed through; the image tag was stale at 1.11.0.
+
 ## 1.19.0
 - New screen **Sign-in and security** (Account menu): change or set a password, see the Google and LinkedIn accounts linked to your login and unlink them. A person who signed up with Google or LinkedIn has no password until they set one, and cannot unlink their only way in. Migration 026.
 - Additional charges on an invoice take an optional SAC code (default 9965).

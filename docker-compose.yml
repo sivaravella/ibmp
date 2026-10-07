@@ -3,10 +3,10 @@
 name: ibmp
 services:
   app:
-    image: ibmp/app:1.11.0
+    image: ibmp/app:${IBMP_VERSION:-1.19.1}
     build: .
     restart: unless-stopped
-    ports: ["4000:4000"]
+    ports: ["${IBMP_HOST_PORT:-4000}:4000"]
     environment:
       IBMP_DATABASE_URL: postgres://ibmp:${IBMP_DB_PASSWORD:?set IBMP_DB_PASSWORD}@db:5432/ibmp
       IBMP_JWT_SECRET: ${IBMP_JWT_SECRET:?set IBMP_JWT_SECRET (32+ random chars)}
