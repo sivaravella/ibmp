@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader, Segmented } from '../ui/kit.jsx';
 import { api, download, inr } from '../api.js';
 import TdsNs from './TdsNs.jsx';
 
@@ -12,12 +13,10 @@ export default function Tds({ go }) {
   const [fy, setFy] = useState(curFy());
   return (
     <>
-      <h2>TDS &amp; Form 16</h2>
-      <div className="row">
-        {[['q24', 'Form 24Q (salary)'], ['f16', 'Form 16'], ['ns', 'Non-salary TDS & 26Q'], ['setup', 'Setup & challans']].map(([k, l]) => <button key={k} className={tab === k ? 'primary' : ''} onClick={() => setTab(k)}>{l}</button>)}
-        <span style={{ flex: 1 }} />
-        <button onClick={() => setFy(shiftFy(fy, -1))}>‹</button><strong>FY {fy}</strong><button onClick={() => setFy(shiftFy(fy, 1))}>›</button>
-      </div>
+      <PageHeader title="TDS and Form 16" subtitle="Tax deducted on salaries and other payments: challans, quarterly statements and certificates">
+        <Segmented label="Section" value={tab} onChange={setTab} options={[['q24', 'Form 24Q (salary)'], ['f16', 'Form 16'], ['ns', 'Other payments & 26Q'], ['setup', 'Setup & challans']]} />
+        <button onClick={() => setFy(shiftFy(fy, -1))} aria-label="Previous year">‹</button><strong>FY {fy}</strong><button onClick={() => setFy(shiftFy(fy, 1))} aria-label="Next year">›</button>
+      </PageHeader>
       {tab === 'setup' && <Setup fy={fy} go={go} />}
       {tab === 'q24' && <Q24 fy={fy} />}
       {tab === 'f16' && <Form16 fy={fy} />}

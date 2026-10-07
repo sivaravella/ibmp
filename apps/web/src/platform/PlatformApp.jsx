@@ -3,6 +3,7 @@ import { hasPlatformToken, issueText, papi, setPlatformToken } from './platformA
 import { Icon } from '../ui/icons.jsx';
 import { COLORS, Donut, HBars, Legend, StackBar, TrendChart } from '../ui/charts.jsx';
 import { Badge, DashboardSkeleton, ErrorBoundary, KpiCard, PageHeader, Panel } from '../ui/kit.jsx';
+import { useNavCollapsed } from '../ui/nav.js';
 import { fmtDate as fmt, inr, inrCompact, initials, monthLabel, num } from '../ui/format.js';
 
 const STATUS_COLOR = { active: '#15803d', trialing: '#1d4ed8', grace: '#92400e', expired: '#b91c1c', none: '#64748b' };
@@ -18,6 +19,7 @@ export default function PlatformApp() {
   const [tab, setTab] = useState('overview');
   const [focus, setFocus] = useState(null);                 // company id to open in Companies
   const [menu, setMenu] = useState(false);
+  const [collapsed, toggleNav] = useNavCollapsed();
   useEffect(() => { if (authed) papi('GET', '/me').then(setMe).catch(() => {}); }, [authed]);
   useEffect(() => { document.title = `${(NAV.find(([id]) => id === tab) ?? [])[1] ?? 'Console'} · IBMP Platform`; }, [tab]);
   if (!authed) return <SignIn onDone={() => setAuthed(true)} />;
@@ -25,22 +27,23 @@ export default function PlatformApp() {
   const goTab = (id) => { setTab(id); setFocus(null); setMenu(false); window.scrollTo(0, 0); };
 
   return (
-    <div className="shell platform">
+    <div className={`shell platform${collapsed ? ' collapsed' : ''}`}>
       <div className={`scrim${menu ? ' open' : ''}`} onClick={() => setMenu(false)} />
       <aside className={menu ? 'open' : ''} aria-label="Console navigation">
         <div className="brand"><div className="brand-mark">I</div><div><strong>IBMP Platform</strong><span>Owner console</span></div></div>
         <nav>
           <div className="nav-label">Console</div>
-          {NAV.map(([id, label, icon]) => <button key={id} className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => goTab(id)}><Icon name={icon} />{label}</button>)}
+          {NAV.map(([id, label, icon]) => <button key={id} className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => goTab(id)} title={collapsed ? label : undefined}><Icon name={icon} /><span className="nav-text">{label}</span></button>)}
         </nav>
         <div className="who">
           {me && <><strong>{me.name}</strong><span>{me.email}</span><span className="plan-chip">{me.role === 'owner' ? 'Owner' : 'Read-only'}</span></>}
-          <button onClick={() => { setPlatformToken(null); setAuthed(false); }}><Icon name="logout" size={15} />Sign out</button>
+          <button onClick={() => { setPlatformToken(null); setAuthed(false); }} title="Sign out"><Icon name="logout" size={15} /><span className="nav-text">Sign out</span></button>
         </div>
       </aside>
       <div className="main-col">
         <div className="topbar">
           <button className="menu-btn" onClick={() => setMenu(true)} aria-label="Open menu"><Icon name="menu" /></button>
+          <button className="icon-btn fold-btn" onClick={toggleNav} aria-label={collapsed ? 'Expand the sidebar' : 'Collapse the sidebar'} title={collapsed ? 'Expand the sidebar' : 'Collapse the sidebar'}><Icon name="panel" /></button>
           <div className="crumb"><span>Platform / </span>{(NAV.find(([id]) => id === tab) ?? [])[1]}</div>
           <div className="spacer" />
           {me?.role === 'support' && <span className="pill info">Read-only account</span>}

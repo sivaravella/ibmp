@@ -150,14 +150,14 @@ export function Donut({ segments, size = 168, thickness = 20, centerLabel, cente
           return el;
         })}
       </svg>
-      <div className="donut-center"><strong>{centerValue}</strong><span>{centerLabel}</span></div>
+      <div className="donut-center"><strong style={{ fontSize: Math.max(13, Math.round(size / 7.2)) }}>{centerValue}</strong><span>{centerLabel}</span></div>
     </div>
   );
 }
 
-export function Legend({ items, format }) {
+export function Legend({ items, format, inline = false }) {
   return (
-    <ul className="legend">
+    <ul className={`legend${inline ? ' inline' : ''}`}>
       {items.map((x) => <li key={x.label}><i style={{ background: x.color }} /><span>{x.label}</span>{x.value !== undefined && <b>{format ? format(x.value) : x.value}</b>}</li>)}
     </ul>
   );

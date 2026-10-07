@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../ui/kit.jsx';
+import { Notice } from '../ui/forms.jsx';
 import { api, download, inr } from '../api.js';
 
 const lastMonth = () => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); return d.toISOString().slice(0, 7); };
@@ -18,12 +20,10 @@ export default function Filing({ params }) {
 
   return (
     <>
-      <h2>GST filing</h2>
-      <div className="row">
-        <input type="month" value={period} max={lastMonth()} onChange={(e) => e.target.value && setPeriod(e.target.value)} />
-        <strong>{monthName(period)}</strong>
-      </div>
-      {err && <p className="err">{err}</p>}
+      <PageHeader title="GST filing" subtitle={`Send GSTR-1 and GSTR-3B for ${monthName(period)} to the GST portal through your GSP, then file`}>
+        <input type="month" value={period} max={lastMonth()} onChange={(e) => e.target.value && setPeriod(e.target.value)} aria-label="Return period" />
+      </PageHeader>
+      {err && <Notice>{err}</Notice>}
       {st && <>
         {st.gsp?.mode === 'simulated' && (
           <div style={{ background: '#fef3c7', color: '#92400e', padding: '8px 14px', borderRadius: 8, marginBottom: 14 }}>

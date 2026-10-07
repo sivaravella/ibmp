@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { KpiCard, PageHeader, Segmented } from '../ui/kit.jsx';
+import { Notice } from '../ui/forms.jsx';
 import QRCode from 'qrcode';
 import { api, inr } from '../api.js';
 
@@ -15,10 +17,9 @@ export default function EDocs({ go }) {
   const [tab, setTab] = useState('einvoice');
   return (
     <>
-      <h2>E-invoice &amp; e-way bill</h2>
-      <div className="row">
-        {[['einvoice', 'E-invoices'], ['ewb', 'E-way bills'], ['setup', 'Setup']].map(([k, l]) => <button key={k} className={tab === k ? 'primary' : ''} onClick={() => setTab(k)}>{l}</button>)}
-      </div>
+      <PageHeader title="E-invoice and e-way bill" subtitle="Invoice Reference Numbers (IRN) and transport documents, prepared and sent to the government portals">
+        <Segmented label="Section" value={tab} onChange={setTab} options={[['einvoice', 'E-invoices'], ['ewb', 'E-way bills'], ['setup', 'Setup']]} />
+      </PageHeader>
       {tab === 'einvoice' && <Einvoices go={go} />}
       {tab === 'ewb' && <Ewb go={go} />}
       {tab === 'setup' && <Setup go={go} />}
@@ -60,12 +61,21 @@ function Einvoices({ go }) {
   }
   const docs = data.documents.filter((d) => !onlyRequired || d.required || d.einvoice);
   const state = (d) => d.einvoice?.status ?? (d.required ? 'needed' : d.b2b ? 'none' : 'b2c');
+  const needed = data.documents.filter((d) => state(d) === 'needed').length;
+  const generated = data.documents.filter((d) => state(d) === 'generated').length;
+  const rejected = data.documents.filter((d) => ['failed', 'cancelled'].includes(state(d))).length;
 
   return (
     <>
       <GspNote gsp={gsp} go={go} />
+      <div className="kpi-grid">
+        <KpiCard label="Need an IRN" value={needed} icon="alert" tone={needed ? 'rose' : 'green'} hint="Required but not generated yet" onClick={needed ? () => setOnlyRequired(true) : undefined} />
+        <KpiCard label="IRN generated" value={generated} icon="check" tone="green" hint="Accepted by the invoice registration portal" />
+        <KpiCard label="Rejected or cancelled" value={rejected} icon="undo" tone={rejected ? 'amber' : 'teal'} hint="Fix and prepare again" />
+        <KpiCard label="Documents, last 120 days" value={data.documents.length} icon="file" tone="brand" hint={`${data.documents.filter((d) => d.b2b).length} to registered buyers`} />
+      </div>
       {!data.enabled && <p className="muted">E-invoicing is switched off for this business. You can still generate an IRN voluntarily; turn it on under Setup if it is mandatory for you.</p>}
-      {err && <p className="err">{err}</p>}
+      {err && <Notice>{err}</Notice>}
       <div className="row"><label><input type="checkbox" checked={onlyRequired} onChange={(e) => setOnlyRequired(e.target.checked)} /> Only documents that need an IRN</label></div>
       {open && <Detail id={open} gsp={gsp} go={go} onClose={() => setOpen(null)} onChange={load} />}
       <table>

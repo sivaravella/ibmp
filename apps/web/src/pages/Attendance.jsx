@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../ui/kit.jsx';
+import { Notice } from '../ui/forms.jsx';
 import { api } from '../api.js';
 
 const monthNow = () => new Date().toISOString().slice(0, 7);
@@ -49,18 +51,16 @@ export default function Attendance() {
   const locked = data?.locked;
   return (
     <>
-      <h2>Attendance register</h2>
-      <div className="row">
-        <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} />
-        <strong>{monthName(month)}</strong>
+      <PageHeader title="Attendance register" subtitle={`Who was present, absent or on leave in ${monthName(month)}: paint the register, and payroll picks up the loss of pay`}>
+        <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} aria-label="Month" />
         <button onClick={() => setShowSettings(!showSettings)}>Week offs &amp; holidays</button>
-        <button onClick={autofill} disabled={locked || !data?.employees.length}>Auto-fill</button>
+        <button className="primary" onClick={autofill} disabled={locked || !data?.employees.length}>Auto-fill</button>
         <label className="muted"><input type="checkbox" checked={presentDefault} onChange={(e) => setPresentDefault(e.target.checked)} /> mark other days present</label>
-      </div>
+      </PageHeader>
 
-      {locked && <p className="err">Payroll for this month is finalized, so attendance is frozen. Reopen the payroll run to make changes.</p>}
-      {err && <p className="err">{err}</p>}
-      {note && <p className="muted">{note}</p>}
+      {locked && <Notice tone="warn">Payroll for this month is finalized, so attendance is frozen. Reopen the payroll run to make changes.</Notice>}
+      {err && <Notice>{err}</Notice>}
+      {note && <Notice tone="info">{note}</Notice>}
       {showSettings && data && <Settings data={data} onChanged={load} />}
 
       <div className="row">

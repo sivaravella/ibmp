@@ -1,5 +1,5 @@
 // Design QA: signs in through the API, opens a page of the running portal in headless Chrome and saves a screenshot.
-//   node tools/screenshot.mjs <path> <out.png> [--anon] [--as business|platform] [--email e] [--password p] [--w 1440] [--h 900] [--full] [--wait 1500] [--click "Button text"]
+//   node tools/screenshot.mjs <path> <out.png> [--anon] [--as business|platform] [--email e] [--password p] [--w 1440] [--h 900] [--full] [--wait 1500] [--click "Button text" (prefix =Exact for an exact match)]
 // Needs the portal running (npm run local) and Chrome or Edge installed.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -14,12 +14,13 @@ const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i
 const as = opt('as', route.startsWith('/platform') ? 'platform' : 'business');
 const email = opt('email', as === 'platform' ? 'platform@ibmp.in' : 'demo@ibmp.in');
 const password = opt('password', as === 'platform' ? 'platform-demo-123' : 'password123');
-const W = Number(opt('w', 1440)), H = Number(opt('h', 900)), wait = Number(opt('wait', 1500)), full = args.includes('--full'), click = opt('click', null);
+const W = Number(opt('w', 1440)), H = Number(opt('h', 900)), wait = Number(opt('wait', 1500)), full = args.includes('--full'), clicks = args.filter((a, i) => args[i - 1] === '--click' && a);   // --click "Text" (repeatable, in order)
 const BASE = process.env.BASE || 'http://localhost:4000';
 
 const chrome = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find((p) => fs.existsSync(p));
 if (!chrome) throw new Error('No Chrome or Edge found');
 
+const storage = args.filter((a, i) => args[i - 1] === '--storage').map((kv) => kv.split('='));   // --storage key=value (repeatable): set localStorage before load
 const anon = args.includes('--anon');   // show the signed-out screen
 const login = anon ? null : await fetch(`${BASE}/v1/${as === 'platform' ? 'platform/login' : 'auth/login'}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) });
 if (login && !login.ok) throw new Error(`login failed: ${login.status}`);
@@ -47,11 +48,17 @@ try {
   await send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: W < 700 });
   // Set the token before any page script runs, so the app starts signed in.
   if (token) await send('Page.addScriptToEvaluateOnNewDocument', { source: `localStorage.setItem('${as === 'platform' ? 'ibmp_platform_token' : 'ibmp_token'}', ${JSON.stringify(token)})` });
+  if (storage.length) await send('Page.addScriptToEvaluateOnNewDocument', { source: storage.map(([k, v]) => `localStorage.setItem(${JSON.stringify(k)}, ${JSON.stringify(v)})`).join(';') });
   await send('Page.navigate', { url: `${BASE}${route}` }); await sleep(wait);
-  if (click) {
-    await send('Runtime.evaluate', { expression: `(() => { const b = [...document.querySelectorAll('button, a')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(click)})); if (b) b.click(); return !!b; })()` });
+  for (const click of clicks) {
+    await send('Runtime.evaluate', { expression: `(() => { const b = [...document.querySelectorAll('button, a')].find((x) => (${JSON.stringify(click)}[0] === '=' ? x.textContent.trim() === ${JSON.stringify(click)}.slice(1) : x.textContent.trim().startsWith(${JSON.stringify(click)}))); if (b) b.click(); return !!b; })()` });
     await sleep(wait);
   }
+  // Headless Chrome only advances animations when frames are produced, so pump some before capturing.
+  await send('Runtime.evaluate', { expression: 'new Promise((r) => { let n = 0; const f = () => (++n > 45 ? r(true) : requestAnimationFrame(f)); f(); })', awaitPromise: true });
+  await sleep(450);
+  const evals = args.filter((x, i) => args[i - 1] === '--eval');
+  for (const ex of evals) console.log('eval:', JSON.stringify((await send('Runtime.evaluate', { expression: ex, returnByValue: true, awaitPromise: true })).result.result.value));
   const errors = await send('Runtime.evaluate', { expression: `document.body.innerText.match(/undefined|NaN|\\[object|Something went wrong/g)?.length ?? 0` });
   let clip;
   if (full) {

@@ -4,6 +4,7 @@ import Login from './pages/Login.jsx';
 import { Icon } from './ui/icons.jsx';
 import { DashboardSkeleton, ErrorBoundary } from './ui/kit.jsx';
 import { fmtDate, initials } from './ui/format.js';
+import { useNavCollapsed } from './ui/nav.js';
 
 // Each screen is its own chunk, loaded when first opened, so signing in downloads only the shell and the dashboard.
 const page = (loader) => lazy(loader);
@@ -68,6 +69,7 @@ export default function App() {
   const [sub, setSub] = useState(null);
   const [blocked, setBlocked] = useState(null);       // a 402 from the server while using a page
   const [menu, setMenu] = useState(false);            // the sidebar on small screens
+  const [collapsed, toggleNav] = useNavCollapsed();      // the sidebar folded to icons on large ones
   const [authed, setAuthed] = useState(hasToken());
   const go = (t, p = {}) => { setParams(p); setTab(t); setBlocked(null); setMenu(false); window.scrollTo(0, 0); };
   const refreshSub = () => api('GET', '/billing/subscription').then(setSub).catch(() => {});
@@ -90,7 +92,7 @@ export default function App() {
   const pill = planPill(sub);
 
   return (
-    <div className="shell">
+    <div className={`shell${collapsed ? ' collapsed' : ''}`}>
       <div className={`scrim${menu ? ' open' : ''}`} onClick={() => setMenu(false)} />
       <aside className={menu ? 'open' : ''} aria-label="Main navigation">
         <div className="brand"><div className="brand-mark">I</div><div><strong>IBMP</strong><span>Business management</span></div></div>
@@ -99,8 +101,8 @@ export default function App() {
             <React.Fragment key={group}>
               <div className="nav-label">{group}</div>
               {items.map(([id, text, icon, , f]) => (
-                <button key={id} className={id === tab ? 'active' : ''} aria-current={id === tab ? 'page' : undefined} onClick={() => go(id)}>
-                  <Icon name={icon} />{text}{locked(f) && <span className="lock" title="Not in your plan">Upgrade</span>}
+                <button key={id} className={id === tab ? 'active' : ''} aria-current={id === tab ? 'page' : undefined} onClick={() => go(id)} title={collapsed ? text : undefined}>
+                  <Icon name={icon} /><span className="nav-text">{text}</span>{locked(f) && <span className="lock nav-text" title="Not in your plan">Upgrade</span>}
                 </button>
               ))}
             </React.Fragment>
@@ -114,12 +116,13 @@ export default function App() {
             : me && <strong>{me.company}</strong>}
           {me && <span>{me.sector} · GST state {me.stateCode}{me.accountType === 'consultant' ? ' · professional' : ''}</span>}
           {sub && <span className="plan-chip">{sub.planName}{sub.status === 'trialing' ? ` · ${sub.daysLeft}d left` : ''}</span>}
-          <button onClick={() => { setToken(null); setAuthed(false); setMe(null); setSub(null); }}><Icon name="logout" size={15} />Sign out</button>
+          <button onClick={() => { setToken(null); setAuthed(false); setMe(null); setSub(null); }} title="Sign out"><Icon name="logout" size={15} /><span className="nav-text">Sign out</span></button>
         </div>
       </aside>
       <div className="main-col">
         <div className="topbar">
           <button className="menu-btn" onClick={() => setMenu(true)} aria-label="Open menu"><Icon name="menu" /></button>
+          <button className="icon-btn fold-btn" onClick={toggleNav} aria-label={collapsed ? 'Expand the sidebar' : 'Collapse the sidebar'} title={collapsed ? 'Expand the sidebar' : 'Collapse the sidebar'}><Icon name="panel" /></button>
           <div className="crumb"><span>{me?.company ?? 'IBMP'} / </span>{label}</div>
           <div className="spacer" />
           {pill && <button className={`pill ${pill.tone}`} onClick={() => go('billing')} style={{ minHeight: 0 }}>{pill.text}</button>}

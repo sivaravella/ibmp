@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api, inr } from '../api.js';
+import { Icon } from '../ui/icons.jsx';
+import { COLORS, HBars, Legend, StackBar } from '../ui/charts.jsx';
+import { KpiCard, PageHeader, Panel, Segmented, Skeleton } from '../ui/kit.jsx';
+import { Notice } from '../ui/forms.jsx';
+import { inrCompact } from '../ui/format.js';
 
 const thisMonth = () => new Date().toISOString().slice(0, 7);
 const fmtDate = (d) => String(d).slice(0, 10).split('-').reverse().join('-');
@@ -34,19 +39,17 @@ export default function GstReports({ params, go }) {
 
   return (
     <>
-      <h2>GST Reports</h2>
-      <div className="row">
-        <input type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} />
-        <button className={tab === 'gstr1' ? 'primary' : ''} onClick={() => setTab('gstr1')}>GSTR-1 (outward)</button>
-        <button className={tab === 'gstr3b' ? 'primary' : ''} onClick={() => setTab('gstr3b')}>GSTR-3B (summary)</button>
-        <button onClick={() => window.print()}>Print</button>
-        <button onClick={() => go('filing', { period })}>Prepare filing</button>
-      </div>
-      {err && <p className="err">{err}</p>}
-      {!data && !err && <p>Loading…</p>}
+      <PageHeader title="GST reports" subtitle="What goes into GSTR-1 and GSTR-3B for the month, checked against your ledger">
+        <input type="month" value={period} onChange={(e) => e.target.value && setPeriod(e.target.value)} aria-label="Month" />
+        <Segmented label="Return" value={tab} onChange={setTab} options={[['gstr1', 'GSTR-1 outward'], ['gstr3b', 'GSTR-3B summary']]} />
+        <button onClick={() => window.print()}><Icon name="file" size={14} /> Print</button>
+        <button className="primary" onClick={() => go('filing', { period })}><Icon name="send" size={14} /> Prepare filing</button>
+      </PageHeader>
+      {err && <Notice>{err}</Notice>}
+      {!data && !err && <Skeleton rows={6} height={40} />}
       {data && <>
-        <p className="muted">{data.company.name} · GSTIN {data.company.gstin || 'not set'} · State {data.company.stateCode}</p>
-        {data.warnings.map((w) => <p key={w} className="err">⚠ {w}</p>)}
+        <p className="muted" style={{ marginBottom: 12 }}>{data.company.name} · GSTIN {data.company.gstin || 'not set'} · State {data.company.stateCode}</p>
+        {data.warnings.map((w) => <Notice key={w} tone="warn">{w}</Notice>)}
         {tab === 'gstr1' ? <Gstr1 d={data} /> : <Gstr3b d={data} />}
       </>}
     </>
@@ -54,8 +57,21 @@ export default function GstReports({ params, go }) {
 }
 
 function Gstr1({ d }) {
+  const sum = (rows) => rows.reduce((t, r) => t + Number(r.taxable), 0);
+  const gstTotal = Number(d.totals.igst) + Number(d.totals.cgst) + Number(d.totals.sgst);
+  const split = [{ label: 'B2B (registered buyers)', value: sum(d.b2b), color: COLORS.brand }, { label: 'B2C large', value: sum(d.b2cl), color: COLORS.teal }, { label: 'B2C small', value: sum(d.b2cs), color: COLORS.amber }];
   return (
     <>
+      <div className="kpi-grid">
+        <KpiCard label="Net taxable value" value={inrCompact(d.totals.taxable)} icon="file" tone="brand" hint="Invoices less credit notes" />
+        <KpiCard label="Output GST" value={inrCompact(gstTotal)} icon="percent" tone="amber" hint={`IGST ${inrCompact(d.totals.igst)} · CGST ${inrCompact(d.totals.cgst)} · SGST ${inrCompact(d.totals.sgst)}`} />
+        <KpiCard label="B2B invoices" value={d.b2b.length} icon="users" tone="teal" hint={`${d.b2cl.length} B2C large · ${d.b2cs.length} B2C small lines`} />
+        <KpiCard label="Credit notes" value={d.cdnr.length + d.cdnur.length} icon="undo" tone="rose" hint={`${d.docs.invoices.count} invoices issued in the month`} />
+      </div>
+      <div className="g12">
+        <Panel className="s6" title="Where the sales came from" hint="Taxable value by return table"><StackBar segments={split} /><Legend items={split.map((x) => ({ ...x, value: x.value }))} format={inrCompact} /></Panel>
+        <Panel className="s6" title="Top HSN codes" hint="By taxable value"><HBars rows={[...d.hsn].sort((a, b) => Number(b.taxable) - Number(a.taxable)).slice(0, 5).map((r) => ({ label: `${r.hsn} (${r.qty} ${r.unit})`, value: Number(r.taxable) }))} color={COLORS.brand} empty="No supplies in this month" /></Panel>
+      </div>
       <Section title="Net outward supplies" hint="Invoices less credit notes issued in the period.">
         <table><thead><tr><th /><TaxHead /></tr></thead><tbody><tr><td><strong>Total</strong></td><Tax r={d.totals} /></tr></tbody></table>
       </Section>
@@ -113,8 +129,20 @@ const Heads = ({ r, label }) => <tr><td>{label}</td><td>{inr(r.igst)}</td><td>{i
 
 function Gstr3b({ d }) {
   const { outward: o, itc, liability: l, reconciliation: rc } = d;
+  const heads = (r) => Number(r.igst) + Number(r.cgst) + Number(r.sgst);
+  const outTotal = heads(l.output), cash = Number(l.cashTotal), byItc = Math.max(0, outTotal - cash);
   return (
     <>
+      <div className="kpi-grid">
+        <KpiCard label="Output tax" value={inrCompact(outTotal)} icon="percent" tone="brand" hint="Net of credit notes" />
+        <KpiCard label="Input tax credit (net)" value={inrCompact(heads(itc.net))} icon="wallet" tone="teal" hint={`${inrCompact(heads(itc.ineligible))} ineligible (unregistered vendors)`} />
+        <KpiCard label="Payable in cash" value={inrCompact(cash)} icon="landmark" tone={cash ? 'rose' : 'green'} hint="After using the credit available" />
+        <KpiCard label="Credit carried forward" value={inrCompact(heads(l.itcCarryForward))} icon="layers" tone="green" hint="Unused ITC for next month" />
+      </div>
+      <div className="g12">
+        <Panel className="s6" title="How the tax is paid" hint="Input credit first, the rest in cash"><StackBar segments={[{ label: 'Through ITC', value: byItc, color: COLORS.teal }, { label: 'In cash', value: cash, color: COLORS.rose }]} /><Legend format={inrCompact} items={[{ label: 'Through input credit', value: byItc, color: COLORS.teal }, { label: 'In cash', value: cash, color: COLORS.rose }]} /></Panel>
+        <Panel className="s6" title="Ledger reconciliation" hint="GST accounts against the documents">{rc.ok ? <Notice tone="ok">Ledger agrees with the documents.</Notice> : <Notice>Differences found: see the table below.</Notice>}</Panel>
+      </div>
       <Section title="3.1 — Outward supplies" hint="Net of credit notes issued in the period.">
         <table><thead><tr><th>Nature of supply</th><TaxHead /></tr></thead><tbody>
           <tr><td>(a) Taxable (other than zero/nil rated)</td><Tax r={o.taxable} /></tr>

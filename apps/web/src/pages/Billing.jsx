@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader, Segmented } from '../ui/kit.jsx';
 import { api, inr } from '../api.js';
 
 const fmt = (d) => (d ? d.split('-').reverse().join('-') : '—');
@@ -66,11 +67,9 @@ export default function Billing({ refreshSub, params }) {
 
   return (
     <>
-      <h2>Billing</h2>
-      <div className="row">
-        <button className={tab === 'plans' ? 'primary' : ''} onClick={() => setTab('plans')}>Plans</button>
-        <button className={tab === 'invoices' ? 'primary' : ''} onClick={() => setTab('invoices')}>Invoices</button>
-      </div>
+      <PageHeader title="Billing" subtitle="Your plan, what it includes, and your tax invoices">
+        <Segmented label="Section" value={tab} onChange={setTab} options={[['plans', 'Plans'], ['invoices', 'Invoices']]} />
+      </PageHeader>
 
       {sub.billedViaOtherCompany && <p className="muted">This company is covered by the subscription of <strong>{sub.billingCompany.name}</strong>, so payments and invoices are in that account.</p>}
       <div className="card" style={{ borderLeft: `4px solid ${st[1]}` }}>

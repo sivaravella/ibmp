@@ -24,7 +24,7 @@ export function Panel({ title, hint, action, children, className = '', pad = tru
 
 /** Up or down arrow with the percentage change. `good` says which direction is good news (costs rising is not). */
 export function Delta({ pct, good = 'up', suffix = 'vs last month' }) {
-  if (pct === null || pct === undefined) return <span className="delta flat">– <span className="sfx">{suffix}</span></span>;
+  if (pct === null || pct === undefined) return <span className="delta flat">No comparison yet</span>;
   const up = pct > 0, flat = Math.abs(pct) < 0.05;
   const tone = flat ? 'flat' : (up === (good === 'up')) ? 'pos' : 'neg';
   return <span className={`delta ${tone}`}>{!flat && <Icon name={up ? 'up' : 'down'} size={12} />}{Math.abs(pct).toFixed(1)}%<span className="sfx"> {suffix}</span></span>;
@@ -35,10 +35,14 @@ export function KpiCard({ label, value, icon, tone = 'brand', pct, good = 'up', 
   return (
     <div className={`kpi tone-${tone}${onClick ? ' clickable' : ''}`} onClick={onClick} role={onClick ? 'button' : undefined} tabIndex={onClick ? 0 : undefined} onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}>
       <div className="kpi-top"><span className="kpi-label">{label}</span>{icon && <span className="kpi-icon"><Icon name={icon} size={16} /></span>}</div>
-      <div className="kpi-value">{value}</div>
-      {pct !== undefined && <Delta pct={pct} good={good} suffix={suffix} />}
-      {hint && <div className="kpi-hint">{hint}</div>}
-      {spark && <div className="kpi-spark"><Sparkline values={spark} color={color} /></div>}
+      <div className="kpi-body">
+        <div className="kpi-main">
+          <div className="kpi-value">{value}</div>
+          {pct !== undefined && <Delta pct={pct} good={good} suffix={suffix} />}
+          {hint && <div className="kpi-hint">{hint}</div>}
+        </div>
+        {spark && <div className="kpi-spark"><Sparkline values={spark} color={color} height={56} /></div>}
+      </div>
     </div>
   );
 }

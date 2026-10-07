@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.11.0
+- Data-entry screens redesigned with drawers, summary cards, search and filters (invoices, purchases, parties, items, returns, ledger, payroll, leave, GST reports, e-invoice); full-width layout, collapsible sidebar, 12-column dashboard grid; the UI smoke test now covers 58 views including drawers.
+
 ## 1.10.2
 - Verified the Docker image and compose stack end to end (build, health, migrations, security headers, rate limiting, graceful shutdown, persistence, unsafe-config refusal, UI smoke test against the container).
 

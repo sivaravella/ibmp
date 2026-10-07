@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { Icon } from '../ui/icons.jsx';
+import { EmptyState, KpiCard, PageHeader, Segmented, Skeleton } from '../ui/kit.jsx';
+import { Cell, Drawer, Field, Notice, Pager, Toolbar, useTable } from '../ui/forms.jsx';
 import { api } from '../api.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -11,12 +14,9 @@ export default function Leave() {
   const [tab, setTab] = useState('applications');
   return (
     <>
-      <h2>Leave management</h2>
-      <div className="row">
-        {[['applications', 'Applications'], ['balances', 'Balances'], ['types', 'Leave types']].map(([k, l]) => (
-          <button key={k} className={tab === k ? 'primary' : ''} onClick={() => setTab(k)}>{l}</button>
-        ))}
-      </div>
+      <PageHeader title="Leave management" subtitle="Requests, balances and the leave types your company offers">
+        <Segmented label="Section" value={tab} onChange={setTab} options={[['applications', 'Applications'], ['balances', 'Balances'], ['types', 'Leave types']]} />
+      </PageHeader>
       {tab === 'applications' && <Applications />}
       {tab === 'balances' && <Balances />}
       {tab === 'types' && <Types />}
@@ -27,18 +27,81 @@ export default function Leave() {
 function Applications() {
   const [emps, setEmps] = useState([]);
   const [types, setTypes] = useState([]);
-  const [rows, setRows] = useState([]);
-  const [filter, setFilter] = useState('pending');
+  const [rows, setRows] = useState(null);
+  const [open, setOpen] = useState(false);
+  const [flash, setFlash] = useState('');
+  const [rowErr, setRowErr] = useState(null);       // { id, message, convertible }
+
+  const load = () => api('GET', '/leave/applications').then(setRows);
+  useEffect(() => { api('GET', '/payroll/employees').then((e) => setEmps(e.filter((x) => !x.exitDate))); api('GET', '/leave/types').then((t) => setTypes(t.filter((x) => x.active))); load(); }, []);
+  const table = useTable(rows ?? [], { filter: (a) => a.status, match: (a, q) => [a.employeeName, a.employeeCode, a.typeCode, a.reason].some((x) => String(x ?? '').toLowerCase().includes(q)), size: 15 });
+  if (!rows) return <Skeleton rows={5} height={44} />;
+
+  async function decide(a, what, body = {}) {
+    setRowErr(null); setFlash('');
+    try { await api('POST', `/leave/applications/${a.id}/${what}`, body); load(); }
+    catch (e) { setRowErr({ id: a.id, message: e.message, convertible: /Insufficient/.test(e.message) }); }
+  }
+  const unpaid = types.find((t) => !t.paid);
+  const count = (st) => rows.filter((a) => a.status === st).length;
+  const month = new Date().toISOString().slice(0, 7);
+  const approvedThisMonth = rows.filter((a) => a.status === 'approved' && String(a.fromDate).slice(0, 7) <= month && String(a.toDate).slice(0, 7) >= month);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const onLeaveToday = rows.filter((a) => a.status === 'approved' && String(a.fromDate).slice(0, 10) <= todayIso && String(a.toDate).slice(0, 10) >= todayIso).length;
+  const unpaidDays = rows.filter((a) => a.status === 'approved' && !a.paid).reduce((t, a) => t + Number(a.days), 0);
+
+  return (
+    <>
+      <div className="kpi-grid">
+        <KpiCard label="Waiting for a decision" value={count('pending')} icon="clock" tone={count('pending') ? 'amber' : 'green'} hint="Pending requests reserve balance" onClick={count('pending') ? () => table.setActive('pending') : undefined} />
+        <KpiCard label="On leave today" value={onLeaveToday} icon="sun" tone="teal" hint="Approved leave covering today" />
+        <KpiCard label="Approved this month" value={approvedThisMonth.length} icon="check" tone="green" hint={`${approvedThisMonth.reduce((t, a) => t + Number(a.days), 0)} days in all`} />
+        <KpiCard label="Unpaid leave taken" value={`${unpaidDays} days`} icon="alert" tone={unpaidDays ? 'rose' : 'green'} hint="Becomes loss of pay in payroll" />
+      </div>
+      {flash && <Notice tone="ok">{flash}</Notice>}
+      <Toolbar search={table.q} onSearch={table.setQ} placeholder="Search employee, type or reason" active={table.active} onFilter={table.setActive}
+        filters={[{ value: 'all', label: 'All', count: rows.length }, ...Object.entries(STATUS).filter(([k]) => count(k)).map(([k, [l]]) => ({ value: k, label: l, count: count(k) }))]}>
+        <button className="primary" onClick={() => { setFlash(''); setOpen(true); }}><Icon name="plus" size={15} /> Apply for leave</button>
+      </Toolbar>
+      {rows.length === 0 ? <div className="panel"><EmptyState icon="sun" title="No leave applications yet" text="Record leave for an employee: balances and the attendance register update when it is approved." /></div> : (
+        <>
+          <table>
+            <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th className="num">Days</th><th>Reason</th><th>Status</th><th /></tr></thead>
+            <tbody>{table.visible.map((a) => (
+              <React.Fragment key={a.id}>
+                <tr>
+                  <td><Cell main={a.employeeName} sub={a.employeeCode} /></td>
+                  <td>{a.typeCode}{a.paid ? '' : <span className="muted"> · unpaid</span>}</td>
+                  <td>{fmt(a.fromDate)}{a.fromDate !== a.toDate && ` → ${fmt(a.toDate)}`}{a.halfDay && <span className="muted"> ({a.halfDay} half)</span>}</td>
+                  <td className="num">{Number(a.days)}</td>
+                  <td>{a.reason || '—'}{a.decisionNote && <div className="muted" style={{ fontSize: 12 }}>Note: {a.decisionNote}</div>}</td>
+                  <td><Badge s={a.status} /></td>
+                  <td className="actions">
+                    {a.status === 'pending' && <><button className="row-btn primary" onClick={() => decide(a, 'approve')}>Approve</button><button className="row-btn" onClick={() => decide(a, 'reject')}>Reject</button></>}
+                    {(a.status === 'pending' || a.status === 'approved') && <button className="row-btn" onClick={() => decide(a, 'cancel')}>Cancel</button>}
+                  </td>
+                </tr>
+                {rowErr?.id === a.id && (
+                  <tr><td colSpan={7}><span className="err">{rowErr.message}</span>{' '}
+                    {rowErr.convertible && unpaid && <button className="row-btn" onClick={() => decide(a, 'approve', { leaveTypeId: unpaid.id, note: 'Approved as unpaid leave' })}>Approve as {unpaid.code} (unpaid)</button>}</td></tr>
+                )}
+              </React.Fragment>
+            ))}
+            {!table.visible.length && <tr><td colSpan={7} className="table-empty">Nothing matches your search or filter.</td></tr>}</tbody>
+          </table>
+          <Pager page={table.page} pages={table.pages} total={table.total} size={table.size} onPage={table.setPage} />
+        </>
+      )}
+      {open && <ApplyLeave emps={emps} types={types} onClose={() => setOpen(false)} onDone={() => { setOpen(false); setFlash('Leave application submitted.'); table.setActive('pending'); load(); }} />}
+    </>
+  );
+}
+
+function ApplyLeave({ emps, types, onClose, onDone }) {
   const [f, setF] = useState({ employeeId: '', leaveTypeId: '', fromDate: today(), toDate: today(), half: false, halfDay: 'first', reason: '' });
   const [avail, setAvail] = useState(null);
   const [err, setErr] = useState('');
-  const [rowErr, setRowErr] = useState(null);       // { id, message, convertible }
-
-  const load = () => api('GET', '/leave/applications' + (filter ? `?status=${filter}` : '')).then(setRows);
-  useEffect(() => { api('GET', '/payroll/employees').then((e) => setEmps(e.filter((x) => !x.exitDate))); api('GET', '/leave/types').then((t) => setTypes(t.filter((x) => x.active))); }, []);
-  useEffect(() => { load(); }, [filter]);
-
-  // Show what the selected employee has left of the selected type.
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
     setAvail(null);
     if (!f.employeeId || !f.leaveTypeId) return;
@@ -48,78 +111,33 @@ function Applications() {
       setAvail(bal ? { code: t.code, ...bal } : null);
     }).catch(() => {});
   }, [f.employeeId, f.leaveTypeId, f.fromDate]);
-
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   const single = f.fromDate === f.toDate;
 
   async function submit(e) {
-    e.preventDefault(); setErr('');
+    e.preventDefault(); setErr(''); setBusy(true);
     try {
-      await api('POST', '/leave/applications', {
-        employeeId: Number(f.employeeId), leaveTypeId: Number(f.leaveTypeId), fromDate: f.fromDate, toDate: f.toDate,
-        halfDay: single && f.half ? f.halfDay : null, reason: f.reason || undefined,
-      });
-      setF({ ...f, reason: '', half: false }); setFilter('pending'); load();
-    } catch (e2) { setErr(e2.message); }
+      await api('POST', '/leave/applications', { employeeId: Number(f.employeeId), leaveTypeId: Number(f.leaveTypeId), fromDate: f.fromDate, toDate: f.toDate, halfDay: single && f.half ? f.halfDay : null, reason: f.reason || undefined });
+      onDone();
+    } catch (e2) { setErr(e2.message); setBusy(false); }
   }
-
-  async function decide(a, what, body = {}) {
-    setRowErr(null);
-    try { await api('POST', `/leave/applications/${a.id}/${what}`, body); load(); }
-    catch (e) { setRowErr({ id: a.id, message: e.message, convertible: /Insufficient/.test(e.message) }); }
-  }
-  const unpaid = types.find((t) => !t.paid);
-
   return (
-    <>
-      <form className="card" onSubmit={submit}>
-        <div className="row">
-          <select value={f.employeeId} onChange={set('employeeId')} required><option value="">Employee…</option>{emps.map((e) => <option key={e.id} value={e.id}>{e.name} ({e.code})</option>)}</select>
-          <select value={f.leaveTypeId} onChange={set('leaveTypeId')} required><option value="">Leave type…</option>{types.map((t) => <option key={t.id} value={t.id}>{t.code} · {t.name}{t.paid ? '' : ' (unpaid)'}</option>)}</select>
-          <label className="muted">From <input type="date" value={f.fromDate} onChange={(e) => setF({ ...f, fromDate: e.target.value, toDate: e.target.value > f.toDate ? e.target.value : f.toDate })} required /></label>
-          <label className="muted">To <input type="date" value={f.toDate} min={f.fromDate} onChange={set('toDate')} required /></label>
-          {single && <label><input type="checkbox" checked={f.half} onChange={set('half')} /> Half day</label>}
-          {single && f.half && <select value={f.halfDay} onChange={set('halfDay')}><option value="first">First half</option><option value="second">Second half</option></select>}
+    <Drawer open title="Apply for leave" subtitle="Week offs and holidays inside the dates are not counted" onClose={onClose}
+      footer={<><button type="button" onClick={onClose}>Cancel</button><button className="primary" form="leave-form" disabled={busy}>{busy ? 'Submitting…' : 'Apply'}</button></>}>
+      <form id="leave-form" onSubmit={submit} style={{ display: 'contents' }}>
+        <Notice>{err}</Notice>
+        <div className="form-grid">
+          <Field label="Employee"><select value={f.employeeId} onChange={set('employeeId')} required><option value="">Select…</option>{emps.map((e) => <option key={e.id} value={e.id}>{e.name} ({e.code})</option>)}</select></Field>
+          <Field label="Leave type"><select value={f.leaveTypeId} onChange={set('leaveTypeId')} required><option value="">Select…</option>{types.map((t) => <option key={t.id} value={t.id}>{t.code} · {t.name}{t.paid ? '' : ' (unpaid)'}</option>)}</select></Field>
+          <Field label="From"><input type="date" value={f.fromDate} onChange={(e) => setF({ ...f, fromDate: e.target.value, toDate: e.target.value > f.toDate ? e.target.value : f.toDate })} required /></Field>
+          <Field label="To"><input type="date" value={f.toDate} min={f.fromDate} onChange={set('toDate')} required /></Field>
+          {single && <label className="field"><span className="field-label"><input type="checkbox" checked={f.half} onChange={set('half')} /> Half day</span></label>}
+          {single && f.half && <Field label="Which half"><select value={f.halfDay} onChange={set('halfDay')}><option value="first">First half</option><option value="second">Second half</option></select></Field>}
+          <Field label="Reason" className="span2"><input value={f.reason} onChange={set('reason')} placeholder="Optional" /></Field>
         </div>
-        <div className="row">
-          <input placeholder="Reason" value={f.reason} onChange={set('reason')} style={{ flex: 1, minWidth: 240 }} />
-          <button className="primary">Apply</button>
-          {avail && <span className="muted">{avail.unlimited ? `${avail.code}: unlimited` : `${avail.code} available: ${days(avail.available)} (balance ${days(avail.balance)}${avail.pending ? `, ${avail.pending} pending` : ''})`}</span>}
-        </div>
-        <p className="muted" style={{ margin: 0 }}>Week offs and holidays inside the dates are not counted.</p>
-        {err && <p className="err">{err}</p>}
+        {avail && <Notice tone="info">{avail.unlimited ? `${avail.code}: unlimited` : `${avail.code} available: ${days(avail.available)} (balance ${days(avail.balance)}${avail.pending ? `, ${avail.pending} pending` : ''})`}</Notice>}
       </form>
-
-      <div className="row">
-        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="">All applications</option>{Object.entries(STATUS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
-        </select>
-      </div>
-      <table>
-        <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Reason</th><th>Status</th><th /></tr></thead>
-        <tbody>{rows.map((a) => (
-          <React.Fragment key={a.id}>
-            <tr>
-              <td>{a.employeeName}<div className="muted" style={{ fontSize: 12 }}>{a.employeeCode}</div></td>
-              <td>{a.typeCode}{a.paid ? '' : ' (unpaid)'}</td>
-              <td>{fmt(a.fromDate)}{a.fromDate !== a.toDate && ` → ${fmt(a.toDate)}`}{a.halfDay && <span className="muted"> ({a.halfDay} half)</span>}</td>
-              <td>{Number(a.days)}</td>
-              <td>{a.reason || '—'}{a.decisionNote && <div className="muted" style={{ fontSize: 12 }}>Note: {a.decisionNote}</div>}</td>
-              <td><Badge s={a.status} /></td>
-              <td>
-                {a.status === 'pending' && <><button className="primary" onClick={() => decide(a, 'approve')}>Approve</button> <button onClick={() => decide(a, 'reject')}>Reject</button> </>}
-                {(a.status === 'pending' || a.status === 'approved') && <button onClick={() => decide(a, 'cancel')}>Cancel</button>}
-              </td>
-            </tr>
-            {rowErr?.id === a.id && (
-              <tr><td colSpan={7}><span className="err">{rowErr.message}</span>{' '}
-                {rowErr.convertible && unpaid && <button onClick={() => decide(a, 'approve', { leaveTypeId: unpaid.id, note: 'Approved as unpaid leave' })}>Approve as {unpaid.code} (unpaid)</button>}</td></tr>
-            )}
-          </React.Fragment>
-        ))}</tbody>
-      </table>
-      {!rows.length && <p className="muted">No applications{filter ? ` with status “${filter}”` : ''}.</p>}
-    </>
+    </Drawer>
   );
 }
 

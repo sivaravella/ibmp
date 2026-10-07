@@ -13,7 +13,12 @@ const chrome = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Pro
 if (!chrome) { console.error('No Chrome or Edge found'); process.exit(2); }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-const BUSINESS_TABS = ['Dashboard', 'Invoices', 'Purchases', 'Returns', 'Parties', 'Items', 'Ledger', 'GST reports', 'GST filing', 'E-invoice & e-way', 'TDS & Form 16', 'Compliance', 'Payroll', 'Attendance', 'Leave', 'PF & ESI', 'Companies', 'Billing'];
+// A screen is its menu text, or [menu text, { subs: other views to open (exact button text), opens: buttons that open a drawer }].
+// A drawer button written as 'View>Button' first opens the view, then the drawer.
+const BUSINESS_TABS = ['Dashboard', ['Invoices', { opens: ['New invoice'] }], ['Purchases', { opens: ['New bill'] }], 'Returns', ['Parties', { opens: ['Add party'] }], ['Items', { opens: ['Add item'] }],
+  ['Ledger', { subs: ['Journal', 'Trial balance', 'Party statements'], opens: ['Chart of accounts>Add account', 'Journal>Manual journal'] }], ['GST reports', { subs: ['GSTR-3B summary'] }], 'GST filing',
+  ['E-invoice & e-way', { subs: ['E-way bills', 'Setup'] }], ['TDS & Form 16', { subs: ['Form 16', 'Other payments & 26Q', 'Setup & challans'] }], 'Compliance',
+  ['Payroll', { subs: ['Employees'], opens: ['Employees>Add employee'] }], 'Attendance', ['Leave', { subs: ['Balances', 'Leave types'], opens: ['Applications>Apply for leave'] }], 'PF & ESI', 'Companies', ['Billing', { subs: ['Invoices'] }]];
 const PLATFORM_TABS = ['Overview', 'Consultants', 'Companies', 'Billing', 'Audit log', 'Staff & account'];
 const ROLES = [
   { name: 'business owner (rich data)', url: '/v1/auth/login', body: { email: 'demo@ibmp.in', password: 'password123' }, key: 'ibmp_token', path: '/', tabs: BUSINESS_TABS },
@@ -61,17 +66,46 @@ for (const role of ROLES.filter((r) => !only || r.name.includes(only))) {
   console.log(`\n${role.name}`);
   await session(role, async ({ evaluate, take }) => {
     take();
-    for (const tab of role.tabs) {
-      const clicked = await evaluate(`(() => { const b = [...document.querySelectorAll('aside nav button')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(tab)})); if (!b) return false; b.click(); return true; })()`);
-      await sleep(1500);
+    // Click a button inside the page content (not the menu) by its exact text.
+    const press = (label) => evaluate(`(() => { const b = [...document.querySelectorAll('main button, main a, .topbar button')].find((x) => x.textContent.trim() === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true; })()`);
+    const inspect = async (issues) => {
       const text = await evaluate('document.body.innerText');
-      const issues = take();
-      if (!clicked) issues.push('navigation item not found');
+      issues.push(...take());
       if (/This screen hit a problem/.test(text)) issues.push('error boundary shown');
       if (/\bundefined\b|\bNaN\b|\[object Object\]|Invalid Date/.test(text)) issues.push(`bad value on screen: ${text.match(/.{0,25}(undefined|NaN|\[object Object\]|Invalid Date).{0,15}/)?.[0].replace(/\s+/g, ' ')}`);
+      return text;
+    };
+    const record = (name, issues) => { checked++; if (issues.length) { failures++; console.log(`  FAIL  ${name}: ${issues.join('; ')}`); } else console.log(`  ok    ${name}`); };
+    const closeDrawer = async () => { await evaluate("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))"); await sleep(300); };
+
+    for (const entry of role.tabs) {
+      const [tab, extra = {}] = Array.isArray(entry) ? entry : [entry];
+      const clicked = await evaluate(`(() => { const b = [...document.querySelectorAll('aside nav button')].find((x) => x.textContent.trim().startsWith(${JSON.stringify(tab)})); if (!b) return false; b.click(); return true; })()`);
+      await sleep(1500);
+      const issues = [];
+      if (!clicked) issues.push('navigation item not found');
+      const text = await inspect(issues);
       if (text.trim().length < 150) issues.push('screen is almost empty');
-      checked++;
-      if (issues.length) { failures++; console.log(`  FAIL  ${tab}: ${issues.join('; ')}`); } else console.log(`  ok    ${tab}`);
+      record(tab, issues);
+
+      for (const sub of extra.subs ?? []) {
+        const i = [];
+        if (!(await press(sub))) i.push('view button not found');
+        await sleep(1300);
+        await inspect(i);
+        record(`${tab} › ${sub}`, i);
+      }
+      for (const open of extra.opens ?? []) {
+        const [view, button] = open.includes('>') ? open.split('>') : [null, open];
+        const i = [];
+        if (view) { await press(view); await sleep(1000); }
+        if (!(await press(button))) i.push(`"${button}" not found`);
+        await sleep(900);
+        if (!(await evaluate("!!document.querySelector('[role=dialog]')"))) i.push('the drawer did not open');
+        await inspect(i);
+        record(`${tab} › ${button} (drawer)`, i);
+        await closeDrawer();
+      }
     }
   });
 }

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../ui/kit.jsx';
+import { Notice } from '../ui/forms.jsx';
 import { api, download, inr } from '../api.js';
 
 const fmt = (d) => (d ? String(d).slice(0, 10).split('-').reverse().join('-') : '—');
@@ -21,13 +23,10 @@ export default function Statutory({ go }) {
 
   return (
     <>
-      <h2>PF &amp; ESI</h2>
-      <div className="row">
-        <input type="month" value={month} max={lastMonth()} onChange={(e) => e.target.value && setMonth(e.target.value)} />
-        <strong>{monthName(month)}</strong>
-        <span className="muted">Both files are built from the finalized payroll for the month.</span>
-      </div>
-      {err && <p className="err">{err}</p>}
+      <PageHeader title="PF and ESI" subtitle={`Provident fund (ECR) and ESI contribution files for ${monthName(month)}, built from the finalized payroll`}>
+        <input type="month" value={month} max={lastMonth()} onChange={(e) => e.target.value && setMonth(e.target.value)} aria-label="Month" />
+      </PageHeader>
+      {err && <Notice>{err}</Notice>}
       {pf && esi && <>
         <div className="tiles" style={{ alignItems: 'start' }}>
           <Pf d={pf} month={month} onChange={load} go={go} />
