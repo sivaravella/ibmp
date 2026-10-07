@@ -1,0 +1,15 @@
+{
+  "name": "ibmp",
+  "version": "1.7.1",
+  "private": true,
+  "description": "Integrated Business Management Platform: GST-integrated SaaS for Indian SMEs",
+  "scripts": {
+    "setup": "npm --prefix apps/api ci && npm --prefix apps/web ci",
+    "build": "npm --prefix apps/web run build",
+    "test": "npm --prefix apps/api test",
+    "local": "npm run build && npm --prefix apps/api run local",
+    "seed": "npm --prefix apps/api run seed",
+    "start": "npm --prefix apps/api start",
+    "test:pg": "npm --prefix apps/api run test:pg"
+  }
+}

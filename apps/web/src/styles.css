@@ -1,0 +1,31 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.4 system-ui, sans-serif; color: #1a2233; background: #f4f6fa; }
+h1, h2 { margin: 0 0 12px; }
+.shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+aside { background: #14213d; color: #fff; padding: 20px 14px; display: flex; flex-direction: column; gap: 16px; }
+aside nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+aside nav button { background: none; color: #cbd5e1; border: 0; text-align: left; padding: 9px 12px; border-radius: 6px; cursor: pointer; }
+aside nav button.active, aside nav button:hover { background: #1f3a6b; color: #fff; }
+.who { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #94a3b8; }
+main { padding: 24px; overflow: auto; }
+.card { background: #fff; border-radius: 8px; padding: 14px; margin-bottom: 16px; box-shadow: 0 1px 2px #0001; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.tile { display: flex; flex-direction: column; gap: 6px; } .tile strong { font-size: 22px; }
+input, select, button { font: inherit; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; }
+button { cursor: pointer; } button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+table { width: 100%; background: #fff; border-collapse: collapse; border-radius: 8px; overflow: hidden; }
+th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid #eef1f6; }
+th { background: #f8fafc; font-weight: 600; }
+.auth { max-width: 380px; margin: 8vh auto; display: flex; flex-direction: column; gap: 10px; }
+.muted { color: #64748b; margin: 0; } .err { color: #b91c1c; margin: 4px 0; }
+
+/* Printing a certificate: hide the app chrome and everything except the certificate itself. */
+@media print {
+  aside, button, .no-print { display: none !important; }
+  .shell { display: block; }
+  main { padding: 0; }
+  body { background: #fff; }
+  body.print-form16 main > :not(#form16) { display: none !important; }
+  .card { box-shadow: none; }
+}

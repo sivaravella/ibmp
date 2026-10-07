@@ -1,0 +1,608 @@
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     v6.1 ENHANCEMENT — SALES RETURN (Credit Note) & PURCHASE RETURN (Debit Note)
+     Self-contained module. All functions prefixed rtn_ , all element IDs rtn- .
+     Does not modify any baseline markup. Two baseline functions are wrapped
+     (confirmSaveInvoice, savePurchase) only to remember line items; the
+     original function always runs first and unchanged. renderLedgerTree is
+     wrapped to append a ledger-balance panel after the original output.
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<style>
+.rtn-tbl{width:100%;border-collapse:collapse;font-size:.8rem}
+.rtn-tbl th{background:#F4F7FA;color:#3D5166;font-weight:600;text-align:left;padding:.4rem .45rem;border-bottom:1px solid #DDE3EA;white-space:nowrap}
+.rtn-tbl td{padding:.35rem .45rem;border-bottom:1px solid #EEF2F6;vertical-align:middle}
+.rtn-tbl .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rtn-tbl input,.rtn-tbl select{width:100%;padding:.3rem .35rem;border:1px solid #DDE3EA;border-radius:6px;font-size:.8rem}
+.rtn-tbl input.rtn-q{width:80px;text-align:right}
+.rtn-box{background:#F8FAFC;border:1px solid #DDE3EA;border-radius:8px;padding:.6rem .75rem;font-size:.8rem}
+.rtn-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.3rem .9rem}
+.rtn-grid .k{color:#7A8FA6;font-size:.72rem}
+.rtn-grid .v{font-weight:600}
+.rtn-tot{display:flex;justify-content:flex-end;gap:1.5rem;font-size:.85rem;padding:.55rem .2rem;flex-wrap:wrap}
+.rtn-tot b{font-variant-numeric:tabular-nums}
+.rtn-je{font-family:'JetBrains Mono',monospace;font-size:.75rem;line-height:1.6}
+.rtn-err{color:#DC2626;font-size:.78rem;margin-top:.35rem;min-height:1em}
+.rtn-tag{display:inline-block;font-size:.66rem;font-weight:600;padding:.08rem .4rem;border-radius:10px;margin-left:.3rem;background:#FEF3C7;color:#92400E;white-space:nowrap}
+@media(max-width:700px){.rtn-grid{grid-template-columns:repeat(2,1fr)}}
+/* v6.2: purchase window had no body padding (.modal-body style never defined) — scoped to this window only */
+#purchase-modal .modal-body{padding:1rem 1.4rem}
+#purchase-modal .modal-footer{display:flex;justify-content:flex-end;gap:.6rem;padding:.9rem 1.4rem;border-top:1px solid #DDE3EA}
+</style>
+
+<div class="mo" id="rtn-modal">
+  <div class="md" style="max-width:980px">
+    <div class="mh">
+      <div><h3 id="rtn-title">↩ Return</h3><p id="rtn-sub" style="font-size:.78rem;color:#6B7280"></p></div>
+      <button class="mcl" onclick="rtn_close()">✕</button>
+    </div>
+    <div class="mc">
+      <div class="fg fg2" style="gap:.6rem;margin-bottom:.6rem">
+        <div class="f"><label id="rtn-party-lbl">Customer <span class="req">*</span></label>
+          <select id="rtn-party" onchange="rtn_onParty()"></select></div>
+        <div class="f"><label id="rtn-doc-lbl">Invoice No. <span class="req">*</span></label>
+          <select id="rtn-doc" onchange="rtn_onDoc()"><option value="">— Select customer first —</option></select></div>
+      </div>
+
+      <div id="rtn-docbox" class="rtn-box" style="display:none;margin-bottom:.6rem"></div>
+
+      <div id="rtn-body" style="display:none">
+        <div class="fg" style="grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:.6rem;display:grid">
+          <div class="f"><label>Note No.</label><input id="rtn-no" readonly style="background:#F4F7FA"></div>
+          <div class="f"><label>Note Date <span class="req">*</span></label><input type="date" id="rtn-date" onchange="rtn_recalc()"></div>
+          <div class="f"><label>Return Type</label>
+            <select id="rtn-kind" onchange="rtn_recalc()">
+              <option value="goods">Goods return (stock ±)</option>
+              <option value="value">Value only (no stock)</option>
+            </select></div>
+          <div class="f"><label>Reason <span class="req">*</span></label><select id="rtn-reason"></select></div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;gap:.5rem;flex-wrap:wrap">
+          <div id="rtn-lines-hint" style="font-size:.76rem;color:#7A8FA6"></div>
+          <div style="display:flex;gap:.4rem">
+            <button class="btn btn-ghost btn-sm" id="rtn-add-line" onclick="rtn_addManual()" style="display:none">+ Add Item</button>
+            <button class="btn btn-ghost btn-sm" onclick="rtn_fill(false)">Clear</button>
+            <button class="btn btn-primary btn-sm" onclick="rtn_fill(true)">Full Return</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;border:1px solid #DDE3EA;border-radius:8px">
+          <table class="rtn-tbl"><thead id="rtn-thead"></thead><tbody id="rtn-lines"></tbody></table>
+        </div>
+
+        <div class="rtn-tot">
+          <span>Taxable <b id="rtn-t-tax">₹0.00</b></span>
+          <span id="rtn-t-gstsplit"></span>
+          <span>GST <b id="rtn-t-gst">₹0.00</b></span>
+          <span style="font-size:.95rem">Note Value <b id="rtn-t-total" style="color:#1C5F9B">₹0.00</b></span>
+        </div>
+
+        <div class="fg fg2" style="gap:.6rem">
+          <div class="f"><label>Remarks</label><input id="rtn-remarks" placeholder="Optional — e.g. GRN / LR no., inspection report"></div>
+          <div class="rtn-box" style="background:#FFFBEB;border-color:#FDE68A">
+            <div style="font-weight:700;font-size:.74rem;color:#92400E;margin-bottom:.2rem">Accounting entry on submit</div>
+            <div id="rtn-je" class="rtn-je"></div>
+            <div id="rtn-effects" style="font-size:.72rem;color:#78350F;margin-top:.25rem"></div>
+          </div>
+        </div>
+      </div>
+      <div id="rtn-err" class="rtn-err"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="rtn_close()">Cancel</button>
+      <button class="btn btn-primary" id="rtn-submit" onclick="rtn_submit()">Confirm &amp; Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ── Module state ──────────────────────────────────────────────────────────
+const R = window.RTN = window.RTN || { cnSeq:0, dnSeq:0, notes:[] };
+let M = null;           // current modal context {mode, doc, lines:[...], manual:bool}
+
+const r2 = n => Math.round((Number(n)||0)*100)/100;
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+const F = n => (typeof fmt==='function') ? fmt(n) : r2(n).toFixed(2);
+const toast = (m,t) => { if(typeof showToast==='function') showToast(m,t); };
+
+const REASONS = {
+  sales:['Goods returned — quality defect','Wrong product supplied','Damaged in transit','Excess quantity supplied','Rate / price difference','Post-sale discount','Rejected by customer','Other'],
+  purchase:['Quality not as per PO','Wrong material received','Excess quantity received','Damaged on receipt','Rate / price difference','Short supply','Rejected on inspection','Other']
+};
+
+// ── 1. Remember line items on new invoices / bills (wrap; original runs first) ─
+function captureInvoiceLines(){
+  const out=[]; const pos=($('inv-pos')||{}).value||'36';
+  document.querySelectorAll('#line-items-body tr').forEach(tr=>{
+    const g = c => tr.querySelector(c);
+    const name = g('.li-name') ? g('.li-name').value.trim() : ''; if(!name) return;
+    const qty=parseFloat((g('.li-qty')||{}).value)||0, rate=parseFloat((g('.li-rate')||{}).value)||0;
+    const disc=parseFloat((g('.li-disc')||{}).value)||0, gst=parseFloat((g('.li-gst')||{}).value)||0;
+    const tv=qty*rate-qty*rate*disc/100;
+    out.push({name, hsn:(g('.li-hsn')||{}).value||'', unit:(g('.li-unit')||{}).value||'Nos',
+              qty, rate, disc, gstPct:gst, taxable:r2(tv), tax:r2(tv*gst/100)});
+  });
+  return {lines:out, pos};
+}
+function capturePurchaseLines(){
+  const out=[];
+  document.querySelectorAll('#pur-items-body tr').forEach(tr=>{
+    const n=tr.querySelector('.pl-name'); const name=n?n.value.trim():''; if(!name) return;
+    const qty=parseFloat((tr.querySelector('.pl-qty')||{}).value)||0, rate=parseFloat((tr.querySelector('.pl-rate')||{}).value)||0;
+    const it=(typeof ITEMS!=='undefined'?ITEMS:[]).find(i=>i.name.toLowerCase()===name.toLowerCase());
+    out.push({name, qty, rate, amt:qty*rate, unit:it?it.unit:'Nos', hsn:it?it.hsn:''});
+  });
+  return out;
+}
+if(typeof window.confirmSaveInvoice==='function' && !window.confirmSaveInvoice._rtn){
+  const orig = window.confirmSaveInvoice;
+  const w = function(){
+    let cap=null; try{ cap=captureInvoiceLines(); }catch(e){}
+    const before = INVOICES_STORE.length;
+    const res = orig.apply(this, arguments);
+    try{ if(cap && INVOICES_STORE.length>before){ INVOICES_STORE[0].lines=cap.lines; INVOICES_STORE[0].pos=cap.pos; } }catch(e){}
+    try{ rtn_decorateRows(); }catch(e){}
+    return res;
+  };
+  w._rtn=true; window.confirmSaveInvoice=w;
+}
+if(typeof window.savePurchase==='function' && !window.savePurchase._rtn){
+  const orig = window.savePurchase;
+  const w = function(){
+    let cap=null; try{ cap=capturePurchaseLines(); }catch(e){}
+    const before = PURCHASES_STORE.length;
+    const res = orig.apply(this, arguments);
+    try{ if(cap && PURCHASES_STORE.length>before) PURCHASES_STORE[0].lines=cap; }catch(e){}
+    try{ rtn_decorateRows(); }catch(e){}
+    return res;
+  };
+  w._rtn=true; window.savePurchase=w;
+}
+
+// ── 2. Chart of Accounts: make sure return ledgers exist (additive) ─────────
+try{
+  if(typeof SCHEDULE_III!=='undefined'){
+    const add=(o)=>{ if(!SCHEDULE_III.some(l=>l.name===o.name)) SCHEDULE_III.push(o); };
+    add({type:'PL',side:'Income', group:'Revenue from Operations',subGroup:'Sales Returns (contra-revenue)',code:'6090',name:'Sales Returns',normal:'Dr'});
+    add({type:'PL',side:'Expense',group:'Cost of Materials',     subGroup:'Purchase Returns (contra-expense)',code:'7090',name:'Purchase Returns',normal:'Cr'});
+  }
+}catch(e){}
+
+// ── 3. Helpers on documents ────────────────────────────────────────────────
+function stores(mode){ return mode==='sales' ? INVOICES_STORE : PURCHASES_STORE; }
+function docNo(mode,d){ return mode==='sales' ? d.invNum : d.billNo; }
+function docParty(mode,d){ return mode==='sales' ? d.party : d.vendor; }
+function returnedValue(d){ return r2(d._rtnValue||0); }
+function returnableValue(d){ return r2((d.total||0) - returnedValue(d)); }
+function noteRefs(mode,d){ return R.notes.filter(n=>n.mode===mode && n.docNo===docNo(mode,d)); }
+
+// Per-line value split for purchase bills: bill booked as GST-inclusive total
+// → split each line in the same taxable:GST ratio the bill was posted with.
+function purLineSplit(d, value){
+  const ratio = d.total ? (d.taxable||d.total)/d.total : 1;
+  const taxable=r2(value*ratio); return {taxable, tax:r2(value-taxable)};
+}
+
+// ── 4. Open / close ────────────────────────────────────────────────────────
+window.rtn_open = function(mode, preDoc){
+  M = {mode, doc:null, lines:[], manual:false};
+  const isS = mode==='sales';
+  $('rtn-title').textContent = isS ? '↩ Sales Return — Issue Credit Note' : '↩ Purchase Return — Issue Debit Note';
+  $('rtn-sub').textContent   = isS ? 'Select customer and invoice · full or partial · reverses sales, output GST, debtors and stock'
+                                   : 'Select vendor and bill · full or partial · reverses purchases, input GST credit, creditors and stock';
+  $('rtn-party-lbl').innerHTML = (isS?'Customer':'Vendor')+' <span class="req">*</span>';
+  $('rtn-doc-lbl').innerHTML   = (isS?'Invoice No.':'Bill No.')+' <span class="req">*</span>';
+  $('rtn-submit').textContent  = isS ? '↩ Confirm & Issue Credit Note' : '↩ Confirm & Issue Debit Note';
+  $('rtn-submit').style.background = isS ? '#DC2626' : '#D97706';
+  $('rtn-reason').innerHTML = '<option value="">— Select —</option>'+REASONS[mode].map(r=>`<option>${esc(r)}</option>`).join('');
+  const parties=[...new Set(stores(mode).map(d=>docParty(mode,d)).filter(Boolean))].sort();
+  $('rtn-party').innerHTML = `<option value="">— Select ${isS?'customer':'vendor'} —</option>` +
+    parties.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  $('rtn-doc').innerHTML = `<option value="">— Select ${isS?'customer':'vendor'} first —</option>`;
+  $('rtn-docbox').style.display='none'; $('rtn-body').style.display='none'; $('rtn-err').textContent='';
+  if(!parties.length) $('rtn-err').textContent = isS ? 'No invoices raised yet — create an invoice first.' : 'No purchase bills recorded yet — record a bill first.';
+  if(typeof closeAllModals==='function') closeAllModals();
+  $('rtn-modal').classList.add('open');
+  if(preDoc){
+    const d=stores(mode).find(x=>docNo(mode,x)===preDoc);
+    if(d){ $('rtn-party').value=docParty(mode,d); rtn_onParty(); $('rtn-doc').value=preDoc; rtn_onDoc(); }
+  }
+};
+window.rtn_close = function(){ $('rtn-modal').classList.remove('open'); M=null; };
+
+window.rtn_onParty = function(){
+  const p=$('rtn-party').value, mode=M.mode, isS=mode==='sales';
+  $('rtn-docbox').style.display='none'; $('rtn-body').style.display='none'; $('rtn-err').textContent='';
+  if(!p){ $('rtn-doc').innerHTML=`<option value="">— Select ${isS?'customer':'vendor'} first —</option>`; return; }
+  const docs=stores(mode).filter(d=>docParty(mode,d)===p);
+  $('rtn-doc').innerHTML = `<option value="">— Select ${isS?'invoice':'bill'} (${docs.length}) —</option>` + docs.map(d=>{
+    const left=returnableValue(d), dn=docNo(mode,d);
+    return `<option value="${esc(dn)}" ${left<=0.009?'disabled':''}>${esc(dn)} · ${esc(d.date||'')} · ₹${F(d.total)}${left<=0.009?' · fully returned':(returnedValue(d)>0?' · returnable ₹'+F(left):'')}</option>`;
+  }).join('');
+};
+
+window.rtn_onDoc = function(){
+  const mode=M.mode, isS=mode==='sales', no=$('rtn-doc').value;
+  $('rtn-err').textContent='';
+  const d=stores(mode).find(x=>docNo(mode,x)===no);
+  if(!d){ $('rtn-docbox').style.display='none'; $('rtn-body').style.display='none'; return; }
+  M.doc=d;
+  const prev=noteRefs(mode,d);
+  $('rtn-docbox').innerHTML = `<div class="rtn-grid">
+      <div><div class="k">${isS?'Invoice':'Bill'} No.</div><div class="v">${esc(no)}</div></div>
+      <div><div class="k">Date</div><div class="v">${esc(d.date||'—')}</div></div>
+      <div><div class="k">Taxable / GST</div><div class="v">₹${F(d.taxable||0)} / ₹${F(d.gst||0)}</div></div>
+      <div><div class="k">Total</div><div class="v">₹${F(d.total||0)}</div></div>
+      <div><div class="k">Outstanding</div><div class="v" style="color:#9F3030">₹${F(d.outstanding||0)}</div></div>
+      <div><div class="k">Already returned</div><div class="v">₹${F(returnedValue(d))}${prev.length?' <span style="font-weight:400;color:#7A8FA6">('+prev.map(n=>esc(n.refNum)).join(', ')+')</span>':''}</div></div>
+      <div><div class="k">Max returnable</div><div class="v" style="color:#0EA472">₹${F(returnableValue(d))}</div></div>
+      <div><div class="k">Status</div><div class="v">${esc(d.status||'—')}</div></div>
+    </div>`;
+  $('rtn-docbox').style.display='block';
+  $('rtn-no').value = nextNo(mode);
+  $('rtn-date').value = (typeof today==='function') ? today() : new Date().toISOString().slice(0,10);
+  $('rtn-kind').value='goods'; $('rtn-reason').value=''; $('rtn-remarks').value='';
+
+  // Build lines
+  const stored = Array.isArray(d.lines) && d.lines.length;
+  M.manual = !stored;
+  d._rtnQty = d._rtnQty || [];
+  if(stored){
+    M.lines = d.lines.map((l,i)=>{
+      const done=d._rtnQty[i]||0;
+      if(isS) return {name:l.name,hsn:l.hsn,unit:l.unit,soldQty:l.qty,done,max:r2(l.qty-done),q:0,
+                      rate:l.rate,disc:l.disc||0,gstPct:l.gstPct,uTax:l.qty?l.taxable/l.qty:0,uGst:l.qty?l.tax/l.qty:0,idx:i};
+      if(d.gstMode==='exclusive'){   // v6.2+ bills: line rate is taxable value, GST at bill rate on top
+        const gp=+d.gstPct||0;
+        return {name:l.name,hsn:l.hsn,unit:l.unit,soldQty:l.qty,done,max:r2(l.qty-done),q:0,
+                rate:l.rate,uTax:l.rate,uGst:l.rate*gp/100,gstPct:gp,idx:i};
+      }
+      const sp=purLineSplit(d, l.qty?l.amt/l.qty:0);   // v6.1 bills: booked GST-inclusive at 18%
+      return {name:l.name,hsn:l.hsn,unit:l.unit,soldQty:l.qty,done,max:r2(l.qty-done),q:0,
+              rate:l.rate,uTax:sp.taxable,uGst:sp.tax,gstPct:sp.taxable?r2(sp.tax/sp.taxable*100):0,idx:i};
+    });
+    $('rtn-thead').innerHTML = `<tr><th>#</th><th>Item</th><th class="n">${isS?'Sold':'Billed'} Qty</th><th class="n">Returned</th><th class="n">Balance</th><th class="n">Return Qty</th><th class="n">Rate</th><th class="n">GST%</th><th class="n">Taxable</th><th class="n">GST</th><th class="n">Total</th></tr>`;
+    $('rtn-lines-hint').textContent = 'Enter return quantity per item (partial allowed). "Full Return" fills every balance quantity.';
+    $('rtn-add-line').style.display='none';
+  } else {
+    M.lines=[];
+    $('rtn-thead').innerHTML = `<tr><th>#</th><th>Item</th><th class="n">Qty</th><th class="n">Rate (excl. GST)</th><th class="n">GST%</th><th class="n">Taxable</th><th class="n">GST</th><th class="n">Total</th><th></th></tr>`;
+    $('rtn-lines-hint').innerHTML = 'Item-wise details were not stored for this '+(isS?'invoice':'bill')+' (created before v6.1). Add the items being returned — value is capped at the returnable amount. <b>Full Return</b> reverses the entire balance value.';
+    $('rtn-add-line').style.display='';
+    rtn_addManual();
+  }
+  $('rtn-body').style.display='block';
+  rtn_render();
+};
+
+function nextNo(mode){
+  const pre = mode==='sales'?'CN':'DN';
+  const used = new Set([...(window.CREDIT_NOTES||[]),...(window.DEBIT_NOTES||[])].map(n=>n.refNum));
+  let s = mode==='sales'?R.cnSeq:R.dnSeq, no;
+  do{ s++; no = pre+'-'+String(s).padStart(4,'0'); } while(used.has(no));
+  return no;
+}
+
+// ── 5. Lines rendering & calc ──────────────────────────────────────────────
+window.rtn_addManual = function(){
+  const it=(typeof ITEMS!=='undefined'?ITEMS:[])[0];
+  M.lines.push({manual:true,name:'',q:0,rate:0,gstPct:it?it.gst:18,unit:'Nos',hsn:''});
+  rtn_render();
+};
+window.rtn_delManual = function(i){ M.lines.splice(i,1); rtn_render(); };
+
+function lineCalc(l){
+  if(l.fullValue) return {taxable:r2(l.rate), tax:r2(l.fixedTax)};
+  if(l.manual){ const tx=r2(l.q*l.rate); return {taxable:tx, tax:r2(tx*l.gstPct/100)}; }
+  return {taxable:r2(l.q*l.uTax), tax:r2(l.q*l.uGst)};
+}
+
+function rtn_render(){
+  const isS=M.mode==='sales';
+  const items=(typeof ITEMS!=='undefined'?ITEMS:[]);
+  $('rtn-lines').innerHTML = M.lines.map((l,i)=>{
+    const c=lineCalc(l);
+    if(l.manual){
+      return `<tr>
+        <td>${i+1}</td>
+        <td style="min-width:200px"><select onchange="rtn_setManualItem(${i},this.value)"><option value="">— Item —</option>${items.map(it=>`<option value="${esc(it.name)}" ${it.name===l.name?'selected':''}>${esc(it.name)}${it.stock!=null?' (stock '+it.stock+')':''}</option>`).join('')}</select></td>
+        <td class="n"><input class="rtn-q" type="number" min="0" step="any" value="${l.q||''}" oninput="rtn_setLine(${i},'q',this.value)"></td>
+        <td class="n"><input class="rtn-q" type="number" min="0" step="0.01" value="${l.rate||''}" oninput="rtn_setLine(${i},'rate',this.value)"></td>
+        <td class="n"><select style="width:70px" onchange="rtn_setLine(${i},'gstPct',this.value)">${[0,5,12,18,28].map(g=>`<option ${+l.gstPct===g?'selected':''}>${g}</option>`).join('')}</select></td>
+        <td class="n" id="rtn-c-tx-${i}">₹${F(c.taxable)}</td><td class="n" id="rtn-c-gs-${i}">₹${F(c.tax)}</td><td class="n fw-600" id="rtn-c-tt-${i}">₹${F(c.taxable+c.tax)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="rtn_delManual(${i})" title="Remove">✕</button></td></tr>`;
+    }
+    return `<tr>
+      <td>${i+1}</td><td class="fw-600">${esc(l.name)}${l.hsn?'<div style="font-size:.68rem;color:#7A8FA6">HSN '+esc(l.hsn)+'</div>':''}</td>
+      <td class="n">${l.soldQty} ${esc(l.unit||'')}</td><td class="n">${l.done||0}</td><td class="n">${l.max}</td>
+      <td class="n"><input class="rtn-q" type="number" min="0" max="${l.max}" step="any" value="${l.q||''}" ${l.max<=0?'disabled':''} oninput="rtn_setLine(${i},'q',this.value)"></td>
+      <td class="n">₹${F(l.rate)}${l.disc?'<div style="font-size:.68rem;color:#7A8FA6">less '+l.disc+'%</div>':''}</td><td class="n">${l.gstPct}%</td>
+      <td class="n" id="rtn-c-tx-${i}">₹${F(c.taxable)}</td><td class="n" id="rtn-c-gs-${i}">₹${F(c.tax)}</td><td class="n fw-600" id="rtn-c-tt-${i}">₹${F(c.taxable+c.tax)}</td></tr>`;
+  }).join('') || `<tr><td colspan="11" style="text-align:center;color:#7A8FA6;padding:1rem">No lines</td></tr>`;
+  rtn_recalc();
+}
+window.rtn_setManualItem = function(i,name){
+  const l=M.lines[i], it=(ITEMS||[]).find(x=>x.name===name);
+  l.name=name;
+  if(it){ l.rate = M.mode==='sales' ? (it.rate||0) : (it.purRate||it.rate||0); l.gstPct=it.gst||0; l.unit=it.unit; l.hsn=it.hsn||''; }
+  rtn_render();
+};
+window.rtn_setLine = function(i,k,v){
+  const l=M.lines[i]; l[k]=Math.max(0,parseFloat(v)||0);
+  const c=lineCalc(l);
+  const a=$('rtn-c-tx-'+i), b=$('rtn-c-gs-'+i), t=$('rtn-c-tt-'+i);
+  if(a) a.textContent='₹'+F(c.taxable); if(b) b.textContent='₹'+F(c.tax); if(t) t.textContent='₹'+F(c.taxable+c.tax);
+  rtn_recalc();
+};
+window.rtn_fill = function(full){
+  if(!M||!M.doc) return;
+  if(!M.manual){ M.lines.forEach(l=>{ l.q = full ? l.max : 0; }); }
+  else if(full){
+    // Full reversal of the balance value: one value line in the document's own GST ratio
+    const d=M.doc, left=returnableValue(d);
+    const ratio = d.total ? (d.taxable||d.total)/d.total : 1;
+    const tx=r2(left*ratio), g = tx ? r2((left-tx)/tx*100) : 0;
+    M.lines=[{manual:true,name:'Full reversal of '+docNo(M.mode,d),q:1,rate:tx,gstPct:g,fixedTax:r2(left-tx),unit:'',hsn:'',fullValue:true}];
+    $('rtn-kind').value='value';
+  } else { M.lines=[]; rtn_addManual(); return; }
+  rtn_render();
+};
+
+function totals(){
+  let taxable=0,tax=0;
+  M.lines.forEach(l=>{ const c=lineCalc(l); taxable+=c.taxable; tax+=c.tax; });
+  taxable=r2(taxable); tax=r2(tax);
+  // Avoid 1-paisa overshoot on full reversal
+  if(M.doc){ const left=returnableValue(M.doc); if(taxable+tax>left && taxable+tax-left<=0.05) tax=r2(left-taxable); }
+  return {taxable, tax, total:r2(taxable+tax)};
+}
+
+window.rtn_recalc = function(){
+  if(!M||!M.doc) return;
+  const t=totals(), isS=M.mode==='sales', inter = isS && M.doc.pos && M.doc.pos!=='36';
+  $('rtn-t-tax').textContent='₹'+F(t.taxable);
+  $('rtn-t-gst').textContent='₹'+F(t.tax);
+  $('rtn-t-total').textContent='₹'+F(t.total);
+  $('rtn-t-gstsplit').innerHTML = inter ? `IGST <b>₹${F(t.tax)}</b>` : `CGST <b>₹${F(t.tax/2)}</b> &nbsp; SGST <b>₹${F(t.tax/2)}</b>`;
+  const P=docParty(M.mode,M.doc);
+  $('rtn-je').innerHTML = isS
+    ? `Dr Sales Returns${'&nbsp;'.repeat(9)}₹${F(t.taxable)}<br>Dr Output GST Payable${'&nbsp;'.repeat(3)}₹${F(t.tax)}<br>&nbsp;&nbsp;Cr Sundry Debtors (${esc(P)}) ₹${F(t.total)}`
+    : `Dr Sundry Creditors (${esc(P)}) ₹${F(t.total)}<br>&nbsp;&nbsp;Cr Purchase Returns${'&nbsp;'.repeat(5)}₹${F(t.taxable)}<br>&nbsp;&nbsp;Cr Input GST Credit${'&nbsp;'.repeat(5)}₹${F(t.tax)}`;
+  const out=M.doc.outstanding||0, goods=$('rtn-kind').value==='goods';
+  const qtys=M.lines.filter(l=>l.q>0&&l.name&&!l.fullValue);
+  let eff = `${isS?'Invoice':'Bill'} outstanding ₹${F(out)} → ₹${F(Math.max(0,out-t.total))}`;
+  if(t.total>out+0.009) eff += ` · <b>₹${F(t.total-out)} ${isS?'refundable to / adjustable for customer':'receivable from / adjustable with vendor'}</b>`;
+  eff += goods ? (qtys.length? ` · Stock ${isS?'+':'−'} ${qtys.map(l=>esc(l.name)+' '+l.q).join(', ')}`:'') : ' · No stock movement';
+  $('rtn-effects').innerHTML = eff;
+};
+
+// ── 6. Validate & submit ───────────────────────────────────────────────────
+window.rtn_submit = function(){
+  const err=m=>{ $('rtn-err').textContent='⚠ '+m; return false; };
+  $('rtn-err').textContent='';
+  if(!M) return;
+  const mode=M.mode, isS=mode==='sales', d=M.doc;
+  if(!$('rtn-party').value) return err('Select the '+(isS?'customer':'vendor')+'.');
+  if(!d) return err('Select the '+(isS?'invoice':'bill')+'.');
+  const date=$('rtn-date').value; if(!date) return err('Enter the note date.');
+  if(d.date && /^\d{4}-\d{2}-\d{2}$/.test(d.date) && date<d.date) return err('Note date cannot be before the '+(isS?'invoice':'bill')+' date ('+d.date+').');
+  const reason=$('rtn-reason').value; if(!reason) return err('Select the reason.');
+  for(const l of M.lines){
+    if(!l.manual && l.q>l.max+1e-9) return err(`Return qty for "${l.name}" exceeds balance ${l.max}.`);
+    if(l.manual && l.q>0 && !l.name) return err('Select the item for every line with a quantity.');
+  }
+  const t=totals();
+  if(t.total<=0) return err('Enter at least one return quantity / value.');
+  const left=returnableValue(d);
+  if(t.total>left+0.009) return err(`Note value ₹${F(t.total)} exceeds the returnable balance ₹${F(left)} of this ${isS?'invoice':'bill'}.`);
+
+  const goods=$('rtn-kind').value==='goods';
+  const refNum=$('rtn-no').value||nextNo(mode);
+  const party=docParty(mode,d), dno=docNo(mode,d);
+  const remarks=($('rtn-remarks').value||'').trim();
+  const lines=M.lines.filter(l=>l.q>0).map(l=>{ const c=lineCalc(l); return {name:l.name,hsn:l.hsn||'',unit:l.unit||'',qty:l.q,rate:l.rate,gstPct:l.gstPct,taxable:c.taxable,tax:c.tax,total:r2(c.taxable+c.tax),idx:l.idx,fullValue:!!l.fullValue}; });
+  // Rounding correction on last line so lines tie to totals
+  const sumT=r2(lines.reduce((s,l)=>s+l.total,0)); if(lines.length && sumT!==t.total){ const L=lines[lines.length-1]; L.tax=r2(L.tax+(t.total-sumT)); L.total=r2(L.taxable+L.tax); }
+
+  // (a) Journal → ledgers
+  const narr=(isS?'Sales return':'Purchase return')+' — '+reason+(remarks?' ('+remarks+')':'')+' against '+dno+' / '+party;
+  postJournal(isS?'SALES_RETURN':'PUR_RETURN', refNum, date, narr, isS
+    ? [{ledger:'Sales Returns',dr:t.taxable,cr:0},{ledger:'Output GST Payable',dr:t.tax,cr:0},{ledger:'Sundry Debtors',dr:0,cr:t.total}]
+    : [{ledger:'Sundry Creditors',dr:t.total,cr:0},{ledger:'Purchase Returns',dr:0,cr:t.taxable},{ledger:'Input GST Credit',dr:0,cr:t.tax}]);
+
+  // (b) Stock
+  const stockMoves=[];
+  if(goods && typeof ITEMS!=='undefined'){
+    lines.forEach(l=>{
+      if(l.fullValue) return;
+      const it=ITEMS.find(i=>i.name.toLowerCase()===String(l.name).toLowerCase());
+      if(it && it.stock!==null && it.stock!==undefined){
+        it.stock = r2(it.stock + (isS?l.qty:-l.qty));
+        stockMoves.push({item:it.name,qty:isS?l.qty:-l.qty,after:it.stock});
+      }
+    });
+  }
+
+  // (c) Document values
+  const outBefore=d.outstanding!==undefined?d.outstanding:d.total;
+  d.outstanding=r2(Math.max(0,outBefore-t.total));
+  const excess=r2(Math.max(0,t.total-outBefore));
+  d._rtnValue=r2((d._rtnValue||0)+t.total);
+  d._rtnQty=d._rtnQty||[];
+  lines.forEach(l=>{ if(l.idx!==undefined) d._rtnQty[l.idx]=r2((d._rtnQty[l.idx]||0)+l.qty); });
+  const fully = returnableValue(d)<=0.009;
+  if(fully) d.status='Returned';
+  else if(d.outstanding<=0 && d.status!=='Paid') d.status='Settled';
+  const stEl=$((isS?'st-':'pst-')+dno);
+  if(stEl){ stEl.textContent=d.status; stEl.className='pill '+(d.status==='Paid'||d.status==='Settled'?'pill-green':d.status==='Returned'?'pill-red':'pill-warn'); }
+
+  // (d) Note registers (compatible with existing share / GST arrays)
+  const note={refNum, retNum:refNum, mode, type:isS?'Credit Note':'Debit Note', date, docNo:dno, docDate:d.date||'',
+              taxable:t.taxable, gst:t.tax, total:t.total, amount:t.total, reason, remarks, status:'Issued',
+              kind:goods?'Goods return':'Value adjustment', lines, stockMoves, excess, pos:d.pos||'36',
+              outstandingAfter:d.outstanding};
+  if(isS){ note.party=party; note.invNum=dno; note.againstInv=dno; }
+  else   { note.vendor=party; note.billNo=dno; note.againstBill=dno; }
+  R.notes.unshift(note);
+  if(isS){ R.cnSeq=Math.max(R.cnSeq,parseInt(refNum.split('-')[1])||0);
+    (window.CREDIT_NOTES=window.CREDIT_NOTES||[]).push(note); SALES_RETURNS.unshift(note); (window.GSTR1_CN=window.GSTR1_CN||[]).push(note);
+  } else { R.dnSeq=Math.max(R.dnSeq,parseInt(refNum.split('-')[1])||0);
+    (window.DEBIT_NOTES=window.DEBIT_NOTES||[]).push(note); PUR_RETURNS.unshift(note); (window.GSTR1_DN=window.GSTR1_DN||[]).push(note);
+  }
+
+  // (e) Refresh every affected view
+  rtn_close();
+  rtn_refreshAll();
+  toast(`${refNum} — ${note.type} issued ✓ ₹${F(t.total)} against ${dno}${stockMoves.length?' · stock updated':''}`,'success');
+  return true;
+};
+
+function rtn_refreshAll(){
+  const safe=f=>{ try{ f(); }catch(e){ console.warn('rtn refresh',e); } };
+  safe(rtn_renderRegisters); safe(rtn_renderGst); safe(rtn_decorateRows);
+  if(typeof renderItemsTable==='function') safe(renderItemsTable);
+  if(typeof renderItemsDatalist==='function') safe(renderItemsDatalist);
+  if(typeof checkNegStock==='function') safe(checkNegStock);
+  if(typeof renderPaymentsTab==='function') safe(renderPaymentsTab);
+  if(typeof renderLedgerTree==='function') safe(renderLedgerTree);
+}
+
+// ── 7. Registers inside All Invoices / Purchases tabs ──────────────────────
+function regTable(mode){
+  const list=R.notes.filter(n=>n.mode===mode), isS=mode==='sales';
+  if(!list.length) return `<div style="text-align:center;padding:1.2rem;color:#7A8FA6;font-size:.82rem">No ${isS?'credit':'debit'} notes yet. Click "↩ ${isS?'Sales Return':'Purchase Return'}" above.</div>`;
+  return `<div style="overflow-x:auto"><table class="data-table"><thead><tr><th>Note No.</th><th>Date</th><th>${isS?'Customer':'Vendor'}</th><th>Against</th><th>Type</th><th>Reason</th><th>Taxable</th><th>GST</th><th>Total</th><th></th></tr></thead><tbody>${
+    list.map(n=>`<tr><td class="mono">${esc(n.refNum)}</td><td>${esc(n.date)}</td><td class="fw-600">${esc(isS?n.party:n.vendor)}</td><td class="mono">${esc(n.docNo)}</td><td style="font-size:.75rem">${esc(n.kind)}</td><td style="font-size:.75rem">${esc(n.reason)}</td><td class="num">₹${F(n.taxable)}</td><td class="num">₹${F(n.gst)}</td><td class="num fw-600">₹${F(n.total)}</td><td><button class="btn btn-ghost btn-sm" onclick="rtn_view('${esc(n.refNum)}')">View / Share</button></td></tr>`).join('')
+  }</tbody></table></div>`;
+}
+function rtn_renderRegisters(){
+  const a=$('rtn-reg-sales'), b=$('rtn-reg-purchase');
+  if(a) a.innerHTML=regTable('sales'); if(b) b.innerHTML=regTable('purchase');
+}
+
+// Small "↩ CN ₹x" tag next to the status pill of a returned invoice / bill
+function rtn_decorateRows(){
+  const tag=(mode,d)=>{
+    const dno=docNo(mode,d), el=$((mode==='sales'?'st-':'pst-')+dno); if(!el) return;
+    let t=$('rtn-tag-'+mode+'-'+dno);
+    if(!(d._rtnValue>0)){ if(t) t.remove(); return; }
+    if(!t){ t=document.createElement('span'); t.className='rtn-tag'; t.id='rtn-tag-'+mode+'-'+dno; el.insertAdjacentElement('afterend',t); }
+    t.textContent='↩ '+(mode==='sales'?'CN':'DN')+' ₹'+F(d._rtnValue);
+  };
+  INVOICES_STORE.forEach(d=>tag('sales',d)); PURCHASES_STORE.forEach(d=>tag('purchase',d));
+}
+window.rtn_decorateRows=rtn_decorateRows;
+
+// ── 8. GST tab — notes summary ─────────────────────────────────────────────
+function rtn_renderGst(){
+  const box=$('rtn-gst'); if(!box) return;
+  const cn=R.notes.filter(n=>n.mode==='sales'), dn=R.notes.filter(n=>n.mode==='purchase');
+  const sum=(a,k)=>a.reduce((s,n)=>s+(n[k]||0),0);
+  const rows=a=>a.map(n=>`<tr><td class="mono">${esc(n.refNum)}</td><td>${esc(n.date)}</td><td>${esc(n.party||n.vendor)}</td><td class="mono">${esc(n.docNo)}</td><td class="num">₹${F(n.taxable)}</td><td class="num">₹${F(n.gst)}</td><td class="num">₹${F(n.total)}</td></tr>`).join('');
+  const tbl=(a,empty)=>a.length?`<table class="data-table"><thead><tr><th>Note</th><th>Date</th><th>Party</th><th>Original Doc</th><th>Taxable</th><th>GST</th><th>Total</th></tr></thead><tbody>${rows(a)}</tbody></table>`:`<div style="color:#7A8FA6;font-size:.8rem;padding:.6rem 0">${empty}</div>`;
+  box.innerHTML=`
+    <div class="card-header"><div><h2>Credit / Debit Notes — GST impact</h2><p>Auto-updated from Sales &amp; Purchase Returns</p></div></div>
+    <div class="stats-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:.8rem">
+      <div class="stat-card"><div class="stat-label">Output tax reduced (Credit Notes)</div><div class="stat-value blue">₹${F(sum(cn,'gst'))}</div><div class="stat-sub">${cn.length} note(s) · taxable ₹${F(sum(cn,'taxable'))} · report in GSTR-1 Table 9B (CDNR / CDNUR)</div></div>
+      <div class="stat-card"><div class="stat-label">ITC to be reversed (Purchase Returns)</div><div class="stat-value warn">₹${F(sum(dn,'gst'))}</div><div class="stat-sub">${dn.length} note(s) · taxable ₹${F(sum(dn,'taxable'))} · reduce ITC in GSTR-3B; match supplier's credit note in GSTR-2B</div></div>
+    </div>
+    <h4 style="font-size:.85rem;margin:.4rem 0">Credit notes issued (sales returns)</h4>${tbl(cn,'No credit notes yet.')}
+    <h4 style="font-size:.85rem;margin:.9rem 0 .4rem">Debit notes raised (purchase returns)</h4>${tbl(dn,'No debit notes yet.')}`;
+}
+
+// ── 9. Ledger balances panel under Chart of Accounts ───────────────────────
+if(typeof window.renderLedgerTree==='function' && !window.renderLedgerTree._rtn){
+  const orig=window.renderLedgerTree;
+  const w=function(){
+    const res=orig.apply(this,arguments);
+    try{
+      const c=$('ledger-tree-container');
+      if(c && typeof LEDGER_BALANCES!=='undefined'){
+        const names=Object.keys(LEDGER_BALANCES).sort();
+        const old=$('rtn-ledger-bal'); if(old) old.remove();
+        const div=document.createElement('div'); div.id='rtn-ledger-bal';
+        div.style.cssText='margin-top:1rem;padding:.75rem;background:#F8FAFC;border:1px solid #DDE3EA;border-radius:8px;';
+        let tdr=0,tcr=0;
+        const rows=names.map(n=>{ const b=LEDGER_BALANCES[n]; tdr+=b.dr; tcr+=b.cr; const net=r2(b.dr-b.cr);
+          const hi=/Return/.test(n)?' style="background:#FFFBEB"':'';
+          return `<tr${hi}><td class="fw-600">${esc(n)}</td><td class="num">₹${F(b.dr)}</td><td class="num">₹${F(b.cr)}</td><td class="num fw-600">₹${F(Math.abs(net))} ${net>=0?'Dr':'Cr'}</td></tr>`; }).join('');
+        div.innerHTML=`<div style="font-size:.82rem;font-weight:700;color:#1C5F9B;margin-bottom:.5rem;">📒 Ledger Balances — from posted vouchers (invoices, bills, receipts, payments, credit/debit notes)</div>`+
+          (names.length?`<table class="data-table"><thead><tr><th>Ledger</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead><tbody>${rows}<tr style="border-top:2px solid #0D1B2A"><td class="fw-600">Total</td><td class="num fw-600">₹${F(tdr)}</td><td class="num fw-600">₹${F(tcr)}</td><td class="num" style="color:${Math.abs(tdr-tcr)<0.01?'#0EA472':'#DC2626'}">${Math.abs(tdr-tcr)<0.01?'✓ Balanced':'Diff ₹'+F(tdr-tcr)}</td></tr></tbody></table>`
+                      :'<div style="font-size:.8rem;color:#7A8FA6">No vouchers posted yet.</div>');
+        c.appendChild(div);
+      }
+    }catch(e){ console.warn('rtn ledger panel',e); }
+    return res;
+  };
+  w._rtn=true; window.renderLedgerTree=w;
+}
+
+// ── 10. View / share a note (re-uses existing share modal & buttons) ───────
+window.rtn_view = function(ref){
+  const n=R.notes.find(x=>x.refNum===ref); if(!n) return toast('Note not found','error');
+  const isS=n.mode==='sales';
+  const biz=(typeof state!=='undefined'&&state.businessName)||(($('sb-biz-name')||{}).textContent)||'';
+  const gstin=(typeof state!=='undefined'&&state.gstin)||(($('sb-biz-gstin')||{}).textContent)||'';
+  const inter=isS && n.pos && n.pos!=='36';
+  const html=`<div style="font-family:Arial,sans-serif;padding:20px;font-size:13px;color:#0D1B2A">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1C5F9B;padding-bottom:10px;margin-bottom:10px">
+      <div><div style="font-weight:700;font-size:15px">${esc(biz)}</div>${gstin?`<div style="font-size:11px;color:#3D5166">GSTIN: ${esc(gstin)}</div>`:''}</div>
+      <div style="text-align:right"><div style="font-weight:700;color:#1C5F9B;font-size:15px">${isS?'CREDIT NOTE':'DEBIT NOTE'}</div>
+      <div style="font-size:12px">No. <b>${esc(n.refNum)}</b> · ${esc(n.date)}</div></div></div>
+    <table style="width:100%;font-size:12px;margin-bottom:10px"><tr>
+      <td style="color:#7A8FA6;width:30%">${isS?'Customer':'Vendor'}</td><td><b>${esc(isS?n.party:n.vendor)}</b></td></tr>
+      <tr><td style="color:#7A8FA6">Against ${isS?'Invoice':'Bill'}</td><td>${esc(n.docNo)}${n.docDate?' dated '+esc(n.docDate):''}</td></tr>
+      <tr><td style="color:#7A8FA6">Reason</td><td>${esc(n.reason)} · ${esc(n.kind)}</td></tr>
+      ${n.remarks?`<tr><td style="color:#7A8FA6">Remarks</td><td>${esc(n.remarks)}</td></tr>`:''}</table>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#F4F7FA"><th style="text-align:left;padding:5px">Item</th><th style="text-align:right;padding:5px">Qty</th><th style="text-align:right;padding:5px">Rate</th><th style="text-align:right;padding:5px">GST%</th><th style="text-align:right;padding:5px">Taxable</th><th style="text-align:right;padding:5px">GST</th><th style="text-align:right;padding:5px">Total</th></tr></thead>
+      <tbody>${n.lines.map(l=>`<tr style="border-bottom:1px solid #EEF2F6"><td style="padding:5px">${esc(l.name)}${l.hsn?' <span style="color:#7A8FA6">('+esc(l.hsn)+')</span>':''}</td><td style="text-align:right;padding:5px">${l.fullValue?'—':l.qty+' '+esc(l.unit)}</td><td style="text-align:right;padding:5px">${l.fullValue?'—':'₹'+F(l.rate)}</td><td style="text-align:right;padding:5px">${r2(l.gstPct)}%</td><td style="text-align:right;padding:5px">₹${F(l.taxable)}</td><td style="text-align:right;padding:5px">₹${F(l.tax)}</td><td style="text-align:right;padding:5px">₹${F(l.total)}</td></tr>`).join('')}</tbody></table>
+    <table style="margin-left:auto;margin-top:8px;font-size:12px">
+      <tr><td style="padding:2px 10px;color:#7A8FA6">Taxable value</td><td style="text-align:right">₹${F(n.taxable)}</td></tr>
+      ${inter?`<tr><td style="padding:2px 10px;color:#7A8FA6">IGST</td><td style="text-align:right">₹${F(n.gst)}</td></tr>`
+             :`<tr><td style="padding:2px 10px;color:#7A8FA6">CGST</td><td style="text-align:right">₹${F(n.gst/2)}</td></tr><tr><td style="padding:2px 10px;color:#7A8FA6">SGST</td><td style="text-align:right">₹${F(n.gst/2)}</td></tr>`}
+      <tr style="border-top:2px solid #1C5F9B"><td style="padding:4px 10px;font-weight:700">${isS?'Credit':'Debit'} amount</td><td style="text-align:right;font-weight:700">₹${F(n.total)}</td></tr></table>
+    ${typeof toWords==='function'?`<div style="font-size:11px;font-style:italic;margin-top:6px">${esc(toWords(Math.round(n.total)))}</div>`:''}
+    <div style="margin-top:28px;display:flex;justify-content:flex-end"><div style="text-align:center;font-size:11px">For ${esc(biz)}<br><br><br>Authorised Signatory</div></div>
+  </div>`;
+  window._currentNoteHtml=html; window._currentNoteRef=n.refNum; window._currentNoteType=isS?'credit':'debit';
+  if($('share-note-content')) $('share-note-content').innerHTML=html;
+  if($('share-note-title')) $('share-note-title').textContent=(isS?'Credit Note — ':'Debit Note — ')+n.refNum;
+  if($('note-share-modal')) $('note-share-modal').classList.add('open');
+};
+
+// ── 11. Inject buttons & sections into existing tabs (no markup edits) ─────
+function rtn_mount(){
+  // Baseline markup has an unclosed <div>, which nests trailing elements inside #purchase-modal.
+  // Lift the returns modal to <body> so it can display independently.
+  const mdl=$('rtn-modal'); if(mdl && mdl.parentElement!==document.body) document.body.appendChild(mdl);
+  const shm=$('note-share-modal'); if(shm && shm.parentElement && shm.parentElement.closest('#purchase-modal')) document.body.appendChild(shm);
+  const addBtn=(tabId,mode,label,color)=>{
+    const tab=$(tabId); if(!tab || $('rtn-btn-'+mode)) return;
+    const hdr=tab.querySelector('.card-header'); if(!hdr) return;
+    const existing=hdr.querySelector('button');
+    const b=document.createElement('button');
+    b.id='rtn-btn-'+mode; b.className='btn btn-ghost btn-sm'; b.style.cssText='border:1px solid '+color+';color:'+color+';';
+    b.textContent=label; b.onclick=()=>rtn_open(mode);
+    if(existing){
+      const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:.4rem;align-items:center;';
+      existing.parentNode.insertBefore(wrap,existing); wrap.appendChild(b); wrap.appendChild(existing);
+    } else hdr.appendChild(b);
+    const card=document.createElement('div'); card.className='card'; card.style.marginTop='1rem';
+    card.innerHTML=`<div class="card-header"><div><h2>${mode==='sales'?'Sales Returns — Credit Notes':'Purchase Returns — Debit Notes'}</h2><p>${mode==='sales'?'Issued against invoices · full or partial':'Raised against vendor bills · full or partial'}</p></div></div><div id="rtn-reg-${mode}"></div>`;
+    tab.appendChild(card);
+  };
+  addBtn('tab-invoices','sales','↩ Sales Return','#DC2626');
+  addBtn('tab-purchases','purchase','↩ Purchase Return','#D97706');
+  const gst=$('tab-gst');
+  if(gst && !$('rtn-gst')){ const c=document.createElement('div'); c.className='card'; c.id='rtn-gst'; c.style.marginTop='1rem'; gst.appendChild(c); }
+  rtn_renderRegisters(); rtn_renderGst();
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',rtn_mount); else rtn_mount();
+
+})();
+</script>
+<!-- ═══════════════════════ END v6.1 RETURNS MODULE ═══════════════════════ -->

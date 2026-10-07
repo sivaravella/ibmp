@@ -1,0 +1,42 @@
+# Production-style stack: the IBMP app (API + web) and PostgreSQL.
+# Put real values in a .env file next to this one (see apps/api/.env.example); the required ones fail fast if missing.
+name: ibmp
+services:
+  app:
+    image: ibmp/app:1.7.1
+    build: .
+    restart: unless-stopped
+    ports: ["4000:4000"]
+    environment:
+      IBMP_DATABASE_URL: postgres://ibmp:${IBMP_DB_PASSWORD:?set IBMP_DB_PASSWORD}@db:5432/ibmp
+      IBMP_JWT_SECRET: ${IBMP_JWT_SECRET:?set IBMP_JWT_SECRET (32+ random chars)}
+      IBMP_SECRETS_KEY: ${IBMP_SECRETS_KEY:?set IBMP_SECRETS_KEY (16+ random chars)}
+      IBMP_CORS_ORIGINS: ${IBMP_CORS_ORIGINS:-}
+      IBMP_TRUST_PROXY: ${IBMP_TRUST_PROXY:-}
+      IBMP_ENABLE_SIMULATORS: ${IBMP_ENABLE_SIMULATORS:-false}
+      IBMP_ADMIN_API_KEY: ${IBMP_ADMIN_API_KEY:-}
+      IBMP_PUBLIC_URL: ${IBMP_PUBLIC_URL:-}
+      IBMP_SMTP_URL: ${IBMP_SMTP_URL:-}
+      IBMP_MAIL_FROM: ${IBMP_MAIL_FROM:-}
+      IBMP_WHATSAPP_TOKEN: ${IBMP_WHATSAPP_TOKEN:-}
+      IBMP_WHATSAPP_PHONE_ID: ${IBMP_WHATSAPP_PHONE_ID:-}
+      IBMP_WHATSAPP_TEMPLATE: ${IBMP_WHATSAPP_TEMPLATE:-ibmp_compliance_reminder}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+    depends_on:
+      db: { condition: service_healthy }
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ibmp
+      POSTGRES_PASSWORD: ${IBMP_DB_PASSWORD:?set IBMP_DB_PASSWORD}
+      POSTGRES_DB: ibmp
+    volumes: [ibmp-db:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ibmp -d ibmp"]
+      interval: 5s
+      retries: 10
+volumes:
+  ibmp-db:
