@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.10.2
+- Verified the Docker image and compose stack end to end (build, health, migrations, security headers, rate limiting, graceful shutdown, persistence, unsafe-config refusal, UI smoke test against the container).
+
 ## 1.10.1
 - `npm run smoke:ui`: automated browser smoke test of every screen for every role.
 
