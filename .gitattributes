@@ -1,0 +1,2 @@
+# The frozen prototype (and its hash baselines) must stay byte-for-byte identical on every platform.
+legacy/** -text
