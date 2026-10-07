@@ -9,6 +9,9 @@ import { fileURLToPath } from 'node:url';
 import EmbeddedPostgres from 'embedded-postgres';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Settings kept in a git-ignored .env at the repository root (email, social sign-in...) join the environment; real variables win.
+const envFile = path.resolve(root, '..', '..', '.env');
+if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
 const dataDir = path.resolve(process.env.IBMP_DATA_DIR || path.join(root, '..', '..', '.data'));
 const pgDir = path.join(dataDir, 'postgres');
 fs.mkdirSync(dataDir, { recursive: true });
