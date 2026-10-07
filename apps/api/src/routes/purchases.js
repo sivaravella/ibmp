@@ -9,6 +9,7 @@ import { A, post, taxLines } from '../ledger.js';
 const purchaseSchema = z.object({
   partyId: z.number().int(),
   supplierBillNo: z.string().min(1),
+  reverseCharge: z.boolean().optional(),     // the vendor charged no GST: the buyer assesses and pays it
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   lines: z.array(z.object({
     itemId: z.number().int(),
@@ -59,15 +60,17 @@ export function purchaseRoutes(pool) {
         lines.push({ item: it, qty: l.qty, rate: l.rate, gst_pct: l.gstPct ?? Number(it.gst_pct) });
       }
       const calc = computeInvoice(lines, company.state_code, vendor.state_code);
+      const rcm = !!b.reverseCharge;
+      if (rcm && !(calc.cgst + calc.sgst + calc.igst > 0)) throw httpError(400, 'Reverse charge applies to taxable supplies: every line here has a 0% rate, so there is no tax to assess.');
 
       const seq = (await client.query(
         'UPDATE companies SET bill_seq = bill_seq + 1 WHERE id=$1 RETURNING bill_seq', [cid])).rows[0].bill_seq;
       const number = `BILL-${String(seq).padStart(4, '0')}`;
       const bill = (await client.query(
-        `INSERT INTO purchases (company_id,party_id,number,supplier_bill_no,date,place_of_supply,taxable,cgst,sgst,igst,total)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        `INSERT INTO purchases (company_id,party_id,number,supplier_bill_no,date,place_of_supply,taxable,cgst,sgst,igst,total,reverse_charge)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
         [cid, vendor.id, number, b.supplierBillNo, b.date, vendor.state_code,
-          calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total])).rows[0];
+          calc.taxable, calc.cgst, calc.sgst, calc.igst, rcm ? calc.taxable : calc.total, rcm])).rows[0];
 
       for (const l of calc.lines) {
         await client.query(
@@ -78,10 +81,12 @@ export function purchaseRoutes(pool) {
       await post(client, {
         companyId: cid, date: b.date, sourceType: 'purchase', sourceId: bill.id,
         narration: `Purchase ${number} (vendor bill ${b.supplierBillNo})`,
+        // Reverse charge: the vendor is owed only the taxable value; the tax is booked as both a liability and a credit (assessed and claimed by the buyer).
         lines: [
           { code: A.PURCHASES, debit: calc.taxable },
           ...taxLines(calc, 'in', 'debit'),
-          { code: A.CREDITORS, credit: calc.total, partyId: vendor.id },
+          { code: A.CREDITORS, credit: rcm ? calc.taxable : calc.total, partyId: vendor.id },
+          ...(rcm ? taxLines(calc, 'out', 'credit') : []),
         ],
       });
       await client.query('COMMIT');

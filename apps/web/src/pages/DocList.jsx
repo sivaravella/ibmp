@@ -160,7 +160,7 @@ export default function DocList({ kind, go }) {
             <tbody>
               {table.visible.map((r) => (
                 <tr key={r.id} className={purchase ? undefined : 'row-click'} onClick={purchase ? undefined : () => open(r)}>
-                  <td><Cell main={r.number} sub={fmtDate(r.date)} /></td>
+                  <td><Cell main={<>{r.number}{r.reverseCharge && <span className="rcm-tag" title="Reverse charge: you assess and pay the GST">RCM</span>}</>} sub={fmtDate(r.date)} /></td>
                   <td><Cell main={r.partyName} sub={purchase ? `Vendor bill ${r.supplierBillNo}` : undefined} /></td>
                   <td className="num">{inr(r.taxable)}</td><td className="num">{inr(gst(r))}</td>
                   <td className="num"><b>{inr(r.total)}</b>{num(r.returned) > 0 && <div className="muted" style={{ fontSize: 12 }}>returned {inr(r.returned)}</div>}</td>
@@ -169,7 +169,7 @@ export default function DocList({ kind, go }) {
                   <td><StatusBadge status={r.status} /></td>
                   <td className="actions" onClick={(e) => e.stopPropagation()}>
                     {due(r) > 0.005 && r.status !== 'returned' && <button className="row-btn primary" onClick={() => setDrawer({ type: 'pay', doc: r })}>{purchase ? 'Pay' : 'Receive'}</button>}
-                    {r.status !== 'returned' && <button className="row-btn" onClick={() => setDrawer({ type: 'return', doc: r })}><Icon name="undo" size={13} /> Return</button>}
+                    {r.status !== 'returned' && !r.reverseCharge && <button className="row-btn" onClick={() => setDrawer({ type: 'return', doc: r })}><Icon name="undo" size={13} /> Return</button>}
                   </td>
                 </tr>))}
               {!table.visible.length && <tr><td colSpan={purchase ? 8 : 9} className="table-empty">Nothing matches your search or filters.</td></tr>}
@@ -197,6 +197,7 @@ function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
   const [billNo, setBillNo] = useState('');
   const [date, setDate] = useState(today());
   const [lines, setLines] = useState([blank()]);
+  const [rcm, setRcm] = useState(false);              // purchases: the vendor charged no GST, the buyer assesses and pays it
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const itemOf = (id) => items.find((x) => String(x.id) === String(id));
@@ -214,7 +215,7 @@ function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
     e.preventDefault(); setErr(''); setBusy(true);
     try {
       const body = purchase
-        ? { partyId: Number(partyId), supplierBillNo: billNo, date, lines: lines.map((l) => ({ itemId: Number(l.itemId), qty: Number(l.qty), rate: Number(l.rate), gstPct: Number(l.gstPct) })) }
+        ? { partyId: Number(partyId), supplierBillNo: billNo, date, ...(rcm ? { reverseCharge: true } : {}), lines: lines.map((l) => ({ itemId: Number(l.itemId), qty: Number(l.qty), rate: Number(l.rate), gstPct: Number(l.gstPct) })) }
         : { partyId: Number(partyId), date, lines: lines.map((l) => ({ itemId: Number(l.itemId), qty: Number(l.qty) })) };
       onDone(await api('POST', `/${K.base}`, body));
     } catch (e2) { setErr(e2.message); } finally { setBusy(false); }
@@ -222,7 +223,7 @@ function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
 
   return (
     <Drawer open title={K.newLabel} subtitle={purchase ? 'Stock and input GST are updated when you save' : 'GST, stock and the ledger are updated when you save'} onClose={onClose}
-      footer={<><span className="total">Total <b>{inr(taxable + tax)}</b></span><button type="button" onClick={onClose}>Cancel</button><button className="primary" form="doc-form" disabled={busy}>{busy ? 'Saving…' : purchase ? 'Save bill' : 'Create invoice'}</button></>}>
+      footer={<><span className="total">{rcm ? 'Payable to vendor' : 'Total'} <b>{inr(rcm ? taxable : taxable + tax)}</b></span><button type="button" onClick={onClose}>Cancel</button><button className="primary" form="doc-form" disabled={busy}>{busy ? 'Saving…' : purchase ? 'Save bill' : 'Create invoice'}</button></>}>
       <form id="doc-form" onSubmit={submit} style={{ display: 'contents' }}>
         <Notice>{err}</Notice>
         {!parties.length && <Notice tone="info">You have no {K.partyLabel.toLowerCase()}s yet. <a href="#" onClick={(e) => { e.preventDefault(); go?.('parties'); }}>Add one in Parties</a> first.</Notice>}
@@ -231,6 +232,8 @@ function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
           {purchase && <Field label="Vendor's bill number"><input value={billNo} onChange={(e) => setBillNo(e.target.value)} required /></Field>}
           <Field label={`${K.docLabel} date`} className={purchase ? '' : 'span2'}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
         </div>
+        {purchase && <label className="field" style={{ marginTop: 6 }}><span className="field-label"><input type="checkbox" checked={rcm} onChange={(e) => setRcm(e.target.checked)} /> Reverse charge: the vendor has not charged GST, I pay it</span>
+          {rcm && <small className="muted" style={{ display: 'block', marginTop: 4 }}>For supplies where the law makes the buyer liable, such as goods transport by road, legal services and purchases from unregistered vendors of notified goods. You pay this GST in cash with your GSTR-3B and claim it back as input credit.</small>}</label>}
         <div className="form-section">Items</div>
         <div className="lines">
           {lines.map((l, i) => (
@@ -248,7 +251,7 @@ function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
           ))}
         </div>
         <div><button type="button" onClick={() => setLines([...lines, blank()])}><Icon name="plus" size={14} /> Add item</button></div>
-        <div className="totals"><div><span>Taxable value</span><span>{inr(taxable)}</span></div><div><span>GST{purchase ? '' : ' (estimate: split into CGST/SGST or IGST on save)'}</span><span>{inr(tax)}</span></div><div className="grand"><span>Total</span><span>{inr(taxable + tax)}</span></div></div>
+        <div className="totals"><div><span>Taxable value</span><span>{inr(taxable)}</span></div><div><span>{rcm ? 'GST you assess and pay yourself' : `GST${purchase ? '' : ' (estimate: split into CGST/SGST or IGST on save)'}`}</span><span>{inr(tax)}</span></div><div className="grand"><span>{rcm ? 'Payable to the vendor' : 'Total'}</span><span>{inr(rcm ? taxable : taxable + tax)}</span></div></div>
       </form>
     </Drawer>
   );

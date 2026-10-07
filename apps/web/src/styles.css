@@ -357,3 +357,5 @@ td.actions { white-space: nowrap; text-align: right; } td.actions button { margi
 
 .topbar-notice { display: inline-flex; align-items: center; gap: 8px; min-width: 0; } .topbar-notice .row-btn { white-space: nowrap; }
 @media (max-width: 700px) { .topbar-notice .pill { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; } .topbar-notice .row-btn { display: none; } }
+
+.rcm-tag { margin-left: 8px; padding: 1px 7px; border-radius: 99px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; background: var(--amber-soft); color: var(--amber); border: 1px solid #f6dca6; vertical-align: 1px; }

@@ -176,9 +176,11 @@ export function buildGstr3b({ company, period, invoices, invLines, notes, noteLi
   const eligible = { igst: 0, cgst: 0, sgst: 0 }, ineligible = { igst: 0, cgst: 0, sgst: 0 }, reversed = { igst: 0, cgst: 0, sgst: 0 };
   const taxOf = (d) => ({ igst: P(d.igst), cgst: P(d.cgst), sgst: P(d.sgst) });
   const sum = (a, b, s = 1) => { a.igst += s * b.igst; a.cgst += s * b.cgst; a.sgst += s * b.sgst; };
-  for (const b of purchases) sum(b.party_gstin ? eligible : ineligible, taxOf(b));
+  // Bills under reverse charge (the buyer assesses the tax): 3.1(d) liability, claimed back as 4(A)(3) credit, and the tax is paid in cash.
+  const rcm = { taxable: 0, igst: 0, cgst: 0, sgst: 0 };
+  for (const b of purchases) { if (b.reverse_charge) { rcm.taxable += P(b.taxable); sum(rcm, taxOf(b)); } else sum(b.party_gstin ? eligible : ineligible, taxOf(b)); }
   for (const d of debitNotes) sum(d.party_gstin ? reversed : ineligible, taxOf(d), d.party_gstin ? 1 : -1);
-  const ineligibleBills = purchases.filter((b) => !b.party_gstin && P(b.cgst) + P(b.sgst) + P(b.igst) > 0).map((b) => b.number);
+  const ineligibleBills = purchases.filter((b) => !b.party_gstin && !b.reverse_charge && P(b.cgst) + P(b.sgst) + P(b.igst) > 0).map((b) => b.number);
   if (ineligibleBills.length)
     warnings.push(`ITC not claimed on ${ineligibleBills.join(', ')}: vendor has no GSTIN, so GST charged is not eligible credit.`);
 
@@ -187,13 +189,16 @@ export function buildGstr3b({ company, period, invoices, invLines, notes, noteLi
   const negative = Object.values(out).some((v) => v < 0) || Object.values(itc).some((v) => v < 0);
   if (negative) warnings.push('A tax head is negative for this period (returns exceed supplies, or reversals exceed ITC). Review before filing; set-off treats negatives as nil.');
   const clamp = (o) => ({ igst: Math.max(o.igst, 0), cgst: Math.max(o.cgst, 0), sgst: Math.max(o.sgst, 0) });
-  const so = setOff(clamp(out), clamp(itc));
+  const itcAll = { igst: itc.igst + rcm.igst, cgst: itc.cgst + rcm.cgst, sgst: itc.sgst + rcm.sgst };       // including the credit on reverse-charge tax
+  const so = setOff(clamp(out), clamp(itcAll));
+  const cashAll = { igst: so.cash.igst + rcm.igst, cgst: so.cash.cgst + rcm.cgst, sgst: so.cash.sgst + rcm.sgst };       // reverse-charge tax cannot be paid from credit
+  const outAll = { igst: out.igst + rcm.igst, cgst: out.cgst + rcm.cgst, sgst: out.sgst + rcm.sgst };
 
   // Reconcile against the ledger (journal postings dated in the period).
   const led = ledger ?? { output: { igst: 0, cgst: 0, sgst: 0 }, input: { igst: 0, cgst: 0, sgst: 0 } };
-  const inRep = { igst: itc.igst + ineligible.igst, cgst: itc.cgst + ineligible.cgst, sgst: itc.sgst + ineligible.sgst };
+  const inRep = { igst: itcAll.igst + ineligible.igst, cgst: itcAll.cgst + ineligible.cgst, sgst: itcAll.sgst + ineligible.sgst };
   const diff = (a, b) => ({ igst: R(a.igst - b.igst), cgst: R(a.cgst - b.cgst), sgst: R(a.sgst - b.sgst) });
-  const od = diff(led.output, out), id = diff(led.input, inRep);
+  const od = diff(led.output, outAll), id = diff(led.input, inRep);
   const ok = [...Object.values(od), ...Object.values(id)].every((v) => Math.abs(v) < 0.025);
   if (!ok) warnings.push('GST in the ledger does not match the documents for this period. Check manual journals posted to GST accounts.');
 
@@ -204,14 +209,15 @@ export function buildGstr3b({ company, period, invoices, invLines, notes, noteLi
     outward: {
       taxable: rup(rated),                                  // 3.1(a)
       nil_rated: { taxable: R(nil) },                       // 3.1(c)
+      inward_reverse_charge: rup(rcm),                      // 3.1(d)
       unregistered_interstate: [...unreg.values()].sort((a, b) => a.pos.localeCompare(b.pos)).map(rup), // 3.2
     },
-    itc: { available: taxRup(eligible), reversed: taxRup(reversed), ineligible: taxRup(ineligible), net: taxRup(itc) },
+    itc: { available: taxRup(eligible), reversed: taxRup(reversed), ineligible: taxRup(ineligible), reverse_charge: taxRup(rcm), net: taxRup(itcAll) },
     liability: {
-      output: taxRup(out), itc_used: nested(so.used),
-      cash_payable: taxRup(so.cash), cash_total: R(so.cash.igst + so.cash.cgst + so.cash.sgst),
+      output: taxRup(outAll), reverse_charge: taxRup(rcm), itc_used: nested(so.used),
+      cash_payable: taxRup(cashAll), cash_total: R(cashAll.igst + cashAll.cgst + cashAll.sgst),
       itc_carry_forward: taxRup(so.carry_forward),
     },
-    reconciliation: { ok, output: { ledger: taxRup(led.output), report: taxRup(out), diff: od }, input: { ledger: taxRup(led.input), report: taxRup(inRep), diff: id } },
+    reconciliation: { ok, output: { ledger: taxRup(led.output), report: taxRup(outAll), diff: od }, input: { ledger: taxRup(led.input), report: taxRup(inRep), diff: id } },
   };
 }

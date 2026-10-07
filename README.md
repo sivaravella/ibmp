@@ -248,13 +248,18 @@ For the people who run IBMP, at **`/platform`** (its own sign-in, separate from 
 - **List**: search, status chips, an Overdue chip, period (this month, last month, quarter, financial year, custom), customer, sort, due date with days overdue, CSV export; a row opens the invoice. Purchases keep their drawer.
 - **Data**: migration 020 (due date, reference, notes, delivery address, per-line discount and tax, bank/UPI/terms/signatory/credit days); header totals and ledger figures are unchanged.
 - **Also on the invoice (v1.14):** company logo, mode / terms of payment, other references, dispatched through and destination, the field set of Tally's free invoice generator. Also built: a discount on the whole invoice (v1.16) and additional charges such as freight (v1.17, taxed at the highest rate on the invoice).
-- **Not done:** reverse charge (printed as "No").
+- **Not done:** reverse charge on sales (printed as "No"; purchases are covered in v1.18).
 
 ## v1.13 - Sign in with Google and LinkedIn
 - **Flow:** the button goes to `/v1/auth/social/<provider>/start`, which redirects to the provider with a signed, 10-minute `state` bound to an HttpOnly cookie (so a callback that did not start in the same browser is refused). The callback (`/v1/auth/social/<provider>/callback`) exchanges the code on the server, reads the OpenID profile, and requires a **verified email**. The result reaches the browser in the URL fragment (`#social=`), which is never sent to a server or logged.
 - **Accounts:** a person already linked, or with the same verified email, signs in to that account (the provider is then linked and the password, if any, keeps working). A new person is asked for company details only (GSTIN or state, sector, CA/CS/CMA details) and starts the 14-day trial; they have no password and always use the provider. Sign-up and state tokens are single-purpose and cannot be used as sessions.
 - **Set up:** create an OAuth client with each provider and register the redirect URIs `https://<host>/v1/auth/social/google/callback` and `.../linkedin/callback`. Google: Web application client, scopes openid, email, profile. LinkedIn: add the product "Sign In with LinkedIn using OpenID Connect". Set `IBMP_PUBLIC_URL` and the four `IBMP_GOOGLE_*` / `IBMP_LINKEDIN_*` variables (see `.env.example`; passed through `docker-compose.yml`).
 - **Tested** with a stand-in for the providers (6 tests: state and cookie checks, unverified email, linking, sign-up, token separation). **Not verified live** with real Google or LinkedIn credentials, which need your own client ids. Not done: unlinking a provider, and signing in to the platform console this way.
+
+## v1.18 - Reverse charge on purchases
+- **What it covers:** inward supplies where the buyer, not the vendor, pays the GST (section 9(3) and 9(4): for example goods transport by road, legal services, some purchases from unregistered vendors). Tick **Reverse charge** on the bill. The vendor is owed the taxable value only; the tax is posted as output liability and as input credit, so the ledger balances.
+- **GSTR-3B:** the bill goes in 3.1(d), the credit in 4(A)(3), and the tax is paid in cash. The credit it creates is set against ordinary output tax in the same return. The portal file carries `isup_rev` and ISRC. The ledger reconciliation includes it.
+- **Not covered:** reverse charge on **sales** (the supplier's side), returns against a reverse-charge bill (blocked on the screen; use a journal), time of supply rules, and ITC restrictions. Which of your purchases are under reverse charge is for you and your accountant to decide; IBMP does not look at the HSN or SAC.
 
 ## Next
 A real GSP adapter. **Blocked on the provider:** Masters India's public docs lack response formats, the OTP/EVC session flow and the e-invoice and e-way bill endpoints, and Tera publishes none. It needs the full API documentation and sandbox credentials (see `apps/api/src/gsp.js` for the interface to implement).

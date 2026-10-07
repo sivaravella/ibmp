@@ -55,6 +55,7 @@ export function returnRoutes(pool) {
     const doc = (await q.query(`SELECT * FROM ${K.doc} WHERE id=$1 AND company_id=$2`,
       [req.params.id, req.user.companyId])).rows[0];
     if (!doc) throw httpError(404, 'Not found');
+    if (doc.reverse_charge) throw httpError(400, 'This bill is under reverse charge. A return changes the tax you assessed, so record it with a manual journal after checking with your accountant.');
     return doc;
   }
 

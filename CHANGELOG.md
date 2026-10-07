@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.18.0
+- Reverse charge on purchases: tick "Reverse charge" on a vendor bill when the vendor has not charged GST and the law makes you pay it. The vendor is owed only the taxable value; the tax is booked as your liability and as your input credit. GSTR-3B shows it in 3.1(d) and 4(A)(3) (and in the portal file as `isup_rev` and ISRC), and it is payable in cash, never from credit, though the credit it creates can be set against ordinary output tax. Such bills carry an RCM tag and cannot be returned from the screen (a return changes the tax you assessed: use a manual journal). Migration 025.
+
 ## 1.17.0
 - Additional charges (freight, packing, insurance...): add up to five on the create screen. They are part of the value of the supply, so GST is charged at the highest rate on the invoice and they are not discounted. They print as lines (SAC 9965 unless you give one through the API), appear in the tax summary, GSTR-1 and the ledger, and do not touch stock.
 

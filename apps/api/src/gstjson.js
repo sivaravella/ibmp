@@ -93,7 +93,6 @@ export function buildGstr3bJson(g3, { gstin, period }) {
   const z = { iamt: 0, camt: 0, samt: 0, csamt: 0 };
   const tax = (x) => ({ iamt: n2(x.igst), camt: n2(x.cgst), samt: n2(x.sgst), csamt: 0 });
   const itc = (ty, x) => ({ ty, ...(x ? tax(x) : z) });
-  const types = (target, ty) => ['IMPG', 'IMPS', 'ISRC', 'ISD', 'OTH'].map((t) => (t === ty ? itc(t, target) : itc(t)));
 
   const payload = {
     gstin, ret_period: fp(period),
@@ -101,7 +100,7 @@ export function buildGstr3bJson(g3, { gstin, period }) {
       osup_det: { txval: n2(o.taxable.taxable), iamt: n2(o.taxable.igst), camt: n2(o.taxable.cgst), samt: n2(o.taxable.sgst), csamt: 0 },
       osup_zero: { txval: 0, iamt: 0, csamt: 0 },
       osup_nil_exmp: { txval: n2(o.nil_rated.taxable) },
-      isup_rev: { txval: 0, ...z },
+      isup_rev: { txval: n2(o.inward_reverse_charge.taxable), iamt: n2(o.inward_reverse_charge.igst), camt: n2(o.inward_reverse_charge.cgst), samt: n2(o.inward_reverse_charge.sgst), csamt: 0 },
       osup_nongst: { txval: 0 },
     },
     inter_sup: {
@@ -109,7 +108,7 @@ export function buildGstr3bJson(g3, { gstin, period }) {
       comp_details: [], uin_details: [],
     },
     itc_elg: {
-      itc_avl: types(i.available, 'OTH'),
+      itc_avl: ['IMPG', 'IMPS', 'ISRC', 'ISD', 'OTH'].map((t) => (t === 'OTH' ? itc(t, i.available) : t === 'ISRC' ? itc(t, i.reverse_charge) : itc(t))),
       itc_rev: [itc('RUL'), itc('OTH', i.reversed)],
       itc_net: tax(i.net),
       itc_inelg: [itc('RUL'), itc('OTH', i.ineligible)],
@@ -118,7 +117,7 @@ export function buildGstr3bJson(g3, { gstin, period }) {
     intr_ltfee: { intr_details: { ...z } },
   };
   warnings.push('Table 5 (exempt, nil-rated and non-GST inward supplies) and interest or late fee are not populated.');
-  warnings.push('ITC is reported under "all other ITC" only: imports, reverse charge and ISD credit are not tracked.');
+  warnings.push('ITC is reported under "all other ITC" and reverse charge (4A(3)) only: imports and ISD credit are not tracked. Reverse-charge tax is shown in 3.1(d) and must be paid in cash.');
   return { payload, warnings };
 }
 

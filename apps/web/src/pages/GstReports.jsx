@@ -147,6 +147,7 @@ function Gstr3b({ d }) {
         <table><thead><tr><th>Nature of supply</th><TaxHead /></tr></thead><tbody>
           <tr><td>(a) Taxable (other than zero/nil rated)</td><Tax r={o.taxable} /></tr>
           <tr><td>(c) Nil-rated / exempt</td><td>{inr(o.nilRated.taxable)}</td><td /><td /><td /></tr>
+          <tr><td>(d) Inward supplies liable to reverse charge</td><Tax r={o.inwardReverseCharge} /></tr>
         </tbody></table>
       </Section>
 
@@ -160,6 +161,7 @@ function Gstr3b({ d }) {
       <Section title="4 — Input tax credit" hint="Only bills from GST-registered vendors qualify.">
         <table><thead><tr><th /><th>IGST</th><th>CGST</th><th>SGST</th></tr></thead><tbody>
           <Heads r={itc.available} label="(A) ITC available" />
+          <Heads r={itc.reverseCharge} label="(A)(3) Reverse-charge credit (included in net)" />
           <Heads r={itc.reversed} label="(B) ITC reversed (debit notes)" />
           <Heads r={itc.net} label="(C) Net ITC (A − B)" />
           <Heads r={itc.ineligible} label="(D) Ineligible (unregistered vendors)" />
@@ -168,11 +170,12 @@ function Gstr3b({ d }) {
 
       <Section title="6 — Tax payable" hint="ITC set off in the order set by section 49: IGST credit first, CGST and SGST credits never against each other's head.">
         <table><thead><tr><th /><th>IGST</th><th>CGST</th><th>SGST</th></tr></thead><tbody>
-          <Heads r={l.output} label="Output tax" />
+          <Heads r={l.output} label="Output tax (including reverse charge)" />
           <Heads r={{ igst: l.itcUsed.igst.igst + l.itcUsed.cgst.igst + l.itcUsed.sgst.igst, cgst: l.itcUsed.igst.cgst + l.itcUsed.cgst.cgst, sgst: l.itcUsed.igst.sgst + l.itcUsed.sgst.sgst }} label="Paid through ITC" />
           <tr><td><strong>Payable in cash</strong></td><td><strong>{inr(l.cashPayable.igst)}</strong></td><td><strong>{inr(l.cashPayable.cgst)}</strong></td><td><strong>{inr(l.cashPayable.sgst)}</strong></td></tr>
           <Heads r={l.itcCarryForward} label="ITC carried forward" />
         </tbody></table>
+        {heads(l.reverseCharge) > 0 && <p className="muted">Of the cash payable, {inr(heads(l.reverseCharge))} is reverse-charge tax, which cannot be paid from input credit.</p>}
         <p><strong>Total cash payable: {inr(l.cashTotal)}</strong></p>
       </Section>
 
