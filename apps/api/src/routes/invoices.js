@@ -17,6 +17,7 @@ const invoiceSchema = z.object({
   reference: z.string().trim().max(60).optional(),
   notes: z.string().trim().max(500).optional(),
   shipTo: z.string().trim().max(300).optional(),
+  charges: z.array(z.object({ label: z.string().trim().min(1).max(60), amount: z.number().positive().max(1e9), hsn: z.string().regex(/^\d{4,8}$/, 'The SAC must be 4 to 8 digits').optional() })).max(5).optional(),
   discountPct: z.number().min(0).max(100).optional(),       // a discount on the whole invoice, shared over the lines before tax
   dispatchedThrough: z.string().trim().max(80).optional(),
   destination: z.string().trim().max(80).optional(),
@@ -113,6 +114,8 @@ export function invoiceRoutes(pool) {
         if (Number(it.stock) < l.qty) throw httpError(400, `Insufficient stock for ${it.name}`);
         lines.push({ item: it, qty: l.qty, rate: l.rate ?? Number(it.rate), gst_pct: Number(it.gst_pct), discount_pct: l.discountPct ?? 0, description: l.description ?? it.name });
       }
+      // Freight, packing and the like: extra lines without an item, taxed at the highest rate of the goods (see computeInvoice).
+      for (const c of b.charges ?? []) lines.push({ item: null, charge: true, hsn: c.hsn ?? '9965', qty: 1, rate: c.amount, gst_pct: 0, discount_pct: 0, description: c.label });
       if (b.dueDate && b.dueDate < b.date) throw httpError(400, 'The due date cannot be before the invoice date.');
       const pos = b.placeOfSupply ?? party.state_code;       // the state the supply is made in decides CGST+SGST or IGST
       const dueDate = b.dueDate === undefined ? (Number(company.payment_days) > 0 ? new Date(Date.parse(b.date) + Number(company.payment_days) * 86400000).toISOString().slice(0, 10) : null) : b.dueDate;
@@ -140,8 +143,8 @@ export function invoiceRoutes(pool) {
       for (const l of calc.lines) {
         await client.query(
           `INSERT INTO invoice_lines (invoice_id,item_id,description,hsn,qty,rate,gst_pct,taxable,discount_pct,discount,cgst,sgst,igst,unit) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-          [inv.id, l.item.id, l.description, l.item.hsn, l.qty, l.rate, l.gst_pct, l.taxable, l.discount_pct, l.discount, l.cgst, l.sgst, l.igst, l.item.unit]);
-        await client.query('UPDATE items SET stock = stock - $1 WHERE id=$2', [l.qty, l.item.id]);
+          [inv.id, l.item?.id ?? null, l.description, l.item ? l.item.hsn : l.hsn, l.qty, l.rate, l.gst_pct, l.taxable, l.discount_pct, l.discount, l.cgst, l.sgst, l.igst, l.item ? l.item.unit : 'OTH']);
+        if (l.item) await client.query('UPDATE items SET stock = stock - $1 WHERE id=$2', [l.qty, l.item.id]);
       }
       await post(client, {
         companyId: cid, date: b.date, sourceType: 'invoice', sourceId: inv.id, narration: `Sales invoice ${number}`,

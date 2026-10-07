@@ -66,7 +66,7 @@ export function buildEinvoice({ type, company, party, doc, lines, against, units
     const valueOnly = l.qty === null || l.qty === undefined;
     if (valueOnly) warnings.push(`Line ${i + 1} (${l.description}) is a value-only adjustment: it is sent with quantity 1.`);
     const qty = valueOnly ? 1 : Number(l.qty);
-    const u = uqcFor(valueOnly ? 'NOS' : units.get(l.item_id));
+    const u = uqcFor(valueOnly || l.item_id == null ? 'NOS' : units.get(l.item_id));      // a charge (freight and so on) has no item
     if (!u.exact) warnings.push(`Unit "${units.get(l.item_id)}" for ${l.description} is not a GST unit code and was sent as OTH.`);
     const sac = hsn.startsWith('99');
     return {

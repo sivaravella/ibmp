@@ -25,6 +25,7 @@ export default function InvoiceNew({ go, params }) {
   const [f, setF] = useState({ partyId: '', date: today(), dueDate: '', reference: '', notes: '', shipDiff: false, shipTo: '', pos: '', dispatchedThrough: '', destination: '', paymentTerms: '', otherRefs: '', discountPct: '' });
   const [dueTouched, setDueTouched] = useState(false);
   const [lines, setLines] = useState([blankLine()]);
+  const [charges, setCharges] = useState([]);          // additional charges: [{ label, amount }]
   const [pane, setPane] = useState('form');
   const [settings, setSettings] = useState(false);
   const [newParty, setNewParty] = useState(false);
@@ -44,7 +45,8 @@ export default function InvoiceNew({ go, params }) {
     api('GET', `/invoices/${params.from}/document`).then((d) => {
       const i = d.invoice;
       setF((x) => ({ ...x, partyId: String(i.partyId), reference: i.reference ?? '', notes: i.notes ?? '', dispatchedThrough: i.dispatchedThrough ?? '', destination: i.destination ?? '', paymentTerms: i.paymentTerms ?? '', otherRefs: i.otherRefs ?? '', discountPct: Number(i.discountPct) > 0 ? String(Number(i.discountPct)) : '', shipDiff: !!i.shipTo, shipTo: i.shipTo ?? '', pos: i.placeOfSupply !== d.party.stateCode ? i.placeOfSupply : '' }));
-      setLines(i.lines.map((l) => ({ itemId: String(l.itemId), description: l.description, qty: String(Number(l.qty)), rate: String(Number(l.rate)), discountPct: Number(l.discountPct) ? String(Number(l.discountPct)) : '' })));
+      setCharges(i.lines.filter((l) => l.itemId == null).map((l) => ({ label: l.description, amount: String(Number(l.taxable)) })));
+      setLines(i.lines.filter((l) => l.itemId != null).map((l) => ({ itemId: String(l.itemId), description: l.description, qty: String(Number(l.qty)), rate: String(Number(l.rate)), discountPct: Number(l.discountPct) ? String(Number(l.discountPct)) : '' })));
     }).catch((e) => setErr(e.message));
   }, [params?.from]);
 
@@ -63,7 +65,10 @@ export default function InvoiceNew({ go, params }) {
   const pickItem = (i, id) => { const it = itemOf(id); setLine(i, { itemId: id, description: it?.name ?? '', rate: it ? String(Number(it.rate)) : '' }); };
 
   const calcInput = lines.map((l) => { const it = itemOf(l.itemId); return { itemId: l.itemId, description: l.description || it?.name || '', hsn: it?.hsn ?? '', unit: it?.unit ?? 'Nos', qty: N(l.qty), rate: l.rate === '' ? N(it?.rate) : N(l.rate), gstPct: N(it?.gstPct), discountPct: N(l.discountPct), stock: it ? N(it.stock) : null }; });
-  const calc = useMemo(() => computeDraft(calcInput, profile?.stateCode, posCode, N(f.discountPct)), [JSON.stringify(calcInput), profile?.stateCode, posCode, f.discountPct]);
+  // Additional charges follow the highest GST rate on the invoice; they are never discounted.
+  const chargeInput = charges.filter((c) => N(c.amount) > 0).map((c) => ({ charge: true, itemId: '', description: c.label || 'Additional charge', hsn: '9965', unit: 'OTH', qty: 1, rate: N(c.amount), gstPct: 0, stock: null }));
+  const topRate = Math.max(0, ...calcInput.map((l) => l.gstPct));
+  const calc = useMemo(() => computeDraft([...calcInput, ...chargeInput], profile?.stateCode, posCode, N(f.discountPct)), [JSON.stringify(calcInput), JSON.stringify(chargeInput), profile?.stateCode, posCode, f.discountPct]);
 
   const doc = useMemo(() => profile && ({
     invoice: {
@@ -84,12 +89,13 @@ export default function InvoiceNew({ go, params }) {
   const missing = profile ? [!profile.addr1 && 'address', !profile.loc && 'town', !profile.pin && 'PIN code', !profile.gstin && 'GSTIN'].filter(Boolean) : [];
   const ready = !!f.partyId && lines.every((l) => l.itemId && N(l.qty) > 0);
 
-  function reset(msg) { setF({ partyId: '', date: today(), dueDate: '', reference: '', notes: '', shipDiff: false, shipTo: '', pos: '', dispatchedThrough: '', destination: '', paymentTerms: '', otherRefs: '', discountPct: '' }); setDueTouched(false); setLines([blankLine()]); setFlash(msg); setPane('form'); window.scrollTo(0, 0); }
+  function reset(msg) { setF({ partyId: '', date: today(), dueDate: '', reference: '', notes: '', shipDiff: false, shipTo: '', pos: '', dispatchedThrough: '', destination: '', paymentTerms: '', otherRefs: '', discountPct: '' }); setDueTouched(false); setLines([blankLine()]); setCharges([]); setFlash(msg); setPane('form'); window.scrollTo(0, 0); }
   async function save(another) {
     setErr(''); setBusy(true);
     try {
       const inv = await api('POST', '/invoices', {
         partyId: Number(f.partyId), date: f.date, dueDate: f.dueDate || null, reference: f.reference || undefined, notes: f.notes || undefined, dispatchedThrough: f.dispatchedThrough || undefined, destination: f.destination || undefined, paymentTerms: f.paymentTerms || undefined, otherRefs: f.otherRefs || undefined, ...(N(f.discountPct) > 0 ? { discountPct: N(f.discountPct) } : {}), shipTo: f.shipDiff && f.shipTo ? f.shipTo : undefined, placeOfSupply: f.pos || undefined,
+        ...(chargeInput.length ? { charges: chargeInput.map((c) => ({ label: c.description, amount: c.rate })) } : {}),
         lines: lines.map((l, i) => ({ itemId: Number(l.itemId), qty: N(l.qty), rate: calcInput[i].rate, ...(N(l.discountPct) > 0 ? { discountPct: N(l.discountPct) } : {}), ...(l.description && l.description !== itemOf(l.itemId)?.name ? { description: l.description } : {}) })),
       });
       if (another) { reset(`Invoice ${inv.number} created.`); setBusy(false); } else go('invoice', { id: inv.id, created: true });
@@ -153,8 +159,19 @@ export default function InvoiceNew({ go, params }) {
                 );
               })}
             </div>
+            {charges.length > 0 && <div className="charge-rows">
+              <div className="form-section" style={{ margin: '14px 0 6px' }}>Additional charges</div>
+              {charges.map((c, i) => (
+                <div className="row" key={i} style={{ marginBottom: 6, flexWrap: 'nowrap' }}>
+                  <input list="charge-names" value={c.label} onChange={(e) => setCharges(charges.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Freight, packing, insurance..." maxLength={60} aria-label="Charge" />
+                  <input type="number" min="0" step="0.01" value={c.amount} onChange={(e) => setCharges(charges.map((x, j) => (j === i ? { ...x, amount: e.target.value } : x)))} placeholder="Amount (₹)" style={{ width: 130 }} aria-label="Charge amount" />
+                  <button type="button" className="icon-btn" onClick={() => setCharges(charges.filter((_, j) => j !== i))} aria-label="Remove charge"><Icon name="x" size={15} /></button>
+                </div>))}
+              <datalist id="charge-names"><option value="Freight" /><option value="Packing" /><option value="Insurance" /><option value="Loading and unloading" /><option value="Installation" /></datalist>
+              <p className="muted" style={{ fontSize: 12, margin: '4px 0 0' }}>GST on these is charged at {topRate}%, the highest rate on this invoice, as the law treats them as part of the supply. They are not discounted.</p>
+            </div>}
             <div className="row" style={{ marginTop: 10, marginBottom: 0, justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <button type="button" onClick={() => setLines([...lines, blankLine()])}><Icon name="plus" size={14} /> Add another item</button>
+              <span className="row" style={{ marginBottom: 0 }}><button type="button" onClick={() => setLines([...lines, blankLine()])}><Icon name="plus" size={14} /> Add another item</button><button type="button" onClick={() => setCharges([...charges, { label: '', amount: '' }])}><Icon name="plus" size={14} /> Add a charge</button></span>
               <Field label="Discount on the whole invoice (%)" hint="Shared over every item before GST"><input type="number" min="0" max="100" step="0.01" value={f.discountPct} onChange={set('discountPct')} style={{ width: 150 }} /></Field>
             </div>
           </Panel>

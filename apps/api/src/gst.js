@@ -29,19 +29,22 @@ export function splitLineTax(taxes) {
 export function computeInvoice(lines, sellerState, placeOfSupply, totalDiscountPct = 0) {
   const intra = sellerState === placeOfSupply;
   let taxable = 0, tax = 0, discount = 0;
+  // Additional charges (freight, packing...) are part of the value of the supply and follow the rate of the goods: the highest rate on the invoice.
+  const topRate = Math.max(0, ...lines.filter((l) => !l.charge).map((l) => Number(l.gst_pct)));
   const parts = lines.map((l) => {
+    const pct = l.charge ? topRate : Number(l.gst_pct);
     const gross = Math.round(Number(l.qty) * paise(l.rate));
     // The line's own discount first, then the invoice-wide discount on what is left; both come off before tax.
-    const own = Math.min(gross, Math.round((gross * Number(l.discount_pct ?? 0)) / 100));
-    const disc = Math.min(gross, own + Math.round(((gross - own) * Number(totalDiscountPct || 0)) / 100));
+    const own = l.charge ? 0 : Math.min(gross, Math.round((gross * Number(l.discount_pct ?? 0)) / 100));
+    const disc = l.charge ? 0 : Math.min(gross, own + Math.round(((gross - own) * Number(totalDiscountPct || 0)) / 100));
     const t = gross - disc;
-    const lineTax = Math.round((t * Number(l.gst_pct)) / 100);
+    const lineTax = Math.round((t * pct) / 100);
     taxable += t; tax += lineTax; discount += disc;
-    return { l, t, disc, lineTax, gross };
+    return { l, t, disc, lineTax, gross, pct };
   });
   const split = splitLineTax(parts.map((p) => p.lineTax));
   const out = parts.map((p, i) => ({
-    ...p.l, taxable: rupees(p.t), discount: rupees(p.disc),
+    ...p.l, gst_pct: p.pct, taxable: rupees(p.t), discount: rupees(p.disc),
     ...(Number(totalDiscountPct) > 0 ? { discount_pct: p.gross > 0 ? Math.round((p.disc / p.gross) * 100000) / 1000 : 0 } : {}),     // what the buyer sees on the line: both discounts together
     cgst: intra ? rupees(split[i].cgst) : 0, sgst: intra ? rupees(split[i].sgst) : 0, igst: intra ? 0 : rupees(p.lineTax),
   }));

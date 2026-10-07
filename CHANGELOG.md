@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.17.0
+- Additional charges (freight, packing, insurance...): add up to five on the create screen. They are part of the value of the supply, so GST is charged at the highest rate on the invoice and they are not discounted. They print as lines (SAC 9965 unless you give one through the API), appear in the tax summary, GSTR-1 and the ledger, and do not touch stock.
+
 ## 1.16.0
 - Discount on the whole invoice: one percentage on the create screen, taken off every item (after its own discount) before GST, so each item is still taxed at its own rate; the printed invoice shows each line's combined discount and "Total discount (incl. 10% on the invoice)". Migration 024.
 

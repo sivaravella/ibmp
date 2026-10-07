@@ -173,8 +173,9 @@ test('the live preview computes exactly what the server saves (random invoices)'
     }));
     const pos = rnd() < 0.5 ? '29' : '27';
     const whole = rnd() < 0.4 ? Math.round(rnd() * 2500) / 100 : 0;      // a discount on the whole invoice
-    const s = computeInvoice(lines, '29', pos, whole);
-    const d = computeDraft(lines.map((l) => ({ qty: l.qty, rate: l.rate, gstPct: l.gst_pct, discountPct: l.discount_pct })), '29', pos, whole);
+    const extras = rnd() < 0.4 ? [{ label: 'Freight', amount: Math.round(rnd() * 200000) / 100 }] : [];      // additional charges
+    const s = computeInvoice([...lines, ...extras.map((c) => ({ charge: true, qty: 1, rate: c.amount, gst_pct: 0 }))], '29', pos, whole);
+    const d = computeDraft([...lines.map((l) => ({ qty: l.qty, rate: l.rate, gstPct: l.gst_pct, discountPct: l.discount_pct })), ...extras.map((c) => ({ charge: true, qty: 1, rate: c.amount }))], '29', pos, whole);
     assert.deepEqual([d.taxable, d.discount, d.cgst, d.sgst, d.igst, d.total], [s.taxable, s.discount, s.cgst, s.sgst, s.igst, s.total], `invoice ${n}`);
     assert.deepEqual(d.lines.map((l) => [l.taxable, l.discount, l.cgst, l.sgst, l.igst]), s.lines.map((l) => [l.taxable, l.discount, l.cgst, l.sgst, l.igst]), `lines of invoice ${n}`);
     if (whole > 0) assert.deepEqual(d.lines.map((l) => l.discountPct), s.lines.map((l) => l.discount_pct), `shown discount of invoice ${n}`);
@@ -249,4 +250,22 @@ test('a discount on the whole invoice comes off every line before its own tax ra
   assert.equal(Number(d.invoice.discountPct), 10);
   assert.deepEqual([Number(d.invoice.taxable), Number(d.invoice.discount)], [1800, 200]);                       // 1000 + 2 x 500 = 2000 less 10%
   assert.equal((await call('POST', '/invoices', { partyId: local.id, date: '2026-10-07', discountPct: 101, lines: [{ itemId: a.id, qty: 1 }] }, t)).status, 400);
+});
+
+test('additional charges are taxed at the highest rate on the invoice and are not discounted', async () => {
+  const c = computeInvoice([{ qty: 1, rate: 1000, gst_pct: 18 }, { qty: 1, rate: 500, gst_pct: 5 }, { charge: true, qty: 1, rate: 100, gst_pct: 0 }], '29', '29', 10);
+  assert.deepEqual([c.lines[2].gst_pct, c.lines[2].taxable, c.lines[2].discount, c.lines[2].cgst, c.lines[2].sgst], [18, 100, 0, 9, 9]);
+  assert.deepEqual([c.taxable, c.total], [1450, 1652.5]);      // items 900 + 450 after the 10%, tax 162 + 22.5; freight 100 untouched, tax 18
+  const exempt = computeInvoice([{ qty: 1, rate: 100, gst_pct: 0 }, { charge: true, qty: 1, rate: 50, gst_pct: 0 }], '29', '27');
+  assert.deepEqual([exempt.igst, exempt.total], [0, 150]);
+
+  const { t, local, a } = await world();
+  const inv = await ok(call('POST', '/invoices', { partyId: local.id, date: '2026-10-07', charges: [{ label: 'Freight', amount: 200 }, { label: 'Packing', amount: 50, hsn: '998599' }], lines: [{ itemId: a.id, qty: 1 }] }, t));
+  const d = await ok(call('GET', `/invoices/${inv.id}/document`, undefined, t));
+  assert.deepEqual(d.invoice.lines.map((l) => [l.description, l.hsn, Number(l.gstPct), Number(l.taxable)]), [['Laptop', '8471', 18, 1000], ['Freight', '9965', 18, 200], ['Packing', '998599', 18, 50]]);
+  assert.equal(Number(d.invoice.total), 1250 * 1.18);
+  assert.equal(d.taxSummary.length, 3);                                                              // grouped by SAC/HSN and rate
+  const stock = (await ok(call('GET', '/items', undefined, t))).find((i) => i.id === a.id).stock;
+  assert.equal(Number(stock), 99);                                                                   // only the laptop left the shelf
+  assert.equal((await call('POST', '/invoices', { partyId: local.id, date: '2026-10-07', charges: [{ label: 'x', amount: -5 }], lines: [{ itemId: a.id, qty: 1 }] }, t)).status, 400);
 });
