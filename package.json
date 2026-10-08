@@ -1,6 +1,6 @@
 {
   "name": "ibmp",
-  "version": "1.21.3",
+  "version": "1.22.0",
   "private": true,
   "description": "Integrated Business Management Platform: GST-integrated SaaS for Indian SMEs",
   "scripts": {

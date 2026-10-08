@@ -131,7 +131,7 @@ export default function App() {
     <div className={`shell${collapsed ? ' collapsed' : ''}`}>
       <div className={`scrim${menu ? ' open' : ''}`} onClick={() => setMenu(false)} />
       <aside className={menu ? 'open' : ''} aria-label="Main navigation">
-        <div className="brand"><div className="brand-mark">I</div><div><strong>IBMP</strong><span>Business management</span></div></div>
+        <div className="brand"><img className="brand-logo" src="/logo-symbol-dark.svg" width="48" height="32" alt="" /><div><strong>IBMP</strong><span>Business management</span></div></div>
         <nav>
           {NAV.map(([group, items]) => (
             <React.Fragment key={group}>

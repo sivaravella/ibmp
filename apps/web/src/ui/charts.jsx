@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { inrCompact } from './format.js';
 
 // Charts drawn as plain SVG, sized to their container. No charting library: the whole set is a few kilobytes.
-export const COLORS = { brand: '#5b5bd6', violet: '#8b5cf6', teal: '#14b8a6', amber: '#f59e0b', rose: '#f43f5e', sky: '#0ea5e9', green: '#10b981', slate: '#94a3b8', ink: '#0f172a' };
+export const COLORS = { brand: '#14243a', violet: '#ffcb05', teal: '#14b8a6', amber: '#f59e0b', rose: '#f43f5e', sky: '#0ea5e9', green: '#10b981', slate: '#94a3b8', ink: '#0f172a' };
 export const SERIES = [COLORS.brand, COLORS.teal, COLORS.amber, COLORS.rose, COLORS.sky, COLORS.violet, COLORS.green, COLORS.slate];
 
 /** The width of an element, kept up to date, so SVG text stays at its real pixel size. */

@@ -31,7 +31,7 @@ export default function PlatformApp() {
     <div className={`shell platform${collapsed ? ' collapsed' : ''}`}>
       <div className={`scrim${menu ? ' open' : ''}`} onClick={() => setMenu(false)} />
       <aside className={menu ? 'open' : ''} aria-label="Console navigation">
-        <div className="brand"><div className="brand-mark">I</div><div><strong>IBMP Platform</strong><span>Owner console</span></div></div>
+        <div className="brand"><img className="brand-logo" src="/logo-symbol-dark.svg" width="48" height="32" alt="" /><div><strong>IBMP Platform</strong><span>Owner console</span></div></div>
         <nav>
           <div className="nav-label">Console</div>
           {NAV.map(([id, label, icon]) => <button key={id} className={tab === id ? 'active' : ''} aria-current={tab === id ? 'page' : undefined} onClick={() => goTab(id)} title={collapsed ? label : undefined}><Icon name={icon} /><span className="nav-text">{label}</span></button>)}
@@ -76,7 +76,7 @@ function SignIn({ onDone }) {
   return (
     <div className="auth-page platform">
       <section className="auth-hero">
-        <div className="brand"><div className="brand-mark">I</div><div><strong>IBMP Platform</strong><span>Owner console</span></div></div>
+        <div className="brand"><img className="brand-logo" src="/logo-symbol-dark.svg" width="48" height="32" alt="" /><div><strong>IBMP Platform</strong><span>Owner console</span></div></div>
         <div>
           <h1>Run the platform with confidence.</h1>
           <p>Accounts, subscriptions, consultant verification and an audit trail of every change.</p>

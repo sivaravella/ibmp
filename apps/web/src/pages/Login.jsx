@@ -71,7 +71,7 @@ export default function Login({ onAuth }) {
   return (
     <div className="auth-page">
       <section className="auth-hero" aria-hidden="false">
-        <div className="brand"><div className="brand-mark">I</div><div><strong>IBMP</strong><span>Integrated Business Management Platform</span></div></div>
+        <div className="brand"><img className="brand-logo" src="/logo-symbol-dark.svg" width="48" height="32" alt="" /><div><strong>IBMP</strong><span>Integrated Business Management Platform</span></div></div>
         <div>
           <h1>Run your books, GST and people from one place.</h1>
           <p>Made for Indian SMEs and the professionals who look after them.</p>
