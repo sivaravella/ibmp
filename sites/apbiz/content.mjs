@@ -12,7 +12,7 @@ export const SITE = {
   updated: '2026-10-08',
   software: 'https://ibmp.apbiz.in',
   // Profile addresses for the footer icons. An empty string hides that icon; fill these in when the pages exist.
-  social: { linkedin: '', facebook: '', instagram: '', x: '', youtube: '' },
+  social: { linkedin: 'https://www.linkedin.com/company/apbiz-consulting-india-llp/', facebook: '', instagram: '', x: '', youtube: '' },
 };
 
 export const SERVICES = [
