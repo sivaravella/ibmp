@@ -42,6 +42,7 @@ const api = spawn(process.execPath, [path.join(root, 'src', 'server.js')], {
     IBMP_DATABASE_URL: `postgres://ibmp:${secrets.dbPassword}@localhost:${pgPort}/ibmp`,
     IBMP_JWT_SECRET: secrets.jwtSecret,
     IBMP_SECRETS_KEY: secrets.secretsKey,
+    IBMP_PUBLIC_URL: process.env.IBMP_PUBLIC_URL || `http://localhost:${port}`,
     IBMP_ENABLE_SIMULATORS: 'true',
     IBMP_ADMIN_API_KEY: secrets.adminKey,
   },

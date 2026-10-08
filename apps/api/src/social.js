@@ -68,8 +68,16 @@ export function socialRoutes(pool, { providers = {}, publicUrl = '', bcryptRound
 
       let user = (await pool.query('SELECT u.* FROM user_identities i JOIN users u ON u.id=i.user_id WHERE i.provider=$1 AND i.subject=$2', [p, String(me.sub)])).rows[0];
       if (!user) {
-        user = (await pool.query('SELECT * FROM users WHERE email=$1', [email])).rows[0];
-        if (user) await pool.query('INSERT INTO user_identities (user_id, provider, subject, email) VALUES ($1,$2,$3,$4)', [user.id, p, String(me.sub), email]);
+        const byEmail = (await pool.query('SELECT * FROM users WHERE email=$1', [email])).rows[0];
+        if (byEmail) {
+          // IBMP does not check that a person owns the email they register with, so an account made with a password may have been made by someone else.
+          // Linking by email alone would hand that person the victim's sign-in. Only an account whose email a provider has already vouched for is linked silently;
+          // otherwise the owner of the account has to prove it with the password.
+          const vouched = Number((await pool.query('SELECT COUNT(*) AS n FROM user_identities WHERE user_id=$1', [byEmail.id])).rows[0].n) > 0;
+          if (!vouched) return back(req, res, 'social-link', signPurposeToken('social-link', { uid: byEmail.id, p, sub: String(me.sub), email }, '10m'));
+          await pool.query('INSERT INTO user_identities (user_id, provider, subject, email) VALUES ($1,$2,$3,$4)', [byEmail.id, p, String(me.sub), email]);
+          user = byEmail;
+        }
       }
       if (user) return back(req, res, 'social', await loginToken(pool, user));
       return back(req, res, 'social-signup', signPurposeToken('social-signup', { p, sub: String(me.sub), email, name }, '30m'));
@@ -77,6 +85,21 @@ export function socialRoutes(pool, { providers = {}, publicUrl = '', bcryptRound
   }));
 
   const pending = (token) => { try { return verifyPurposeToken('social-signup', token); } catch { throw httpError(400, 'This sign-up has expired. Please start again.'); } };
+
+  // An account with this email already exists and has a password: the person must enter it once before the provider is linked.
+  const pendingLink = (token) => { try { return verifyPurposeToken('social-link', token); } catch { throw httpError(400, 'This link request has expired. Please start again.'); } };
+  r.post('/link-info', h(async (req, res) => {
+    const s = pendingLink(z.object({ token: z.string() }).parse(req.body).token);
+    res.json({ email: s.email, provider: s.p, providerName: PROVIDERS[s.p]?.name });
+  }));
+  r.post('/link-confirm', h(async (req, res) => {
+    const b = z.object({ token: z.string(), password: z.string().min(1) }).parse(req.body);
+    const s = pendingLink(b.token);
+    const user = (await pool.query('SELECT * FROM users WHERE id=$1', [s.uid])).rows[0];
+    if (!user || user.email !== s.email || !user.password_set || !(await bcrypt.compare(b.password, user.password_hash))) throw httpError(401, 'That password is not correct.');
+    await pool.query('INSERT INTO user_identities (user_id, provider, subject, email) VALUES ($1,$2,$3,$4) ON CONFLICT (provider, subject) DO NOTHING', [user.id, s.p, s.sub, s.email]);
+    res.json({ token: await loginToken(pool, user) });
+  }));
 
   r.post('/signup-info', h(async (req, res) => {
     const s = pending(z.object({ token: z.string() }).parse(req.body).token);

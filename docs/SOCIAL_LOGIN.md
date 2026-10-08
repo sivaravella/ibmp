@@ -36,5 +36,5 @@ Never commit these values. If a secret is shared by mistake, create a new one in
 ## How people use it
 
 - A new person chooses *Sign up with Google/LinkedIn*, is asked once for their business details and starts the free trial.
-- Someone who already has an account with the same verified email is signed in to it and the provider is linked. Under **Sign-in & security** they can set a password or unlink a provider.
+- Someone who already has a password account with the same email is asked for that password once before the provider is linked (IBMP does not verify emails at sign-up, so a matching email alone proves nothing); an account already linked to another provider is linked silently. Under **Sign-in & security** they can set a password or unlink a provider.
 - Providers that do not report a verified email address are refused.

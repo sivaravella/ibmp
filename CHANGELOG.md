@@ -2,6 +2,10 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.20.3
+- Security fix found in review: signing in with Google or LinkedIn used to link to an existing IBMP account with the same email automatically. IBMP does not verify the email of a password sign-up, so someone could register another person's email first and then inherit that person's later Google sign-in. Now a provider is linked silently only to an account that a provider has already vouched for; an account made with a password asks for that password once ("Confirm it is you") before linking.
+- Production refuses to start with Google or LinkedIn sign-in on and no `IBMP_PUBLIC_URL`: the redirect addresses are built from it and would otherwise follow the request's Host header. `npm run local` defaults it to `http://localhost:<port>`.
+
 ## 1.20.2
 - The Google and LinkedIn buttons are always shown on the sign-in and create-account screens. If a provider has not been set up on the server yet, its button says so when clicked and points to email sign-in; once the credentials are set it goes straight to the provider.
 

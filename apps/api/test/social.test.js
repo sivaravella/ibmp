@@ -79,16 +79,27 @@ test('a first-time Google user finishes sign-up with company details, then signs
   assert.equal((await post('/v1/auth/login', { email: 'priya@example.com', password: 'guess-guess' })).status, 401);   // no usable password
 });
 
-test('LinkedIn links to the existing account with the same verified email', async () => {
+test('an account made with a password is only linked to a provider after its password is entered (nobody can take over an email by registering it first)', async () => {
+  // Anyone can register any email: IBMP does not check ownership. So a matching verified email at LinkedIn is not enough on its own.
   const reg = await post('/v1/auth/register', { name: 'Sam', email: 'sam@example.com', password: 'password123', company: 'Sam Co', sector: 'trading', stateCode: '27' });
   assert.equal(reg.status, 201);
   profile = { sub: 'li-9', email: 'sam@example.com', email_verified: true, name: 'Sam L' };
   const r = await signIn('linkedin');
-  assert.equal(r.key, 'social');
-  const me = await (await fetch(`${origin}/v1/auth/me`, { headers: { authorization: `Bearer ${r.value}` } })).json();
+  assert.equal(r.key, 'social-link');                                                       // not signed in, not linked
+  assert.equal((await pool.query("SELECT count(*)::int AS n FROM user_identities WHERE provider='linkedin'")).rows[0].n, 0);
+  const info = await post('/v1/auth/social/link-info', { token: r.value });
+  assert.deepEqual([info.body.email, info.body.providerName], ['sam@example.com', 'LinkedIn']);
+  assert.equal((await post('/v1/auth/social/link-confirm', { token: r.value, password: 'guess-guess' })).status, 401);
+  assert.equal((await pool.query("SELECT count(*)::int AS n FROM user_identities WHERE provider='linkedin'")).rows[0].n, 0);
+  const ok = await post('/v1/auth/social/link-confirm', { token: r.value, password: 'password123' });
+  assert.equal(ok.status, 200);
+  const me = await (await fetch(`${origin}/v1/auth/me`, { headers: { authorization: `Bearer ${ok.body.token}` } })).json();
   assert.deepEqual([me.name, me.company], ['Sam', 'Sam Co']);
   assert.equal((await pool.query("SELECT count(*)::int AS n FROM user_identities WHERE provider='linkedin'")).rows[0].n, 1);
-  assert.equal((await post('/v1/auth/login', { email: 'sam@example.com', password: 'password123' })).status, 200);       // the password still works
+  const again = await signIn('linkedin');
+  assert.equal(again.key, 'social');                                                        // linked now: straight in
+  // a token for one purpose is no good for another
+  assert.equal((await post('/v1/auth/social/link-confirm', { token: info.body.email, password: 'password123' })).status, 400);
 });
 
 test('an unverified email, a forged state, a missing cookie or a refused code never signs anyone in', async () => {

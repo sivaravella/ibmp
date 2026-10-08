@@ -32,12 +32,13 @@ export default function Login({ onAuth }) {
   // The provider sends the person back to "/#social=<session>", "/#social-signup=<token>" or "/#social-error=<message>".
   useEffect(() => {
     api('GET', '/auth/social/providers').then(setProviders).catch(() => {});
-    const m = location.hash.match(/^#(social|social-signup|social-error)=(.*)$/);
+    const m = location.hash.match(/^#(social|social-signup|social-link|social-error)=(.*)$/);
     if (!m) return;
     const value = decodeURIComponent(m[2]);
     history.replaceState(null, '', location.pathname + location.search);
     if (m[1] === 'social') { setToken(value); onAuth(); }
     else if (m[1] === 'social-error') setErr(value);
+    else if (m[1] === 'social-link') api('POST', '/auth/social/link-info', { token: value }).then((i) => { setPending({ token: value, ...i }); setMode('link'); }).catch((e) => setErr(e.message));
     else api('POST', '/auth/social/signup-info', { token: value }).then((i) => { setPending({ token: value, ...i }); setMode('social'); }).catch((e) => setErr(e.message));
   }, []);
 
@@ -51,6 +52,7 @@ export default function Login({ onAuth }) {
         accountType: f.accountType,
         ...(consultant ? { consultant: { body: f.body, membershipNo: f.membershipNo, registeredName: f.registeredName } } : {}),
       };
+      if (mode === 'link') { const { token } = await api('POST', '/auth/social/link-confirm', { token: pending.token, password: f.password }); setToken(token); onAuth(); return; }
       if (mode === 'social') { const { token } = await api('POST', '/auth/social/complete', { token: pending.token, ...company }); setToken(token); onAuth(); return; }
       const body = mode === 'login'
         ? { email: f.email, password: f.password }
@@ -81,9 +83,9 @@ export default function Login({ onAuth }) {
       </section>
       <div className="auth-side">
         <form className="auth" onSubmit={submit}>
-          <h2>{mode === 'login' ? 'Welcome back' : mode === 'social' ? `Welcome, ${pending.name.split(' ')[0]}` : 'Create your account'}</h2>
-          <p className="lead">{mode === 'login' ? 'Sign in to continue to your dashboard.' : mode === 'social' ? `One last step: tell us about your business. You are signing up with ${pending.providerName} as ${pending.email}.` : 'Start a free 14-day trial. No card needed.'}</p>
-          {mode !== 'social' && <>
+          <h2>{mode === 'link' ? 'Confirm it is you' : mode === 'login' ? 'Welcome back' : mode === 'social' ? `Welcome, ${pending.name.split(' ')[0]}` : 'Create your account'}</h2>
+          <p className="lead">{mode === 'link' ? `An IBMP account for ${pending.email} already exists. Enter its password once to link ${pending.providerName} to it.` : mode === 'login' ? 'Sign in to continue to your dashboard.' : mode === 'social' ? `One last step: tell us about your business. You are signing up with ${pending.providerName} as ${pending.email}.` : 'Start a free 14-day trial. No card needed.'}</p>
+          {mode !== 'social' && mode !== 'link' && <>
             <div className="social-row">
               {SOCIAL.map(([k, label, Logo]) => (providers[k]
                 ? <a key={k} className="social-btn" href={`/v1/auth/social/${k}/start`}><Logo /> {mode === 'login' ? 'Continue' : 'Sign up'} with {label}</a>
@@ -107,13 +109,13 @@ export default function Login({ onAuth }) {
               <p className="muted" style={{ fontSize: 12.5 }}>Our team checks your membership after you sign up. You can start straight away.</p>
             </>}
           </>}
-          {mode !== 'social' && <input type="email" placeholder="Email" autoComplete="username" onChange={set('email')} required />}
-          {mode !== 'social' && <input type="password" placeholder="Password (min 8 characters)" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} onChange={set('password')} required />}
+          {mode !== 'social' && mode !== 'link' && <input type="email" placeholder="Email" autoComplete="username" onChange={set('email')} required />}
+          {mode !== 'social' && <input type="password" placeholder={mode === 'link' ? 'Your IBMP password' : 'Password (min 8 characters)'} autoComplete={mode === 'login' || mode === 'link' ? 'current-password' : 'new-password'} onChange={set('password')} required />}
           {err && <p className="err" role="alert">{err}</p>}
-          <button className="primary" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'social' ? 'Finish and start my trial' : 'Create account'}</button>
+          <button className="primary" disabled={busy}>{busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : mode === 'link' ? 'Link and sign in' : mode === 'social' ? 'Finish and start my trial' : 'Create account'}</button>
           <p className="auth-switch">
-            {mode === 'login' ? 'New to IBMP? ' : 'Already have an account? '}
-            <a href="#" onClick={(e) => { e.preventDefault(); setErr(''); setPending(null); setMode(mode === 'login' ? 'register' : 'login'); }}>{mode === 'login' ? 'Create an account' : mode === 'social' ? 'Cancel' : 'Sign in'}</a>
+            {mode === 'login' ? 'New to IBMP? ' : mode === 'social' || mode === 'link' ? '' : 'Already have an account? '}
+            <a href="#" onClick={(e) => { e.preventDefault(); setErr(''); setPending(null); setMode(mode === 'login' ? 'register' : 'login'); }}>{mode === 'login' ? 'Create an account' : mode === 'social' || mode === 'link' ? 'Cancel' : 'Sign in'}</a>
           </p>
         </form>
       </div>

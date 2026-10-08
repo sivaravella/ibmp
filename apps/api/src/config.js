@@ -56,6 +56,7 @@ export function loadConfig(raw = process.env) {
     if (!cfg.jwtSecret || cfg.jwtSecret === DEV_JWT || cfg.jwtSecret.length < 32) problems.push('JWT_SECRET must be set to a random value of at least 32 characters.');
     if (!cfg.secretsKey || cfg.secretsKey.length < 16) problems.push('SECRETS_KEY must be set to a random value of at least 16 characters (it encrypts GST portal session tokens).');
     if (cfg.corsOrigins.includes('*')) problems.push('CORS_ORIGINS must list explicit origins, not *.');
+    if (Object.keys(cfg.social).length && !cfg.publicUrl) problems.push('PUBLIC_URL must be set when Google or LinkedIn sign-in is on: the sign-in redirect addresses are built from it, and without it they would follow whatever Host header a request carries.');
     if (cfg.adminKeySet && String(env.ADMIN_API_KEY).length < 24) problems.push('ADMIN_API_KEY must be at least 24 characters when set.');
   }
   if (problems.length) throw Object.assign(new Error(`Refusing to start with unsafe configuration:\n - ${problems.join('\n - ')}`), { problems });
