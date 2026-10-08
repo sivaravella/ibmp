@@ -1,6 +1,6 @@
 {
   "name": "@ibmp/api",
-  "version": "1.21.2",
+  "version": "1.21.3",
   "description": "IBMP API: Express + PostgreSQL",
   "private": true,
   "type": "module",

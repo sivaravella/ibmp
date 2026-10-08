@@ -133,6 +133,11 @@ export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp()
       index: false,
       setHeaders: (res, file) => { res.setHeader('Cache-Control', /[\\/]assets[\\/]/.test(file) ? 'public, max-age=31536000, immutable' : 'no-cache'); },
     }));
+    // The public policy pages are plain HTML files (readable without JavaScript, as Google and LinkedIn review them).
+    app.get(['/privacy', '/terms'], (req, res, next) => {
+      const file = path.join(config.webDir, `${req.path.slice(1)}.html`);
+      return fs.existsSync(file) ? (res.setHeader('Cache-Control', 'no-cache'), res.sendFile(file)) : next();
+    });
     // A missing file is a 404, never the home page: a stale browser tab asking for a screen from an old build must see the failure, not HTML.
     app.get(/^\/(?!v1\/)(assets\/|.*\.[A-Za-z0-9]{1,5}$)/, (_req, res) => res.status(404).type('text/plain').send('Not found'));
     app.get(/^\/(?!v1\/).*/, (_req, res) => { res.setHeader('Cache-Control', 'no-cache'); res.sendFile(path.join(config.webDir, 'index.html')); });

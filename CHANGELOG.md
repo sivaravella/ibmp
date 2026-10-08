@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.21.3
+- Public Privacy Policy (/privacy) and Terms of Service (/terms) pages, linked from the sign-in screen: required by Google to publish the sign-in app to production and recommended by LinkedIn. They are drafts written for IBMP as it works today and should be reviewed by a lawyer; the legal entity (APBIZ CONSULTING INDIA LLP) and the contact address are set in the two HTML files under apps/web/public.
+
 ## 1.21.2
 - Deployed to https://ibmp.apbiz.in on the shared server next to parcelbox (see docs/DEPLOY.md): own containers and database, routed through the existing nginx with a Let's Encrypt certificate and weekly renewal, nightly database backups with a tested restore, memory limits and swap so parcelbox is not affected.
 

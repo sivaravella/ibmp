@@ -79,7 +79,7 @@ export default function Login({ onAuth }) {
             {POINTS.map(([icon, title, text]) => <li key={title}><span className="ico"><Icon name={icon} size={18} /></span><div><b>{title}</b><span>{text}</span></div></li>)}
           </ul>
         </div>
-        <small>© IBMP. Your data stays in your account.</small>
+        <small>© IBMP. Your data stays in your account. · <a href="/privacy" style={{ color: 'inherit' }}>Privacy</a> · <a href="/terms" style={{ color: 'inherit' }}>Terms</a></small>
       </section>
       <div className="auth-side">
         <form className="auth" onSubmit={submit}>
