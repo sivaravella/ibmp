@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.21.1
+- `tools/perf-seed.mjs`: fills a throwaway company with thousands of invoices and times the main endpoints. At 20,000 invoices every endpoint answers in under half a second and the invoice screen stays responsive (see the README scale check).
+
 ## 1.21.0
 - Phone layout tested and fixed (`npm run smoke:mobile` opens every screen at 390 px with touch and a mobile user agent, and fails on anything past the screen edge). Fixed: the Details / Preview switch on the new-invoice screen was hidden on phones and tablets, so the preview could not be reached; tables now become one card per row on phones (each value labelled by its column) instead of scrolling sideways; KPI cards go two to a row; chart legends wrap (payroll overflowed); the header trial notice is short on phones ("Trial · 12d left") and tapping it opens Billing; the new-invoice action bar fits two rows. The invoice document itself keeps its table layout and is scaled to the screen.
 

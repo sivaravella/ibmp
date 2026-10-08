@@ -266,5 +266,17 @@ For the people who run IBMP, at **`/platform`** (its own sign-in, separate from 
 - **Where the browser comes from:** found automatically (Chrome, Edge or Chromium), or `IBMP_CHROME_PATH`. The Docker image installs Alpine's `chromium-headless-shell` and fonts that cover the rupee sign (full image about 1.3 GB, 317 MB without: `--build-arg PDF_ENGINE=false`, after which the button reports that PDF attachments are unavailable).
 - **Verified:** a real PDF from local Chrome (one A4 page), and from the container's headless shell (the email endpoint answered in about 3 seconds). Delivery was tested with the Brevo test mail only; no invoice was emailed to a real customer.
 
+## Scale check (7 October 2026)
+`node tools/perf-seed.mjs 20000 500` fills a throwaway company through the API (20,000 invoices, 4,000 bills, 500 parties, 40 items; about a minute, with the local rate limit switched off by `IBMP_RATE_LIMIT=false`) and times the main endpoints. On the local PostgreSQL 18:
+
+| What | 3,000 invoices | 20,000 invoices |
+|---|---|---|
+| Invoice list (all rows, before compression) | 83 ms, 1.4 MB | 416 ms, 9.4 MB |
+| Dashboard analytics | 103 ms | 397 ms |
+| GSTR-1 / GSTR-3B for a month (about 2,500 invoices in it at 20,000) | 28 ms / 24 ms | 85 ms / 74 ms |
+| Trial balance, accounts, journal (paged) | under 45 ms | under 45 ms |
+
+In a headless browser at 20,000 invoices the invoice screen shows its first rows about 0.6 s after navigation, the search box updates in about 30 ms and the page uses about 19 MB of script memory. The list still downloads every invoice and filters in the browser; that is fine to this size (the response is compressed on the wire) and would need server-side paging well beyond it. Nothing needed fixing.
+
 ## Next
 A real GSP adapter. **Blocked on the provider:** Masters India's public docs lack response formats, the OTP/EVC session flow and the e-invoice and e-way bill endpoints, and Tera publishes none. It needs the full API documentation and sandbox credentials (see `apps/api/src/gsp.js` for the interface to implement).
