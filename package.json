@@ -1,6 +1,6 @@
 {
   "name": "ibmp",
-  "version": "1.20.3",
+  "version": "1.21.0",
   "private": true,
   "description": "Integrated Business Management Platform: GST-integrated SaaS for Indian SMEs",
   "scripts": {
@@ -11,6 +11,7 @@
     "seed": "npm --prefix apps/api run seed",
     "start": "npm --prefix apps/api start",
     "test:pg": "npm --prefix apps/api run test:pg",
-    "smoke:ui": "node tools/ui-smoke.mjs"
+    "smoke:ui": "node tools/ui-smoke.mjs",
+    "smoke:mobile": "node tools/mobile-check.mjs"
   }
 }

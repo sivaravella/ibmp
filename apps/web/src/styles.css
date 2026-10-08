@@ -337,13 +337,12 @@ td.actions { white-space: nowrap; text-align: right; } td.actions button { margi
 .inv-line-card .full { grid-column: 1 / -1; } .inv-line-card .c2 { grid-column: span 2; } .inv-line-card input, .inv-line-card select { min-height: 36px; padding: 6px 9px; width: 100%; }
 .inv-line-card .tot { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--muted); } .inv-line-card .tot b { color: var(--ink); }
 .inv-line-card label { font-size: 11px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 3px; }
-.inv-panes { display: none; }
+@media (min-width: 1181px) { .inv-panes { display: none; } }
 @media (max-width: 1180px) { .inv-layout { grid-template-columns: minmax(0, 1fr); } .inv-layout > .inv-side { position: static; max-height: none; } .inv-panes { display: inline-flex; margin-bottom: 14px; } .inv-layout .hide-narrow { display: none; } .inv-actions { margin-left: -16px; margin-right: -16px; } }
 .chip-select { min-height: 32px; padding: 3px 28px 3px 12px; border-radius: 99px; font-size: 13px; font-weight: 550; }
 .overdue-tag { color: var(--rose); font-size: 12px; font-weight: 600; } .row-click { cursor: pointer; } .row-click:hover td { background: #f7f8ff; }
 .list-meta { display: flex; justify-content: space-between; align-items: center; margin: 4px 0 10px; color: var(--muted); font-size: 13px; }
 
-.inv-panes { display: none; }
 .filter-row { gap: 14px; align-items: center; margin-top: -4px; } .filter-row label { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); font-weight: 600; } .filter-row select, .filter-row input { min-height: 34px; padding: 4px 9px; }
 .chip.overdue-chip.on { background: var(--rose); border-color: var(--rose); color: #fff; }
 
@@ -360,3 +359,33 @@ td.actions { white-space: nowrap; text-align: right; } td.actions button { margi
 @media (max-width: 700px) { .topbar-notice .pill { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; } .topbar-notice .row-btn { display: none; } }
 
 .rcm-tag { margin-left: 8px; padding: 1px 7px; border-radius: 99px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; background: var(--amber-soft); color: var(--amber); border: 1px solid #f6dca6; vertical-align: 1px; }
+
+/* ---------- phones ---------- */
+.pill .tiny { display: none; }
+.topbar-notice { cursor: pointer; }
+@media (max-width: 700px) {
+  .pill .long { display: none; } .pill .tiny { display: inline; }
+  .topbar { gap: 10px; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .panel-head { flex-wrap: wrap; } .panel-head .legend { width: 100%; }
+  .inv-actions { margin: 18px -16px -40px; gap: 8px; padding: 10px 14px; } .inv-actions .total { flex: 1 0 100%; margin: 0; }
+  .inv-actions > button { flex: 1 1 0; padding-inline: 8px; font-size: 13.5px; white-space: nowrap; } .inv-actions > button:first-of-type { display: none; }
+}
+
+/* phones: a table is a stack of cards, one per row, each cell labelled by its column (labels come from ui/mobile-tables.js) */
+@media (max-width: 700px) {
+  main table { display: block; overflow: visible; white-space: normal; background: transparent; border: 0; box-shadow: none; }
+  main table thead { display: none; } main table tbody { display: block; }
+  main table tr { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; margin-bottom: 10px; box-shadow: var(--shadow-1); }
+  main table td { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 6px 0; border: 0; border-bottom: 1px solid var(--line-2); text-align: right; }
+  main table td:last-child { border-bottom: 0; }
+  main table td::before { content: attr(data-label); flex: none; max-width: 46%; color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; text-align: left; }
+  main table td[data-label=""]::before { content: none; }
+  main table td.num { text-align: right; } main table td .cell { text-align: right; align-items: flex-end; }
+  main table td.actions { justify-content: flex-end; flex-wrap: wrap; }
+  main table td.table-empty { display: block; text-align: center; }
+  /* the invoice document is a real page: its tables stay tables */
+  main .inv-doc table { display: table; } main .inv-doc thead { display: table-header-group; } main .inv-doc tbody { display: table-row-group; }
+  main .inv-doc tr { display: table-row; background: transparent; border: 0; border-radius: 0; padding: 0; margin: 0; box-shadow: none; }
+  main .inv-doc td, main .inv-doc th { display: table-cell; text-align: inherit; } main .inv-doc td::before { content: none; }
+}

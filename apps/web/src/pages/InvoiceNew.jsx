@@ -106,7 +106,7 @@ export default function InvoiceNew({ go, params }) {
 
   return (
     <>
-      <PageHeader title="New invoice" subtitle="Fill in the details and check the invoice on the right: this is exactly what the customer will receive">
+      <PageHeader title="New invoice" subtitle="Fill in the details and check the preview: it is exactly what the customer will receive">
         <button onClick={() => go('invoices')}>‹ All invoices</button>
         <button onClick={() => setSettings(true)}><Icon name="panel" size={14} /> Invoice settings</button>
       </PageHeader>

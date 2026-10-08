@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.21.0
+- Phone layout tested and fixed (`npm run smoke:mobile` opens every screen at 390 px with touch and a mobile user agent, and fails on anything past the screen edge). Fixed: the Details / Preview switch on the new-invoice screen was hidden on phones and tablets, so the preview could not be reached; tables now become one card per row on phones (each value labelled by its column) instead of scrolling sideways; KPI cards go two to a row; chart legends wrap (payroll overflowed); the header trial notice is short on phones ("Trial · 12d left") and tapping it opens Billing; the new-invoice action bar fits two rows. The invoice document itself keeps its table layout and is scaled to the screen.
+
 ## 1.20.3
 - Security fix found in review: signing in with Google or LinkedIn used to link to an existing IBMP account with the same email automatically. IBMP does not verify the email of a password sign-up, so someone could register another person's email first and then inherit that person's later Google sign-in. Now a provider is linked silently only to an account that a provider has already vouched for; an account made with a password asks for that password once ("Confirm it is you") before linking.
 - Production refuses to start with Google or LinkedIn sign-in on and no `IBMP_PUBLIC_URL`: the redirect addresses are built from it and would otherwise follow the request's Host header. `npm run local` defaults it to `http://localhost:<port>`.
