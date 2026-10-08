@@ -1,6 +1,7 @@
 // Blog articles. Each body is a list of sections: { h: heading, p: [paragraphs], list: [bullets] (optional, shown after the paragraphs) }.
 // Keep them evergreen: explain how things work and what to ask, and avoid rates, limits and dates that change.
-export const POSTS = [
+import { POSTS2 } from "./blog2.mjs";
+const BASE = [
   {
     slug: 'gstr-1-gstr-3b-gstr-9-explained', label: 'GST returns explained', date: '2026-10-08', category: 'GST', minutes: 5, service: 'gst',
     title: 'GSTR-1, GSTR-3B and GSTR-9 Explained in Plain Words',
@@ -86,3 +87,4 @@ export const POSTS = [
     faq: [['Can I get more time to reply?', 'Some notices allow you to request an extension or an adjournment. We check what is possible for yours.'], ['Will you reply on my behalf?', 'Yes, with your authorisation, and only after you have reviewed the reply.']],
   },
 ];
+export const POSTS = [...BASE, ...POSTS2];

@@ -350,7 +350,7 @@ ${cta('Have a question we have not covered?', 'Ask us on WhatsApp. We answer in 
 function blogPost(p) {
   const url = `/blog/${p.slug}/`, s = service(p.service);
   const sections = p.body.map((b) => `<h2>${esc(b.h)}</h2>${(b.p || []).map((t) => `<p>${esc(t)}</p>`).join('')}${b.list ? checks(b.list) : ''}`).join('');
-  const others = POSTS.filter((o) => o.slug !== p.slug).slice(0, 3);
+  const others = POSTS.filter((o) => o.slug !== p.slug).sort((a, b) => (b.service === p.service) - (a.service === p.service)).slice(0, 4);
   const body = `
 ${phero(`${crumbs([['Home', '/'], ['Blog', '/blog/'], [p.category, url]])}<p class="eyebrow">${esc(p.category)} · ${fmtDate(p.date)} · ${p.minutes} min read</p><h1>${esc(p.h1)}</h1><p class="lead">${esc(p.lead)}</p>`, null)}
 <div class="container article">
