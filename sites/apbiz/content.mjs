@@ -43,7 +43,7 @@ export const SERVICES = [
     docs: ['PAN of the business or proprietor', 'Proof of address of the place of business', 'Bank account details', 'Sales and purchase invoices for the period', 'Login details or a delegated access for the GST portal'],
     faq: [
       ['Who has to register for GST?', 'Registration depends on your annual turnover and the kind of business. The limits differ for goods and services and for some states, and some businesses must register regardless of turnover, such as many e-commerce sellers. Send us your details and we will tell you where you stand.'],
-      ['How often do I file GST returns?', 'Most regular businesses file GSTR-1 and GSTR-3B every month. Smaller businesses can choose the quarterly scheme, and composition taxpayers follow a different, simpler pattern. We choose the right option for you and put every date in your calendar.'],
+      ['How often do I file GST returns?', 'Most regular businesses file GSTR-1 and GSTR-3B every month. Smaller businesses can choose the quarterly scheme, and composition taxpayers follow a different, simpler pattern. We choose the right option for you and keep track of every date for you.'],
       ['What happens if I file late?', 'Late fees and interest apply for each day or month of delay, and a series of missed returns can lead to suspension of registration and a blocked e-way bill. It is far cheaper to file on time, and we help you catch up if you are behind.'],
       ['Can you help if I have already received a GST notice?', 'Yes. Do not ignore it, because the reply period is short. Send us the notice and we will explain what it means, what is being asked and how to respond.'],
       ['Do I need e-invoicing?', 'E-invoicing applies to businesses above a prescribed turnover. The limit has been reduced over time, so we check the current rule against your turnover.'],
@@ -116,7 +116,7 @@ export const SERVICES = [
     ],
     docs: ['TAN and PAN', 'Salary register or payment ledger', 'Vendor and employee PANs', 'Challan details of deposits made', 'Previous returns, if any'],
     faq: [
-      ['When must TDS be deposited?', 'Generally by the 7th of the month following the month of deduction, with a different date for March. Late deposit attracts interest, so we put the date in your calendar every month.'],
+      ['When must TDS be deposited?', 'Generally by the 7th of the month following the month of deduction, with a different date for March. Late deposit attracts interest, so we track the date for you every month.'],
       ['What are the due dates for TDS returns?', 'Quarterly: 31 July, 31 October, 31 January and 31 May for the four quarters of the year. Form 16 for salaries follows after the year-end return.'],
       ['What happens if I deduct TDS but pay it late?', 'Interest is charged for every month or part of a month of delay at a higher rate than for late deduction, and late filing of the return also carries a daily fee. It is better to pay late than never, but better still to pay on time.'],
       ['Why does my vendor say their TDS credit is missing?', 'Usually a wrong PAN, a return not filed, or a challan not matched to the statement. We trace it and file a correction.'],
@@ -149,7 +149,7 @@ export const SERVICES = [
     steps: [
       ['Plan', 'We learn who the founders are, what the business does and how it will be funded, and recommend a structure.'],
       ['Incorporate or catch up', 'We prepare documents, file with the registrar and, for existing entities, list every missed form and its cost.'],
-      ['Stay current', 'We calendar each annual and event-based filing and complete it for your approval and signature.'],
+      ['Stay current', 'We track each annual and event-based filing and complete it for your approval and signature.'],
     ],
     docs: ['PAN and Aadhaar of directors or partners', 'Passport-size photographs and address proofs', 'Proof of the registered office with a no-objection letter from the owner', 'Proposed company names', 'Financial statements and the auditor’s report for annual filings'],
     faq: [
@@ -190,7 +190,7 @@ export const SERVICES = [
     docs: ['PAN, incorporation or partnership papers', 'Address proof and bank details', 'Employee list with Aadhaar, PAN, wages and date of joining', 'Digital signature of the authorised person'],
     faq: [
       ['When does PF registration become mandatory?', 'Generally when an establishment reaches the prescribed number of employees. Smaller employers can register voluntarily, and many do because it helps with hiring.'],
-      ['When are PF and ESI contributions due?', 'Typically by the 15th of the following month. We calendar the date and prepare the challan before it.'],
+      ['When are PF and ESI contributions due?', 'Typically by the 15th of the following month. We track the date and prepare the challan before it.'],
       ['Does every state levy professional tax?', 'No. It is a state tax, so whether it applies and at what rate depends on where your employees work. We check the states you operate in.'],
       ['What if I paid late?', 'Interest and damages are levied for the period of delay. Pay as early as possible and tell us, and we will compute what is due and help with any notice.'],
       ['Will you also run my payroll?', 'Yes. Payroll and these statutory payments belong together, and we offer them as a single service.'],
@@ -244,7 +244,7 @@ export const SERVICES = [
     lead: 'The right registrations open doors: bank loans, government schemes, imports and exports, and the trust of larger customers. We find which ones you need and get them done.',
     intro: [
       'Running a business in India often needs more than one registration, and the list depends on what you do, where you do it and how big you are. Some are free and quick, some depend on your state or city, and some must be renewed.',
-      'We tell you what applies to you, prepare the applications and keep the renewals on your calendar.',
+      'We tell you what applies to you, prepare the applications and keep track of the renewals.',
     ],
     includes: [
       ['Udyam registration (MSME)', 'The online registration that unlocks priority-sector lending and a range of government benefits for micro, small and medium enterprises.'],
@@ -259,7 +259,7 @@ export const SERVICES = [
     steps: [
       ['Identify', 'We ask about your activity, premises and size and list the registrations that apply.'],
       ['Apply', 'We collect documents, prepare and submit the applications and respond to queries.'],
-      ['Renew', 'We calendar each renewal and amendment so nothing lapses.'],
+      ['Renew', 'We track each renewal and amendment so nothing lapses.'],
     ],
     docs: ['PAN and Aadhaar of the owner or authorised person', 'Address proof of the premises, with rent or ownership papers', 'Bank account details', 'Photographs and activity details', 'Incorporation or partnership documents'],
     faq: [
@@ -309,36 +309,191 @@ export const SERVICES = [
     related: ['gst', 'income-tax', 'payroll'],
     wa: 'accounting and bookkeeping',
   },
-];
-
-export const DATES = [
-  ['Every month', [
-    ['7th', 'TDS and TCS payment for the previous month'],
-    ['11th', 'GSTR-1: outward supplies (monthly filers)'],
-    ['15th', 'PF and ESI contributions and the PF electronic return'],
-    ['20th', 'GSTR-3B: summary return and tax payment (monthly filers)'],
-    ['By state rules', 'Professional tax, where levied: dates differ by state'],
-  ]],
-  ['Every quarter', [
-    ['15 June, 15 September, 15 December, 15 March', 'Advance tax instalments'],
-    ['31 July, 31 October, 31 January, 31 May', 'TDS returns (24Q, 26Q, 27Q) and TCS return (27EQ)'],
-    ['Around the 18th, 22nd or 24th after the quarter', 'GST for composition and quarterly-scheme taxpayers (dates vary by scheme and state)'],
-  ]],
-  ['Every year: tax', [
-    ['15 June', 'Form 16 to employees'],
-    ['31 July', 'Income tax return for individuals and others who need no audit'],
-    ['30 September', 'Tax audit report where an audit is needed'],
-    ['31 October', 'Income tax return where accounts must be audited'],
-    ['31 December', 'GST annual return and reconciliation (regular taxpayers)'],
-  ]],
-  ['Every year: companies and LLPs', [
-    ['30 May', 'LLP annual return (Form 11)'],
-    ['30 June', 'Return of deposits for companies (DPT-3)'],
-    ['30 September', 'Annual general meeting deadline for most companies, and director KYC'],
-    ['30 days after the AGM', 'Financial statements with the registrar (AOC-4)'],
-    ['60 days after the AGM', 'Annual return of the company (MGT-7)'],
-    ['30 October', 'LLP statement of accounts and solvency (Form 8)'],
-  ]],
+  {
+    slug: 'startup-india', icon: 'rocket', name: 'DPIIT and Startup India',
+    short: 'DPIIT recognition, Startup India benefits, tax exemption applications and investor-ready compliance for startups.',
+    title: 'DPIIT Recognition and Startup India Registration | Apbiz',
+    desc: 'DPIIT startup recognition, Startup India benefits, Section 80-IAC and angel tax queries, and investor-ready compliance for Indian startups, handled end to end.',
+    h1: 'DPIIT recognition and Startup India, handled for you.',
+    lead: 'Recognition by DPIIT opens up the Startup India benefits. We check that you qualify, prepare the application and keep your startup compliant as it grows.',
+    intro: [
+      'Startup India is the central government programme for new businesses. A company or LLP recognised by the Department for Promotion of Industry and Internal Trade (DPIIT) can apply for benefits such as tax exemptions, easier compliance and support in public procurement.',
+      'The recognition has conditions on age, turnover and the nature of the business. Apbiz checks them first, prepares the application and describes your innovation clearly, then helps you use the benefits you are entitled to.',
+    ],
+    includes: [
+      ['Eligibility check', 'Entity type, age, turnover and the innovation or scalability angle reviewed before you apply.'],
+      ['DPIIT recognition', 'Application prepared and filed on the Startup India portal, with replies to any queries.'],
+      ['Tax exemption applications', 'Support with the income tax exemption for eligible startups and the related approvals.'],
+      ['Angel tax and investor queries', 'Valuation and documentation support when you raise money from investors.'],
+      ['Incorporation first, if needed', 'Private limited company or LLP formation so you have an eligible entity.'],
+      ['Self-certification support', 'Guidance on the labour and environment law compliances that startups can self-certify.'],
+      ['Investor-ready compliance', 'Statutory books, filings and share records organised for due diligence.'],
+    ],
+    who: ['Founders registering their first company or LLP', 'Early-stage startups planning to raise funds', 'Product and technology businesses with an innovative model', 'Startups that want to use government schemes and tenders'],
+    steps: [
+      ['Check', 'We confirm that your entity and idea meet the recognition conditions.'],
+      ['Apply', 'We prepare the documents and the description of your innovation and submit on the portal.'],
+      ['Use the benefits', 'We apply for the exemptions and schemes that suit you and keep your filings current.'],
+    ],
+    docs: ['Certificate of incorporation or LLP registration', 'PAN of the entity and the founders', 'A short description of the product and what is new about it', 'Website or pitch material, if available', 'Authorisation letter for the person applying'],
+    faq: [
+      ['Who can get DPIIT recognition?', 'A private limited company, an LLP or a registered partnership firm within the age and turnover limits, working on an innovative product, process or service or on a scalable model. We check the current conditions for you.'],
+      ['Is recognition the same as the tax exemption?', 'No. Recognition comes first. The income tax exemption is a separate application with its own conditions, and we help with both.'],
+      ['Does it cost anything to get recognised?', 'The Startup India recognition itself has no government fee. Our fee covers preparing and following up the application. We tell you the amount before we begin.'],
+      ['Can I apply before incorporating?', 'No, recognition is given to a registered entity. We can incorporate it for you first.'],
+      ['How long does it take?', 'It depends on how complete the application is and how quickly the department responds. We share realistic timing once we have seen your documents.'],
+    ],
+    related: ['company-law', 'valuation', 'msme'],
+    wa: 'DPIIT and Startup India',
+  },
+  {
+    slug: 'msme', icon: 'briefcase', name: 'MSME and Udyam benefits',
+    short: 'Udyam registration, MSME schemes, subsidies, collateral-free loan support and delayed-payment remedies.',
+    title: 'Udyam (MSME) Registration, Schemes and Subsidies | Apbiz',
+    desc: 'Udyam registration, updates and MSME scheme support for Indian small businesses: priority lending, subsidies, tender benefits and delayed-payment remedies.',
+    h1: 'Make your MSME status work for you.',
+    lead: 'Udyam registration is only the start. We register you, keep the details current and help you claim the schemes, loans and protections meant for small businesses.',
+    intro: [
+      'Micro, small and medium enterprises have access to schemes that larger firms do not, from priority-sector lending to payment protection against late-paying buyers. Many owners register and then never use the benefits.',
+      'Apbiz handles the Udyam registration, corrects and updates it when your turnover or activity changes, and walks you through the schemes that suit your business.',
+    ],
+    includes: [
+      ['Udyam registration', 'New registration and the certificate, with the right activity codes for your business.'],
+      ['Updates and corrections', 'Changes to turnover, investment, address, activity and ownership details.'],
+      ['Scheme matching', 'A short list of central and state schemes and subsidies you can realistically apply for.'],
+      ['Loan and credit support', 'Documents and presentation for bank loans, including guarantee-backed lending for small businesses.'],
+      ['Delayed-payment remedies', 'Help in using the MSME rules on timely payment when a buyer does not pay on time.'],
+      ['Tender and procurement registrations', 'Support for enlisting on government procurement platforms.'],
+      ['Annual hygiene', 'A yearly check that your registration and related records are up to date.'],
+    ],
+    who: ['Manufacturers, traders and service providers', 'Small businesses planning to take a bank loan', 'Suppliers waiting on late payments from large buyers', 'Businesses that want to bid for government tenders'],
+    steps: [
+      ['Register or update', 'We prepare your Udyam details from your PAN, GST and business information.'],
+      ['Match', 'We list the schemes and benefits that fit your size, activity and state.'],
+      ['Apply and follow up', 'We prepare the applications and track them until they are decided.'],
+    ],
+    docs: ['Aadhaar of the proprietor or authorised signatory', 'PAN and GSTIN of the business', 'Bank account details', 'Turnover and investment figures', 'Activity and address details'],
+    faq: [
+      ['Is there a fee for Udyam registration?', 'The government registration itself is free. Our fee, if you use us, covers preparing the details correctly and supporting you afterwards.'],
+      ['Does my category change as my business grows?', 'Yes. The category depends on investment and turnover, and the details linked to your PAN and GST are used to update it. We help you review it each year.'],
+      ['What is the benefit of registering?', 'Registered businesses can access priority lending, many scheme subsidies, and the rules on timely payment by buyers. The benefits depend on the scheme and the state.'],
+      ['Can a trader or service provider register?', 'Yes. Both manufacturing and service enterprises can register, and traders can register too, though some schemes are not open to them. We check each scheme for you.'],
+      ['Will you guarantee a subsidy or a loan?', 'No. Approvals are decided by the authority or the bank. We make sure your application is complete and well presented.'],
+    ],
+    related: ['startup-india', 'registrations', 'fssai-licences'],
+    wa: 'MSME and Udyam',
+  },
+  {
+    slug: 'fssai-licences', icon: 'store', name: 'FSSAI and business licences',
+    short: 'FSSAI registration and licence, renewals and returns, plus trade, drug, fire and other licences.',
+    title: 'FSSAI Licence, Trade and Other Business Licences | Apbiz',
+    desc: 'FSSAI registration, licence, renewal and annual returns for food businesses, plus trade licence, fire, pollution and other approvals your premises may need.',
+    h1: 'FSSAI and the licences your business needs.',
+    lead: 'Food licences and local approvals are easy to get wrong and expensive to ignore. We identify what applies to you, apply, and keep every licence renewed on time.',
+    intro: [
+      'Every business that makes, stores, sells or serves food in India needs registration or a licence from the Food Safety and Standards Authority of India (FSSAI), and the right type depends on your activity and size. Beyond food, premises often need local licences too.',
+      'Apbiz finds out which approvals apply to your activity and premises, prepares the applications, handles queries and tracks renewals and annual returns.',
+    ],
+    includes: [
+      ['FSSAI registration and licence', 'Basic registration, state licence or central licence, matched to your category and scale.'],
+      ['Renewals and modifications', 'Renewal before expiry, and changes to address, products, owners or the type of business.'],
+      ['FSSAI annual returns', 'Filing the annual return where it applies to your licence category.'],
+      ['Labelling and display guidance', 'The basics of labelling, licence display and record keeping so you are inspection-ready.'],
+      ['Trade and health licences', 'Municipal trade licences and similar local permissions for your premises.'],
+      ['Fire, pollution and drug licences', 'Applications and renewals for the approvals that apply to your activity, where relevant.'],
+      ['Notices and inspections', 'Help in replying to a department notice and preparing for an inspection.'],
+    ],
+    who: ['Restaurants, cloud kitchens and caterers', 'Food manufacturers, packers and traders', 'E-commerce sellers of food products', 'Shops, clinics and workshops that need local licences'],
+    steps: [
+      ['Find out', 'We confirm your activity, scale and premises and list the licences that apply.'],
+      ['Apply', 'We collect documents, file the applications and handle departmental queries.'],
+      ['Keep it valid', 'We track renewals and returns and remind you before each one is due.'],
+    ],
+    docs: ['PAN and Aadhaar of the owner or partners', 'Address proof and rent or ownership papers of the premises', 'Photograph and layout or plan of the premises', 'List of food products or activities', 'Incorporation or partnership documents, if any'],
+    faq: [
+      ['Which FSSAI licence do I need?', 'It depends on the type of food business, its turnover or production capacity and whether it operates in one or several states. We check the category and apply for the right one.'],
+      ['Is a licence needed for a home kitchen?', 'Selling food, even from home, generally needs FSSAI registration or a licence depending on the scale. We confirm what applies to your case.'],
+      ['What happens if my licence expires?', 'Operating without a valid licence can bring penalties, and renewing late may add a fee. We track expiry dates so you are not caught out.'],
+      ['Do you handle licences in every state?', 'Most applications are made online and we work with the relevant state or central portals. If a local visit is needed, we will tell you at the start.'],
+      ['Can you get other licences too?', 'Yes. Tell us what your business does and where, and we will tell you which approvals apply and what each takes.'],
+    ],
+    related: ['registrations', 'msme', 'gst'],
+    wa: 'FSSAI and licences',
+  },
+  {
+    slug: 'valuation', icon: 'percent', name: 'Valuation services',
+    short: 'Business and share valuation for fundraising, ESOPs, share transfers, mergers and tax or regulatory needs.',
+    title: 'Business and Share Valuation Services in India | Apbiz',
+    desc: 'Valuation of businesses, shares and ESOPs for fundraising, share transfers, FEMA, mergers and tax purposes in India, with a clear and documented method.',
+    h1: 'Valuation you can defend to investors and the tax office.',
+    lead: 'A number only helps if it can be explained. We value businesses and shares with a clear method, so you can use it for fundraising, transfers, ESOPs and filings.',
+    intro: [
+      'Valuation is needed at many points in a company’s life: when you bring in an investor, issue or transfer shares, grant ESOPs, merge or restructure, or deal with cross-border transactions. Different situations need different methods and, in some cases, a report from a registered valuer.',
+      'Apbiz prepares the analysis, explains the assumptions in plain language and coordinates with the registered valuer where the law requires one.',
+    ],
+    includes: [
+      ['Startup and business valuation', 'Discounted cash flow, comparable and asset-based approaches, chosen to fit your stage and data.'],
+      ['Share valuation for issue and transfer', 'Support for fair value reports needed under company, tax and foreign exchange rules.'],
+      ['ESOP valuation', 'Fair value of the shares behind an employee stock option plan.'],
+      ['Fundraising support', 'Valuation analysis and financial models for investor discussions.'],
+      ['Merger and restructuring', 'Valuation and share-exchange ratio support for mergers, demergers and group restructuring.'],
+      ['Intangibles and brand', 'Valuation of intellectual property and other intangible assets.'],
+      ['Tax and regulatory use', 'Documentation that supports your position in tax assessments and filings.'],
+    ],
+    who: ['Startups raising funds from investors', 'Companies issuing or transferring shares', 'Businesses planning an ESOP', 'Promoters planning a merger, sale or restructuring'],
+    steps: [
+      ['Understand', 'We learn why you need the valuation and which rule or purpose it must satisfy.'],
+      ['Analyse', 'We build the model from your financials and market data and explain the assumptions.'],
+      ['Report', 'You receive a clear report, with the registered valuer’s sign-off where it is required.'],
+    ],
+    docs: ['Last three years of financial statements and the latest management accounts', 'Projections and business plan, if available', 'Shareholding pattern and cap table', 'Details of the transaction the valuation is for', 'Details of intangible assets, if relevant'],
+    faq: [
+      ['Do I need a registered valuer?', 'For some purposes the law requires a report from a registered valuer or a merchant banker. We tell you at the start whether yours does, and arrange it.'],
+      ['Which valuation method will be used?', 'It depends on the stage of your business and what data exists. Early-stage companies are valued differently from steady, profitable ones. We explain why a method suits you.'],
+      ['Can the valuation be used for an investor round?', 'Yes. Investors expect a reasoned valuation, and a documented model helps negotiations. The final price is still agreed between you and the investor.'],
+      ['How long does a valuation take?', 'It depends on the purpose and how complete the data is. We give an estimate after seeing your financials.'],
+      ['Is the result guaranteed to be accepted?', 'No. Authorities and investors decide for themselves. A well-documented valuation makes your case stronger.'],
+    ],
+    related: ['startup-india', 'company-law', 'accounting'],
+    wa: 'valuation',
+  },
+  {
+    slug: 'iso-certification', icon: 'shield', name: 'ISO and other certifications',
+    short: 'ISO 9001, 14001, 45001, 27001 and 22000 certification, plus HACCP, GMP, CE and other quality marks.',
+    title: 'ISO Certification: 9001, 14001, 27001, 22000 and More | Apbiz',
+    desc: 'ISO 9001, 14001, 45001, 27001 and 22000 certification support, with HACCP, GMP, CE and BIS guidance, from gap check and documents to audit readiness.',
+    h1: 'ISO and quality certifications, from first step to audit.',
+    lead: 'Certification builds trust with customers, wins tenders and opens export doors. We prepare your documents and processes and get you ready for the certification audit.',
+    intro: [
+      'Many buyers, tenders and export markets ask for ISO or similar certification. The standard you need depends on what you do: quality, environment, safety, information security, food safety and so on.',
+      'Apbiz explains which certification fits your goal, builds the documentation and practices the standard asks for, and coordinates with the accredited certification body for the audit.',
+    ],
+    includes: [
+      ['ISO 9001 quality management', 'The most widely asked-for standard, for consistent quality in products and services.'],
+      ['ISO 14001 and ISO 45001', 'Environmental management and occupational health and safety.'],
+      ['ISO 27001 information security', 'Controls and documents for protecting data, often asked by IT and outsourcing clients.'],
+      ['ISO 22000, HACCP and GMP', 'Food safety and good manufacturing practice systems for food and related businesses.'],
+      ['CE, BIS and product certifications', 'Guidance on product marks needed for particular markets or product categories.'],
+      ['Gap check and documentation', 'A review of where you stand today and the manuals, procedures and records you need.'],
+      ['Audit preparation and follow-up', 'Training for your team, internal audits and support through surveillance audits.'],
+    ],
+    who: ['Manufacturers and exporters', 'IT, BPO and consulting firms', 'Food and pharma businesses', 'Contractors who need certification for tenders'],
+    steps: [
+      ['Choose', 'We confirm which certification your customers or tenders actually need.'],
+      ['Build', 'We run a gap check, write the documents and help you put the practices in place.'],
+      ['Certify', 'We coordinate the audit with an accredited certification body and close any findings.'],
+    ],
+    docs: ['Company registration and licences', 'Description of products, services and sites', 'Existing procedures, manuals and records, if any', 'Organisation chart and key responsibilities', 'Customer or tender requirements for certification'],
+    faq: [
+      ['Who issues the certificate?', 'An accredited certification body issues it after auditing you. We prepare you and coordinate, and we do not issue it ourselves.'],
+      ['How long does ISO certification take?', 'It depends on the standard, the size of your business and how much is already in place. Small businesses can be ready relatively quickly. We give a plan after the gap check.'],
+      ['Is the certificate valid forever?', 'No. Certificates are valid for a fixed period and are checked in regular surveillance audits. We support you through those.'],
+      ['Which ISO standard should I choose?', 'It depends on your customers. Quality (9001) is the most common, while IT clients usually ask for 27001 and food businesses for 22000 or HACCP. We help you decide.'],
+      ['Is it only paperwork?', 'No. An auditor checks that you actually follow the system. We build something your team can run day to day.'],
+    ],
+    related: ['msme', 'fssai-licences', 'registrations'],
+    wa: 'ISO certification',
+  },
 ];
 
 export const FAQ_HOME = [
@@ -347,10 +502,44 @@ export const FAQ_HOME = [
   ['What happens if I have missed filings?', 'Start by finding out exactly what is pending. Many returns can still be filed late with a fee and interest, and each additional month of delay usually costs more. We prepare a catch-up plan with the cost of each step.'],
   ['What do I need to share to get started?', 'Your PAN, the nature of your business, your registrations (GSTIN, TAN and so on), and the services you need. We will ask only for what the work requires.'],
   ['Can you work with me if I am in another city?', 'Most compliance work is done online. We use WhatsApp, email and calls, and the government portals themselves are online. For work that needs a local office visit, we will tell you before we begin.'],
-  ['Will I get regular reminders?', 'Yes. Your due dates go into a calendar, and we remind you before each one and confirm after each filing.'],
+  ['Will I get regular reminders?', 'Yes. We remind you before each deadline and confirm after each filing.'],
 ];
 
 export const ABOUT = {
   title: 'About Apbiz: India Compliance Consultants | Apbiz',
   desc: 'Apbiz Consulting India LLP helps Indian businesses stay compliant with GST, income tax, TDS, company law and labour law, with clear communication and on-time filing.',
+};
+
+// ---- interactive elements ----
+
+// Floating tags in the hero background: [label, depth 1 (far) to 3 (near)]. Positions are set in build.mjs.
+export const HERO_TAGS = [
+  ['GSTR-1', 2], ['GSTR-3B', 3], ['TDS 26Q', 2], ['Form 16', 1], ['ITR', 3], ['AOC-4', 2], ['MGT-7', 1], ['PF ECR', 3],
+  ['ESI', 1], ['e-Invoice', 2], ['LUT', 1], ['DIR-3 KYC', 2], ['Udyam', 1], ['Advance tax', 3], ['FSSAI', 1], ['IEC', 2],
+];
+
+// The framed row of badges under the hero text (each gets a check seal).
+export const BADGES = ['GST', 'TDS', 'ITR', 'ROC', 'PF', 'ESI', 'PT', 'MSME'];
+
+// The two scrolling rows of "what we file".
+export const MARQUEE = [
+  ['GSTR-1', 'GSTR-3B', 'GSTR-9', 'E-way bills', 'E-invoicing', 'ITC reconciliation', 'GST refunds', 'LUT', 'GST notices', 'GST registration'],
+  ['TDS returns', 'Form 16 and 16A', 'Income tax returns', 'Advance tax', 'AOC-4', 'MGT-7', 'DIR-3 KYC', 'LLP Form 11 and 8', 'PF and ESI returns', 'Professional tax', 'Udyam', 'FSSAI', 'Shops and Establishment', 'DPIIT recognition', 'ISO 9001', 'Business valuation', 'ESOP valuation', 'Startup India'],
+];
+
+// Tags shown in the hero of each service page.
+export const SERVICE_TAGS = {
+  gst: ['GSTR-1', 'GSTR-3B', 'GSTR-9', 'E-way bill', 'LUT', 'ITC', 'Refunds', 'GSTR-2B'],
+  'income-tax': ['ITR', 'Advance tax', 'Tax audit', 'Capital gains', 'Form 26AS', 'Notices', 'Regime choice'],
+  tds: ['24Q', '26Q', '27Q', '27EQ', 'Form 16', 'Form 16A', 'TRACES', 'TAN'],
+  'company-law': ['AOC-4', 'MGT-7', 'DIR-3 KYC', 'LLP Form 8', 'LLP Form 11', 'SPICe+', 'ADT-1', 'DPT-3'],
+  'pf-esi': ['PF ECR', 'ESI', 'UAN', 'PT', 'Employer code', 'Inspection', 'Claims'],
+  payroll: ['Payslips', 'Salary structure', 'Form 16', 'Bonus', 'Gratuity', 'F&F', 'Bank file'],
+  registrations: ['Udyam', 'FSSAI', 'IEC', 'PAN', 'TAN', 'Shops Act', 'Trade licence'],
+  accounting: ['Bookkeeping', 'Bank reco', 'P&L', 'Balance sheet', 'MIS', 'Audit support'],
+  'startup-india': ['DPIIT', 'Startup India', '80-IAC', 'Angel tax', 'Cap table', 'Pitch', 'Incorporation'],
+  msme: ['Udyam', 'Subsidy', 'Priority loans', 'Tenders', 'Late payment', 'Schemes'],
+  'fssai-licences': ['FSSAI', 'Renewal', 'Annual return', 'Trade licence', 'Fire NOC', 'Drug licence', 'Labelling'],
+  valuation: ['DCF', 'Share valuation', 'ESOP', 'Fundraising', 'Merger', 'Cap table', 'Registered valuer'],
+  'iso-certification': ['ISO 9001', 'ISO 14001', 'ISO 27001', 'ISO 22000', 'HACCP', 'GMP', 'CE mark'],
 };
