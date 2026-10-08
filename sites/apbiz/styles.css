@@ -398,3 +398,8 @@ body.home .top { position: fixed; left: 0; right: 0; }
 .fsocial { display: flex; flex-wrap: wrap; gap: 10px; padding: 0; }
 @media (max-width: 1100px) { .fcols { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 760px) { .fcols { grid-template-columns: 1fr 1fr; } .lrow { flex-direction: column; align-items: flex-start; } }
+
+/* footer: three columns (two rows of three groups) so the links have room */
+.fcols { grid-template-columns: repeat(3, 1fr); gap: 44px 48px; }
+@media (max-width: 1100px) { .fcols { grid-template-columns: repeat(3, 1fr); gap: 36px 28px; } }
+@media (max-width: 760px) { .fcols { grid-template-columns: 1fr 1fr; } }
