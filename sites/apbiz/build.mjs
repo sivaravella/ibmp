@@ -42,7 +42,7 @@ const faqSchema = (faq) => ({ '@context': 'https://schema.org', '@type': 'FAQPag
 const crumbSchema = (items) => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items.map(([name, url], i) => ({ '@type': 'ListItem', position: i + 1, name, item: SITE.url + url })) });
 const orgSchema = { '@context': 'https://schema.org', '@type': 'ProfessionalService', name: SITE.name, legalName: SITE.legal, url: SITE.url, email: SITE.email, telephone: SITE.phone, sameAs: Object.values(SITE.social).filter((u) => u && new URL(u).pathname.length > 1), areaServed: { '@type': 'Country', name: 'India' }, description: 'Compliance services for Indian businesses: GST, income tax, TDS, company law, PF, ESI, payroll, DPIIT and Startup India, MSME, FSSAI and licences, valuation and ISO certification.' };
 
-const FOOT_GROUPS = [['Tax and accounting', ['gst', 'income-tax', 'tds', 'accounting']], ['Company and startups', ['company-law', 'startup-india', 'valuation']], ['Licences and certification', ['registrations', 'msme', 'fssai-licences', 'iso-certification']], ['Payroll and labour', ['pf-esi', 'payroll']]];
+const FOOT_GROUPS = [['Tax, payroll and books', [['gst', 'GST'], ['income-tax', 'Income tax'], ['tds', 'TDS and TCS'], ['pf-esi', 'PF, ESI and PT'], ['payroll', 'Payroll'], ['accounting', 'Accounting']]], ['Company and licences', [['company-law', 'Company law (ROC)'], ['startup-india', 'DPIIT and Startup India'], ['valuation', 'Valuation'], ['registrations', 'Registrations'], ['msme', 'MSME and Udyam'], ['fssai-licences', 'FSSAI and licences'], ['iso-certification', 'ISO certification']]]];
 const SOCIAL_ICONS = {
   linkedin: ['LinkedIn', 'M4.98 3.5a2.5 2.5 0 11-.01 5 2.5 2.5 0 01.01-5zM3 9.75h4V21H3zM9.5 9.75h3.8v1.6h.05c.55-1 1.9-2 3.9-2 4.1 0 4.75 2.7 4.75 6.2V21h-4v-4.9c0-1.2 0-2.7-1.7-2.7s-1.9 1.3-1.9 2.6V21h-4z', true],
   facebook: ['Facebook', 'M14 8.5V6.8c0-.8.2-1.3 1.4-1.3H17V2.2C16.7 2.1 15.8 2 14.7 2 12.2 2 10.5 3.5 10.5 6.3v2.2H8v3.5h2.5V22H14V12h2.7l.4-3.5H14z', true],
@@ -112,8 +112,8 @@ ${body}
   <div class="pattern" aria-hidden="true"></div>
   <div class="container fgrid">
     <div class="fcols">
-      ${FOOT_GROUPS.map(([h, slugs]) => `<div><h3>${h}</h3><ul>${slugs.map((s) => `<li><a href="/services/${s}/">${esc(service(s).name)}</a></li>`).join('')}</ul></div>`).join('')}
-      <div><h3>Guides</h3><ul>${POSTS.map((p) => `<li><a href="/blog/${p.slug}/">${esc(p.label)}</a></li>`).join('')}<li><a class="allink" href="/blog/">All articles</a></li></ul></div>
+      ${FOOT_GROUPS.map(([h, items]) => `<div><h3>${h}</h3><ul>${items.map(([s, label]) => `<li><a href="/services/${s}/">${esc(label)}</a></li>`).join("")}</ul></div>`).join("")}
+      <div class="fguides"><h3>Guides</h3><ul>${POSTS.map((p) => `<li><a href="/blog/${p.slug}/">${esc(p.label)}</a></li>`).join('')}</ul></div>
       <div><h3>Company</h3><ul><li><a href="/about/">About Apbiz</a></li><li><a href="/contact/">Contact</a></li><li><a href="/services/">All services</a></li><li><a href="/blog/">Blog</a></li><li><a href="${SITE.software}/" rel="noopener">Login to IBMP</a></li></ul></div>
     </div>
   </div>

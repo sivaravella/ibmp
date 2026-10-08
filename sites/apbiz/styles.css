@@ -403,3 +403,11 @@ body.home .top { position: fixed; left: 0; right: 0; }
 .fcols { grid-template-columns: repeat(3, 1fr); gap: 44px 48px; }
 @media (max-width: 1100px) { .fcols { grid-template-columns: repeat(3, 1fr); gap: 36px 28px; } }
 @media (max-width: 760px) { .fcols { grid-template-columns: 1fr 1fr; } }
+
+/* footer: four equal groups (the Guides group is twice as wide and runs its list in two columns) */
+.fcols { grid-template-columns: repeat(5, 1fr); gap: 0 40px; align-items: start; }
+.fguides { grid-column: span 2; }
+.fguides ul { columns: 2; column-gap: 40px; } .fguides li { break-inside: avoid; }
+.foot ul li { padding: 7px 0; }
+@media (max-width: 1100px) { .fcols { grid-template-columns: 1fr 1fr; gap: 36px 32px; } .fguides { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .fguides ul { columns: 1; } }
