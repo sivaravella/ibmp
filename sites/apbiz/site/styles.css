@@ -456,7 +456,7 @@ body.home .top { position: fixed; left: 0; right: 0; }
 
 /* ---------- brand kit: logo lockup (light and dark versions) ---------- */
 .brand { gap: 0; }
-.brand img { display: block; height: 46px; width: auto; }
+.brand img { display: block; width: 75px; height: 50px; image-rendering: auto; }
 .brand .lg-d { display: none; }
 .js body.home .top:not(.scrolled) .brand .lg-l { display: none; } .js body.home .top:not(.scrolled) .brand .lg-d { display: block; }
 .mark { display: none; }

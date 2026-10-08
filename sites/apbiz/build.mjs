@@ -89,7 +89,7 @@ ${schema.map(jsonld).join('\n')}
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <div class="container bar">
-    <a class="brand" href="/" aria-label="Apbiz home"><img class="lg-l" src="/logo-symbol.svg" width="69" height="46" alt="apbiz"><img class="lg-d" src="/logo-symbol-dark.svg" width="69" height="46" alt="" aria-hidden="true"></a>
+    <a class="brand" href="/" aria-label="Apbiz home"><img class="lg-l" src="/logo-symbol.svg" width="75" height="50" alt="apbiz"><img class="lg-d" src="/logo-symbol-dark.svg" width="75" height="50" alt="" aria-hidden="true"></a>
     <nav class="main" aria-label="Main">
       <div class="has-menu"><a href="/services/" aria-haspopup="true">Services <span class="caret" aria-hidden="true"></span></a><div class="menu">${NAV_MENU}<a class="all" href="/services/">All services</a></div></div>
       <a href="/blog/">Blog</a>
