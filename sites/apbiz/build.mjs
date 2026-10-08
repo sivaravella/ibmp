@@ -89,7 +89,7 @@ ${schema.map(jsonld).join('\n')}
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <div class="container bar">
-    <a class="brand" href="/" aria-label="Apbiz home"><img class="lg-l" src="/logo.svg" width="118" height="34" alt="apbiz"><img class="lg-d" src="/logo-dark.svg" width="118" height="34" alt="" aria-hidden="true"></a>
+    <a class="brand" href="/" aria-label="Apbiz home"><img class="lg-l" src="/logo-symbol.svg" width="69" height="46" alt="apbiz"><img class="lg-d" src="/logo-symbol-dark.svg" width="69" height="46" alt="" aria-hidden="true"></a>
     <nav class="main" aria-label="Main">
       <div class="has-menu"><a href="/services/" aria-haspopup="true">Services <span class="caret" aria-hidden="true"></span></a><div class="menu">${NAV_MENU}<a class="all" href="/services/">All services</a></div></div>
       <a href="/blog/">Blog</a>
@@ -412,7 +412,7 @@ ${cta(`Talk to us about ${s.name}.`, 'Send us the basics on WhatsApp. We will re
 fs.mkdirSync(OUT, { recursive: true });
 for (const f of fs.readdirSync(OUT)) fs.rmSync(path.join(OUT, f), { recursive: true, force: true });      // empty the folder, not the folder itself (a preview server may be using it)
 home(); servicesHub(); SERVICES.forEach(servicePage); blogIndex(); POSTS.forEach(blogPost); about(); contact(); notFound();
-for (const f of ['styles.css', 'app.js', 'favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'logo-dark.svg']) fs.copyFileSync(path.join(here, f), path.join(OUT, f));
+for (const f of ['styles.css', 'app.js', 'favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'logo-dark.svg', 'logo-symbol.svg', 'logo-symbol-dark.svg']) fs.copyFileSync(path.join(here, f), path.join(OUT, f));
 const urls = ['/', '/services/', ...SERVICES.map((s) => `/services/${s.slug}/`), '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/about/', '/contact/'];
 fs.writeFileSync(path.join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE.url}${u}</loc><lastmod>${SITE.updated}</lastmod></url>`).join('\n')}\n</urlset>\n`);
 fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE.url}/sitemap.xml\n`);
