@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ABOUT, BADGES, FAQ_HOME, HERO_TAGS, MARQUEE, SERVICES, SERVICE_TAGS, SITE } from './content.mjs';
+import { POSTS } from './blog.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(here, 'site');
@@ -70,6 +71,7 @@ ${schema.map(jsonld).join('\n')}
     <a class="brand" href="/" aria-label="Apbiz home"><span class="mark">A</span><span>Apbiz</span></a>
     <nav class="main" aria-label="Main">
       <div class="has-menu"><a href="/services/" aria-haspopup="true">Services <span class="caret" aria-hidden="true"></span></a><div class="menu">${NAV_MENU}<a class="all" href="/services/">All services</a></div></div>
+      <a href="/blog/">Blog</a>
       <a href="/about/">About</a>
       <a href="/contact/">Contact</a>
     </nav>
@@ -79,7 +81,7 @@ ${schema.map(jsonld).join('\n')}
       <div class="sheet">
         <p>Services</p>${NAV_MENU}
         <p>Platform</p><a href="${SITE.software}/" rel="noopener">Login to IBMP</a>
-        <p>Company</p><a href="/about/">About</a><a href="/contact/">Contact</a>
+        <p>Company</p><a href="/blog/">Blog</a><a href="/about/">About</a><a href="/contact/">Contact</a>
       </div>
     </details>
   </div>
@@ -95,7 +97,7 @@ ${body}
       <p><a class="plain" href="${wa('compliance')}" rel="noopener">WhatsApp ${esc(SITE.phone)}</a><br><a class="plain" href="mailto:${SITE.email}">${SITE.email}</a></p>
     </div>
     <div><h3>Services</h3><ul>${FOOT_SERVICES}</ul></div>
-    <div><h3>Resources</h3><ul><li><a href="/services/">All services</a></li><li><a href="${SITE.software}/" rel="noopener">Login to IBMP</a></li></ul>
+    <div><h3>Resources</h3><ul><li><a href="/services/">All services</a></li><li><a href="/blog/">Blog</a></li><li><a href="${SITE.software}/" rel="noopener">Login to IBMP</a></li></ul>
       <h3>Company</h3><ul><li><a href="/about/">About Apbiz</a></li><li><a href="/contact/">Contact</a></li><li><a href="${SITE.software}/privacy">Privacy Policy</a></li><li><a href="${SITE.software}/terms">Terms of Service</a></li></ul></div>
   </div>
   <div class="container legal">
@@ -297,12 +299,47 @@ function notFound() {
   page({ path: '/404.html', title: 'Page not found | Apbiz', desc: 'This page could not be found.', body, noindex: true });
 }
 
+// ---------- blog ----------
+const fmtDate = (d) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+function blogIndex() {
+  const cards = POSTS.map((p, i) => `<a class="post glow reveal" style="--rd:${(i % 3) * 80}ms" href="/blog/${p.slug}/"><span class="cat">${esc(p.category)}</span><h3>${esc(p.h1)}</h3><p>${esc(p.desc)}</p><span class="meta">${fmtDate(p.date)} · ${p.minutes} min read</span><span class="more">Read article ${icon('arrow', 16)}</span></a>`).join('');
+  const body = `
+${phero(`${crumbs([['Home', '/'], ['Blog', '/blog/']])}<h1>Compliance guides for Indian businesses</h1><p class="lead">Plain-language explanations of GST, tax, company law, licences, Startup India and certifications, written by the team that files them.</p>`, ['GST', 'ROC', 'DPIIT', 'FSSAI', 'ISO', 'ITR'])}
+<section class="section"><div class="container"><div class="grid3">${cards}</div></div></section>
+${cta('Have a question we have not covered?', 'Ask us on WhatsApp. We answer in plain words and tell you what applies to your business.')}`;
+  page({ path: '/blog/', title: 'Blog: GST, Tax, ROC and Licence Guides for India | Apbiz', desc: 'Plain-language guides on GST returns, company compliance, DPIIT and Startup India, FSSAI, ISO certification and tax notices for Indian businesses.', body, schema: [crumbSchema([['Home', '/'], ['Blog', '/blog/']])] });
+}
+function blogPost(p) {
+  const url = `/blog/${p.slug}/`, s = service(p.service);
+  const sections = p.body.map((b) => `<h2>${esc(b.h)}</h2>${(b.p || []).map((t) => `<p>${esc(t)}</p>`).join('')}${b.list ? checks(b.list) : ''}`).join('');
+  const others = POSTS.filter((o) => o.slug !== p.slug).slice(0, 3);
+  const body = `
+${phero(`${crumbs([['Home', '/'], ['Blog', '/blog/'], [p.category, url]])}<p class="eyebrow">${esc(p.category)} · ${fmtDate(p.date)} · ${p.minutes} min read</p><h1>${esc(p.h1)}</h1><p class="lead">${esc(p.lead)}</p>`, null)}
+<div class="container article">
+  <article class="prose">
+    ${sections}
+    <h2>Quick answers</h2>${faqHtml(p.faq)}
+    <p class="disclaimer">This article is general information, not advice for your situation. Rules, limits and due dates change, so we confirm the current position before you act on it.</p>
+  </article>
+  <aside class="side">
+    <div class="box"><h3>Need help with ${esc(s.name)}?</h3><p>Tell us about your business and we will tell you what applies and what it takes.</p><a class="btn wa full" href="${wa(s.wa)}" rel="noopener">${icon('whatsapp', 18)} Chat on WhatsApp</a><p class="small"><a href="/services/${s.slug}/">See our ${esc(s.name)} service</a></p></div>
+    <div class="box"><h3>More guides</h3><ul class="rel">${others.map((o) => `<li><a href="/blog/${o.slug}/">${esc(o.h1)}</a></li>`).join('')}<li><a href="/blog/">All articles</a></li></ul></div>
+  </aside>
+</div>
+${cta(`Talk to us about ${s.name}.`, 'Send us the basics on WhatsApp. We will reply with what applies and how we can help.', s.wa)}`;
+  page({
+    path: url, title: p.title, desc: p.desc, body,
+    schema: [crumbSchema([['Home', '/'], ['Blog', '/blog/'], [p.category, url]]), faqSchema(p.faq),
+      { '@context': 'https://schema.org', '@type': 'Article', headline: p.h1, description: p.desc, datePublished: p.date, dateModified: p.date, inLanguage: 'en-IN', mainEntityOfPage: SITE.url + url, author: { '@type': 'Organization', name: SITE.name, url: SITE.url }, publisher: { '@type': 'Organization', name: SITE.legal, url: SITE.url } }],
+  });
+}
+
 // ---------- build ----------
 fs.mkdirSync(OUT, { recursive: true });
 for (const f of fs.readdirSync(OUT)) fs.rmSync(path.join(OUT, f), { recursive: true, force: true });      // empty the folder, not the folder itself (a preview server may be using it)
-home(); servicesHub(); SERVICES.forEach(servicePage); about(); contact(); notFound();
+home(); servicesHub(); SERVICES.forEach(servicePage); blogIndex(); POSTS.forEach(blogPost); about(); contact(); notFound();
 for (const f of ['styles.css', 'app.js', 'favicon.svg']) fs.copyFileSync(path.join(here, f), path.join(OUT, f));
-const urls = ['/', '/services/', ...SERVICES.map((s) => `/services/${s.slug}/`), '/about/', '/contact/'];
+const urls = ['/', '/services/', ...SERVICES.map((s) => `/services/${s.slug}/`), '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/about/', '/contact/'];
 fs.writeFileSync(path.join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE.url}${u}</loc><lastmod>${SITE.updated}</lastmod></url>`).join('\n')}\n</urlset>\n`);
 fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE.url}/sitemap.xml\n`);
 console.log(`built ${urls.length + 1} pages into ${OUT}`);

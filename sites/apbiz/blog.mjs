@@ -1,0 +1,88 @@
+// Blog articles. Each body is a list of sections: { h: heading, p: [paragraphs], list: [bullets] (optional, shown after the paragraphs) }.
+// Keep them evergreen: explain how things work and what to ask, and avoid rates, limits and dates that change.
+export const POSTS = [
+  {
+    slug: 'gstr-1-gstr-3b-gstr-9-explained', date: '2026-10-08', category: 'GST', minutes: 5, service: 'gst',
+    title: 'GSTR-1, GSTR-3B and GSTR-9 Explained in Plain Words',
+    desc: 'What GSTR-1, GSTR-3B and the annual GSTR-9 return are, how they differ, and how to keep your sales, input credit and tax payments in line.',
+    h1: 'GSTR-1, GSTR-3B and GSTR-9: what each return is for',
+    lead: 'Three returns, three different jobs. Knowing what each one reports makes mismatches, notices and late fees far easier to avoid.',
+    body: [
+      { h: 'GSTR-1: the details of your sales', p: ['GSTR-1 lists the sales you made in the period, invoice by invoice for business customers and in summary for consumers. It also reports credit and debit notes. The details you file here appear in your customers’ records, which is how they claim input tax credit.', 'Because your customers depend on it, an error in GSTR-1 becomes their problem as well as yours.'] },
+      { h: 'GSTR-3B: the summary and the payment', p: ['GSTR-3B is the summary return. It states your total sales and tax, the input tax credit you are claiming and the tax you are paying. This is the return where the money moves.', 'The totals in GSTR-3B should agree with the sales you reported in GSTR-1 and with the credit shown to you from your suppliers’ returns.'] },
+      { h: 'GSTR-9: the annual return', p: ['GSTR-9 is the yearly return that brings the year together. It reconciles what you reported month by month with your books. Whether it is required, and in what form, depends on your turnover and your registration type, so confirm what applies to you each year.'] },
+      { h: 'Habits that prevent most problems', p: ['Most GST trouble comes from numbers that do not match, not from the forms themselves.'], list: ['Reconcile your sales register with GSTR-1 before filing.', 'Compare your purchase records with the credit shown in your supplier-reported statement before claiming input credit.', 'Pay the tax you owe in cash or credit before filing GSTR-3B, and keep the challans.', 'Correct errors in the next period’s return as the rules allow, instead of leaving them.', 'Keep the annual reconciliation in mind from April, not at the end of the year.'] },
+    ],
+    faq: [['Which return do I file first?', 'GSTR-1 reports your sales and is generally filed before GSTR-3B, which summarises and pays the tax.'], ['Can I skip a return if I had no sales?', 'No. A nil return still needs to be filed for the period. We help you file nil returns correctly.']],
+  },
+  {
+    slug: 'compliance-checklist-new-private-limited-company', date: '2026-10-08', category: 'Company law', minutes: 5, service: 'company-law',
+    title: 'New Private Limited Company: Your First-Year Checklist',
+    desc: 'A practical checklist of what a newly incorporated Indian private limited company must set up and file in its first year, from bank account to annual returns.',
+    h1: 'First-year compliance checklist for a new private limited company',
+    lead: 'Incorporation is the easy part. The year after it is where missed filings and penalties begin. Use this checklist to stay ahead.',
+    body: [
+      { h: 'Right after incorporation', p: ['Once the certificate of incorporation arrives, set up the basics before you trade.'], list: ['Obtain the company’s PAN and TAN, if not issued with the certificate.', 'Open a current account in the company’s name and bring in the share capital.', 'Hold the first board meeting and appoint the first auditor within the time the law allows.', 'File any post-incorporation forms that apply, including those relating to the commencement of business.', 'Maintain statutory registers such as members, directors and share certificates.'] },
+      { h: 'Tax registrations', p: ['Depending on what you do, you may need a GST registration, a professional tax enrolment and registrations as an employer for PF and ESI once you hire. Starting without them is a common cause of penalties later.'] },
+      { h: 'Every year after that', p: ['A company has a regular yearly rhythm: board meetings and a general meeting, financial statements approved and filed with the Registrar, the annual return, the income tax return, and the director KYC filings. Each has its own form and deadline, and a missed one brings daily additional fees.'] },
+      { h: 'Keep the books from day one', p: ['Auditors, banks and investors will ask for clean records. Recording sales, expenses and bank entries every month is cheaper than rebuilding a year at the end.'] },
+    ],
+    faq: [['When must the first auditor be appointed?', 'The law sets a short window after incorporation for the first auditor. We check the current period for your company and handle the appointment.'], ['Do I need a GST number straight away?', 'It depends on your turnover and what you sell. Some businesses must register regardless of turnover. We tell you whether it applies to you.']],
+  },
+  {
+    slug: 'what-is-dpiit-recognition-and-who-can-get-it', date: '2026-10-08', category: 'Startup India', minutes: 5, service: 'startup-india',
+    title: 'DPIIT Recognition: What It Is and Who Can Get It',
+    desc: 'What DPIIT startup recognition under Startup India means, which businesses can apply, what benefits it opens up and how the application works.',
+    h1: 'DPIIT recognition: what it is and who can get it',
+    lead: 'DPIIT recognition is the entry point to the Startup India benefits. Here is what it covers and how to know whether you are ready to apply.',
+    body: [
+      { h: 'What recognition means', p: ['The Department for Promotion of Industry and Internal Trade (DPIIT) recognises eligible startups. Recognition by itself does not hand you money. It makes you eligible to apply for the programme’s benefits, such as the income tax exemption for eligible startups, simpler compliance and preference in some public procurement.'] },
+      { h: 'Who can apply', p: ['The entity must be a private limited company, an LLP or a registered partnership firm, and it must be within the age and turnover limits set by the government. Its work must also be an innovation or an improvement of a product, process or service, or a scalable model with potential for jobs or wealth creation. Because the limits can change, we check the current conditions before you apply.'] },
+      { h: 'What to prepare', p: ['The application is online. Have these ready.'], list: ['Certificate of incorporation or registration', 'A clear description of what is new about your product or model', 'Details of the founders and a pitch deck or website', 'An authorisation to apply on behalf of the entity'] },
+      { h: 'After recognition', p: ['Recognition is the first step. The tax exemption, funding schemes and other benefits each have their own application and conditions. We take startups through those steps and keep their compliance investor-ready.'] },
+    ],
+    faq: [['Does recognition cost anything?', 'The recognition has no government fee. Professional fees, if you use us, are agreed up front.'], ['Is a sole proprietorship eligible?', 'Recognition is for registered entities such as a company, LLP or registered partnership, not for a sole proprietorship.']],
+  },
+  {
+    slug: 'which-fssai-licence-do-you-need', date: '2026-10-08', category: 'Licences', minutes: 4, service: 'fssai-licences',
+    title: 'Which FSSAI Licence Do You Need? Registration vs Licence',
+    desc: 'FSSAI basic registration, state licence and central licence: how they differ, who needs which, and what to do about renewals and annual returns.',
+    h1: 'Which FSSAI licence do you need?',
+    lead: 'Food businesses in India fall into three tiers of FSSAI approval. Choosing the wrong one means rework, and having none risks penalties.',
+    body: [
+      { h: 'The three tiers', p: ['FSSAI approvals come in three forms: a basic registration for the smallest food businesses, a state licence for medium businesses and a central licence for the largest ones and for certain activities such as import and operations in several states.'] },
+      { h: 'What decides your tier', p: ['The tier depends on the kind of food business, its turnover or production capacity, and whether it operates in one state or several. Each activity has its own limits, and the limits are set by the regulator. We confirm the category that applies at the time you apply.'] },
+      { h: 'After you have it', list: ['Display the licence or registration at your premises.', 'Renew before it expires, because late renewal can add a fee and a lapse is a risk during inspections.', 'File the annual return where your licence category requires it.', 'Update the licence when you change address, products or ownership.', 'Keep labelling and records in order for inspections.'], p: ['A licence is not a one-time task. Missing a renewal is the most common mistake.'] },
+      { h: 'Home kitchens and online sellers', p: ['Selling food from home or through an online marketplace generally still needs registration or a licence at the right scale. Marketplaces usually ask to see it.'] },
+    ],
+    faq: [['Is an FSSAI licence needed for a small tea stall?', 'Small food businesses generally need at least a basic registration. We check the rule for your size and activity.'], ['Can one licence cover several outlets?', 'Usually each premises needs its own, though some multi-location businesses can use a central licence. We advise on the best structure.']],
+  },
+  {
+    slug: 'which-iso-standard-is-right-for-your-business', date: '2026-10-08', category: 'Certification', minutes: 4, service: 'iso-certification',
+    title: 'Which ISO Standard Is Right for Your Business?',
+    desc: 'ISO 9001, 14001, 45001, 27001 and 22000 compared in plain language, with guidance on which certification your customers or tenders are likely to ask for.',
+    h1: 'Which ISO standard is right for your business?',
+    lead: 'There is an ISO standard for almost every concern, but few businesses need more than one or two. Here is how to choose.',
+    body: [
+      { h: 'Start from what your customers ask for', p: ['The best way to choose is to look at tender documents, client questionnaires and export requirements. They usually name the standard they expect.'] },
+      { h: 'The common ones', list: ['ISO 9001: quality management. The most widely asked-for standard, useful for almost any manufacturer or service business.', 'ISO 14001: environmental management, for businesses with environmental obligations or customers who ask.', 'ISO 45001: occupational health and safety, common for contractors and industrial sites.', 'ISO 27001: information security, usually asked by IT, outsourcing and data-handling businesses.', 'ISO 22000 (with HACCP and GMP): food safety, for food manufacturers and packers.'], p: ['Other product marks, such as CE or BIS, are about specific products and markets, not management systems.'] },
+      { h: 'How certification works', p: ['You build a documented system, run it for a period, and an accredited certification body audits it. If it passes, you receive a certificate that is valid for a fixed term, with surveillance audits in between. The certificate is issued by the certification body, not by a consultant.'] },
+      { h: 'Make it real, not paperwork', p: ['Auditors check that your team follows the system. A simple system that people actually use passes more easily than a thick manual nobody reads.'] },
+    ],
+    faq: [['Can I get several ISO certificates together?', 'Yes. Many businesses combine standards, since they share common elements such as document control and internal audits.'], ['Is ISO certification mandatory?', 'Usually not by law, but it is often required by customers and tenders.']],
+  },
+  {
+    slug: 'what-to-do-when-you-get-a-tax-notice', date: '2026-10-08', category: 'Tax', minutes: 4, service: 'income-tax',
+    title: 'Got a GST or Income Tax Notice? Do These Six Things First',
+    desc: 'A calm six-step approach to a GST or income tax notice: read it, note the deadline, gather records, reply on the portal, and know when to ask for help.',
+    h1: 'Received a GST or income tax notice? Start here.',
+    lead: 'A notice is a request for information or an explanation, not a verdict. A careful, on-time reply resolves most of them.',
+    body: [
+      { h: 'Six steps', list: ['Read it fully. Note the section, the period, the amount and exactly what is being asked.', 'Find the reply deadline and mark it. Missing it can turn a simple query into an order.', 'Check whether the notice is genuine by viewing it on the official portal, where real notices appear in your account.', 'Collect the records the notice refers to: invoices, returns, bank statements, challans and earlier correspondence.', 'Compare your returns with the department’s records to see where the difference arises.', 'Reply through the portal with a clear, factual answer and supporting documents, and keep the acknowledgement.'] },
+      { h: 'Common causes', p: ['Many notices come from mismatches: tax credit claimed that does not appear in supplier returns, income or tax deducted that differs from the department’s statements, or returns not filed. Some are routine reminders. Others ask for a detailed explanation.'] },
+      { h: 'When to get help', p: ['If the amount is large, the notice cites a section you do not understand, or the deadline is close, share it with a professional early. A well-drafted reply matters more than a quick one, and some notices allow you to ask for more time.'] },
+      { h: 'Do not ignore it', p: ['An unanswered notice can lead to an assessment based on the department’s own view, with interest and penalty added. Replying on time is nearly always cheaper.'] },
+    ],
+    faq: [['Can I get more time to reply?', 'Some notices allow you to request an extension or an adjournment. We check what is possible for yours.'], ['Will you reply on my behalf?', 'Yes, with your authorisation, and only after you have reviewed the reply.']],
+  },
+];

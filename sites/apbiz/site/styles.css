@@ -217,3 +217,11 @@ body.home .top { position: fixed; left: 0; right: 0; }
 .js body.home .top:not(.scrolled) .login { color: #fff; border-color: rgb(255 255 255 / .45); }
 .js body.home .top:not(.scrolled) .login:hover { background: rgb(255 255 255 / .12); color: #fff; }
 @media (max-width: 1000px) { .bar > .login { display: none; } }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.post { display: flex; flex-direction: column; position: relative; overflow: hidden; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 24px; text-decoration: none; color: var(--body); transition: transform .2s, box-shadow .2s, border-color .2s; }
+.post:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: #c3d0f4; color: var(--body); }
+.post .cat { width: fit-content; padding: 4px 12px; border-radius: 999px; background: #e8efff; color: var(--brand-d); font-size: 13px; font-weight: 700; margin-bottom: 14px; }
+.post h3 { margin-bottom: 10px; font-size: 20px; } .post p { font-size: 15.5px; color: var(--muted); flex: 1; }
+.post .meta { font-size: 13.5px; color: var(--muted); margin: 4px 0 8px; } .post:hover .more .ic { transform: translateX(4px); }
+@media (max-width: 1000px) { .grid3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 640px) { .grid3 { grid-template-columns: 1fr; } }
