@@ -12,7 +12,7 @@ IBMP runs on the shared server `168.144.90.151` (Ubuntu 22.04, 1 CPU, 1.9 GB RAM
 | `/opt/parcellbox/certbot/conf/live/ibmp.apbiz.in/` | The Let's Encrypt certificate (expires 2027-01-06). `/opt/ibmp/renew-cert.sh` (covering this certificate and the one for apbiz.in) runs weekly from `/etc/cron.d/ibmp-cert-renew` and reloads nginx only if it renewed. It does not touch parcelbox's certificate (`parcellbox.in`, expires 2026-12-02, no automatic renewal found). |
 | `/opt/ibmp/backup.sh`, `/etc/cron.d/ibmp-backup` | Nightly 02:30 UTC dump to `/opt/ibmp/backups/ibmp-*.sql.gz`, 14 days kept; log in `/var/log/ibmp-backup.log`. Restore was tested into a scratch database (same 51 tables, 27 migrations). |
 
-## The Apbiz website (apbiz.in, deployed 8 October 2026)
+## The Apbiz website (apbiz.in, deployed 8 October 2026; redesigned with 13 services and a Login link to ibmp.apbiz.in the same day)
 
 A static page (the `sites/apbiz/` folder of this repository) served by a tiny nginx container, `apbiz-site-site-1`, defined in `/opt/apbiz-site/docker-compose.yml` with the files in `/opt/apbiz-site/html`. Like IBMP it joins `parcellbox_default` (alias `apbiz-site`) and is reached only through parcelbox's nginx, which has three more `server` blocks (port 80 for `apbiz.in` and `www.apbiz.in`, port 443 for `www` (redirect to the bare domain) and for `apbiz.in`). Its certificate (`apbiz.in` plus `www.apbiz.in`, expires 2027-01-06) is renewed by the same weekly job. DNS: A records for `@` and `www` at GoDaddy point to 168.144.90.151.
 

@@ -4,7 +4,7 @@ The public site of Apbiz Consulting India LLP (https://apbiz.in): 14 static page
 
 | Path | What |
 |---|---|
-| `content.mjs` | Every word on the site: company details, the 8 service pages, due dates, FAQs. **Edit text here.** |
+| `content.mjs` | Every word on the site: company details, the 13 service pages, hero tags, FAQs. **Edit text here.** |
 | `build.mjs` | Page templates (header, footer, structured data, sitemap). Run `node sites/apbiz/build.mjs`. |
 | `styles.css` | The whole design (navy, white and soft grey; green only for WhatsApp buttons). |
 | `check.mjs` | Quality gate: broken links, one h1 per page, unique titles and descriptions, valid structured data. Run after building. |
