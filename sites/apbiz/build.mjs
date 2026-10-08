@@ -77,8 +77,10 @@ ${noindex ? '<meta name="robots" content="noindex">' : '<meta name="robots" cont
 <meta property="og:url" content="${url}">
 <meta property="og:locale" content="en_IN">
 <meta name="twitter:card" content="summary">
-<meta name="theme-color" content="#0b1230">
+<meta name="theme-color" content="#14243a">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="stylesheet" href="/styles.css">
 <script src="/app.js" defer></script>
 ${schema.map(jsonld).join('\n')}
@@ -87,7 +89,7 @@ ${schema.map(jsonld).join('\n')}
 <a class="skip" href="#main">Skip to content</a>
 <header class="top">
   <div class="container bar">
-    <a class="brand" href="/" aria-label="Apbiz home"><span class="mark">A</span><span>Apbiz</span></a>
+    <a class="brand" href="/" aria-label="Apbiz home"><img class="lg-l" src="/logo.svg" width="118" height="34" alt="apbiz"><img class="lg-d" src="/logo-dark.svg" width="118" height="34" alt="" aria-hidden="true"></a>
     <nav class="main" aria-label="Main">
       <div class="has-menu"><a href="/services/" aria-haspopup="true">Services <span class="caret" aria-hidden="true"></span></a><div class="menu">${NAV_MENU}<a class="all" href="/services/">All services</a></div></div>
       <a href="/blog/">Blog</a>
@@ -120,7 +122,7 @@ ${body}
   <div class="container legal">
     <div class="lrow"><div class="lleft"><p>&copy; 2026 ${esc(SITE.legal)}. All rights reserved.</p><nav aria-label="Legal"><a href="${SITE.software}/privacy">Privacy Policy</a><a href="${SITE.software}/terms">Terms of Service</a><a href="/sitemap.xml">Sitemap</a></nav></div><div class="fsocial">${SOCIALS}</div></div>
   </div>
-  <div class="wordmark" aria-hidden="true">Apbiz</div>
+  <div class="wordmark" aria-hidden="true">apbiz</div>
 </footer>
 </body>
 </html>
@@ -167,11 +169,11 @@ function home() {
     ['Plain language', 'You get an explanation of what is being filed and why, in words a business owner can use, not only an acknowledgement number.'],
     ['Records ready for scrutiny', 'Banks, investors, auditors and officers ask for the same papers. We keep them organised so that you can hand them over the same day.'],
   ];
-  const hue = (i) => (215 + i * 53) % 360;
+  // two brand themes (navy and yellow) alternate; see [data-t] in styles.css
   const TAB = { gst: 'GST', 'income-tax': 'Income tax', tds: 'TDS / TCS', 'company-law': 'Company law', 'pf-esi': 'PF / ESI / PT', payroll: 'Payroll', registrations: 'Registrations', accounting: 'Accounting', 'startup-india': 'Startup India', msme: 'MSME', 'fssai-licences': 'FSSAI and licences', valuation: 'Valuation', 'iso-certification': 'ISO' };
   const pad = (n) => String(n).padStart(2, '0');
-  const tabs = SERVICES.map((s, i) => `<button type="button" role="tab" style="--h:${hue(i)}" id="t-${s.slug}" aria-controls="p-${s.slug}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(s.icon, 20)}<span>${esc(TAB[s.slug] || s.name)}</span></button>`).join('');
-  const panels = SERVICES.map((s, i) => `<article class="epanel" style="--h:${hue(i)}" role="tabpanel" id="p-${s.slug}" aria-labelledby="t-${s.slug}">
+  const tabs = SERVICES.map((s, i) => `<button type="button" role="tab" data-t="${i % 2}" id="t-${s.slug}" aria-controls="p-${s.slug}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(s.icon, 20)}<span>${esc(TAB[s.slug] || s.name)}</span></button>`).join('');
+  const panels = SERVICES.map((s, i) => `<article class="epanel" data-t="${i % 2}" role="tabpanel" id="p-${s.slug}" aria-labelledby="t-${s.slug}">
     <div class="eleft"><span class="ico big">${icon(s.icon, 30)}</span><p class="enum">${pad(i + 1)} / ${pad(SERVICES.length)}</p><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><div class="actions"><a class="btn dark" href="/services/${s.slug}/">Explore ${esc(TAB[s.slug] || s.name)}</a><a class="btn outline" href="${wa(s.wa)}" rel="noopener">Ask on WhatsApp</a></div></div>
     <div class="eright"><h4>What we do</h4><ul class="checks">${s.includes.slice(0, 5).map(([t]) => `<li>${icon('check', 18)}<span>${esc(t)}</span></li>`).join('')}</ul><div class="etags" aria-hidden="true">${(SERVICE_TAGS[s.slug] || []).slice(0, 6).map((t) => `<span>${esc(t)}</span>`).join('')}</div></div>
   </article>`).join('');
@@ -254,7 +256,7 @@ function home() {
   <div class="container">
     <div class="head reveal"><p class="eyebrow dark">How it works</p><h2>Three steps, then it runs.</h2><p>No long onboarding and no forms to fill. You start with a conversation.</p></div>
     <ol class="flow reveal">
-      ${[['chat', 'Tell us about your business', 'What you sell, where you are registered and how many people you employ. A short WhatsApp conversation is enough to begin.'], ['filecheck', 'We take over your filings', 'We list every filing that applies, take over the ones you hand to us and agree what we need from you and when.'], ['bell', 'You stay informed, not busy', 'Reminders before every deadline, a confirmation after every filing and a tidy record whenever you need it.']].map(([ic, t, d], i) => `<li class="fstep" style="--h:${[225, 268, 36][i]}"><span class="fn">${i + 1}</span><span class="fico">${icon(ic, 26)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></li>`).join('')}
+      ${[['chat', 'Tell us about your business', 'What you sell, where you are registered and how many people you employ. A short WhatsApp conversation is enough to begin.'], ['filecheck', 'We take over your filings', 'We list every filing that applies, take over the ones you hand to us and agree what we need from you and when.'], ['bell', 'You stay informed, not busy', 'Reminders before every deadline, a confirmation after every filing and a tidy record whenever you need it.']].map(([ic, t, d], i) => `<li class="fstep" data-t="${[0, 0, 1][i]}"><span class="fn">${i + 1}</span><span class="fico">${icon(ic, 26)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></li>`).join('')}
     </ol>
   </div>
 </section>
@@ -263,7 +265,7 @@ function home() {
   <div class="bgdeco" aria-hidden="true"><i class="orb x1"></i><i class="orb x2"></i><i class="shp sq"></i><i class="shp tri"></i></div>
   <div class="container">
     <div class="head reveal"><p class="eyebrow dark">Who we work with</p><h2>Built for how Indian businesses actually run.</h2></div>
-    <div class="grid4">${who.map(([ic, t, d], i) => `<div class="wcard whocard glow reveal" style="--rd:${i * 80}ms;--h:${[225, 160, 330, 36][i]}"><span class="ico">${icon(ic, 24)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p><span class="wline" aria-hidden="true"></span></div>`).join('')}</div>
+    <div class="grid4">${who.map(([ic, t, d], i) => `<div class="wcard whocard glow reveal" style="--rd:${i * 80}ms" data-t="${i % 2}"><span class="ico">${icon(ic, 24)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p><span class="wline" aria-hidden="true"></span></div>`).join('')}</div>
   </div>
 </section>
 
@@ -410,7 +412,7 @@ ${cta(`Talk to us about ${s.name}.`, 'Send us the basics on WhatsApp. We will re
 fs.mkdirSync(OUT, { recursive: true });
 for (const f of fs.readdirSync(OUT)) fs.rmSync(path.join(OUT, f), { recursive: true, force: true });      // empty the folder, not the folder itself (a preview server may be using it)
 home(); servicesHub(); SERVICES.forEach(servicePage); blogIndex(); POSTS.forEach(blogPost); about(); contact(); notFound();
-for (const f of ['styles.css', 'app.js', 'favicon.svg']) fs.copyFileSync(path.join(here, f), path.join(OUT, f));
+for (const f of ['styles.css', 'app.js', 'favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'logo.svg', 'logo-dark.svg']) fs.copyFileSync(path.join(here, f), path.join(OUT, f));
 const urls = ['/', '/services/', ...SERVICES.map((s) => `/services/${s.slug}/`), '/blog/', ...POSTS.map((p) => `/blog/${p.slug}/`), '/about/', '/contact/'];
 fs.writeFileSync(path.join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${SITE.url}${u}</loc><lastmod>${SITE.updated}</lastmod></url>`).join('\n')}\n</urlset>\n`);
 fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE.url}/sitemap.xml\n`);

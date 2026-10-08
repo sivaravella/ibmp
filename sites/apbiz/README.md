@@ -14,3 +14,6 @@ The public site of Apbiz Consulting India LLP (https://apbiz.in): 14 static page
 Publish a change: edit, build, check, then copy `site/` to `/opt/apbiz-site/html` on the server (see `docs/DEPLOY.md`). Nothing has to restart; the previous version is kept next to it as `html.bak-*`.
 
 Rules the content follows: no invented clients, numbers, awards or credentials; no section numbers or money thresholds that the new Income-tax Act (in force from April 2026) or GST notifications might change; every page tells the reader that rules and dates change and that we confirm them for their case. Please keep to those when adding text.
+
+## Brand
+The site follows the apbiz brand kit (yellow `#FFCB05`, navy `#14243A`, white, surface `#F3F5F7`, muted `#64748B`, Arial). `logo.svg` (light backgrounds), `logo-dark.svg` (dark backgrounds), `favicon.svg`, `favicon.ico` and `apple-touch-icon.png` come from the kit. Items that used to be multi-coloured alternate between a navy and a yellow theme (`data-t="0|1"` in the markup, `[data-t]` in `styles.css`).
