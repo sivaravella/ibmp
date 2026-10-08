@@ -121,7 +121,7 @@ const cta = (title, text, about = 'compliance') => `<section class="cta"><div cl
 const serviceCard = (s) => `<a class="svc glow reveal" href="/services/${s.slug}/"><span class="ico">${icon(s.icon, 24)}</span><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><span class="more">Learn more ${icon('arrow', 16)}</span></a>`;
 
 // Floating tags. Edge columns only, so they never sit behind the headline. depth 1 = far (faint, small), 3 = near (bright, large).
-const SLOTS = [[1, 14], [6, 27], [2, 40], [8, 53], [3, 66], [7, 79], [1, 90], [5, 8], [88, 12], [83, 25], [90, 38], [85, 51], [89, 64], [84, 77], [90, 90], [86, 6]];
+const SLOTS = [[1, 14], [6, 27], [2, 40], [8, 53], [3, 66], [7, 79], [1, 90], [5, 8], [88, 12], [90, 25], [90, 38], [91, 51], [92, 64], [91, 76], [90, 90], [86, 6]];
 function floaters(tags, { seals = true } = {}) {
   return `<div class="floaters" aria-hidden="true">${tags.map(([label, depth], i) => {
     const [x, y] = SLOTS[i % SLOTS.length];
