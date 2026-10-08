@@ -28,6 +28,10 @@ const ICONS = {
   store: 'M3 9l2-5h14l2 5M3 9h18M3 9v11h18V9M9 20v-6h6v6',
   briefcase: 'M3 8h18v12H3V8zM8 8V5a1 1 0 011-1h6a1 1 0 011 1v3M3 13h18',
   globe: 'M12 21a9 9 0 100-18 9 9 0 000 18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18',
+  users: 'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
+  clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
+  chat: 'M21 12a8 8 0 01-11.5 7.2L4 20l1-4.5A8 8 0 1121 12zM9 11h6M9 14h4',
+  folder: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z',
 };
 const icon = (n, size = 22) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
 const seal = `<svg class="seal" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11"/><path d="M7 12.5l3.2 3.2L17 9"/></svg>`;
@@ -120,15 +124,19 @@ const checks = (list) => `<ul class="checks">${list.map((x) => `<li>${icon('chec
 const cta = (title, text, about = 'compliance') => `<section class="cta"><div class="pattern" aria-hidden="true"></div><div class="container reveal"><h2>${esc(title)}</h2><p>${esc(text)}</p><a class="btn white big" href="${wa(about)}" rel="noopener">${icon('whatsapp', 20)} Chat with us on WhatsApp</a><p class="alt">or write to <a href="mailto:${SITE.email}">${SITE.email}</a></p></div></section>`;
 const serviceCard = (s) => `<a class="svc glow reveal" href="/services/${s.slug}/"><span class="ico">${icon(s.icon, 24)}</span><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><span class="more">Learn more ${icon('arrow', 16)}</span></a>`;
 
-// Floating tags. Edge columns only, so they never sit behind the headline. depth 1 = far (faint, small), 3 = near (bright, large).
-const SLOTS = [[1, 14], [6, 27], [2, 40], [8, 53], [3, 66], [7, 79], [1, 90], [5, 8], [88, 12], [90, 25], [90, 38], [91, 51], [92, 64], [91, 76], [90, 90], [86, 6]];
-function floaters(tags, { seals = true } = {}) {
+// Floating tags. They live in two side gutters (home: both sides, one tag per row; inner pages: two columns on the right), so they never sit behind
+// the text or the badge frame, and each row is taller than a tag plus its drift. depth 1 = far (faint, small), 3 = near (bright, large).
+const HOME_ROWS = [13, 24, 35, 46, 57, 68, 79, 90];
+const INNER_SLOTS = [[2, 12], [13, 22], [2, 36], [13, 46], [2, 60], [13, 70], [2, 84], [13, 92]];   // [offset from the right edge %, top %]
+function floaters(tags, { inner = false, seals = true } = {}) {
   return `<div class="floaters" aria-hidden="true">${tags.map(([label, depth], i) => {
-    const [x, y] = SLOTS[i % SLOTS.length];
-    return `<span class="tag d${depth}" style="--x:${x}%;--y:${y}%;--delay:${(i * 0.37).toFixed(2)}s;--dur:${(6 + (i % 5)).toFixed(0)}s;--k:${depth}"><span class="chip">${esc(label)}${seals ? seal : ''}</span></span>`;
+    let side = 'r', x, y;
+    if (inner) [x, y] = INNER_SLOTS[i % INNER_SLOTS.length];
+    else { side = i % 2 ? 'r' : 'l'; const row = Math.floor(i / 2) % HOME_ROWS.length; y = HOME_ROWS[row] + (side === 'r' ? 4 : 0); x = side === 'l' ? (row % 2 ? 3 : 1) : (row % 2 ? 1 : 3); }
+    return `<span class="tag ${side} d${depth}" style="--x:${x}%;--y:${y}%;--delay:${(i * 0.37).toFixed(2)}s;--dur:${(6 + (i % 5)).toFixed(0)}s;--k:${depth}"><span class="chip">${esc(label)}${seals ? seal : ''}</span></span>`;
   }).join('')}</div>`;
 }
-const phero = (inner, tags) => `<section class="phero"><div class="pattern" aria-hidden="true"></div><div class="pattern lit" aria-hidden="true"></div>${tags ? floaters(tags.map((t, i) => [t, (i % 3) + 1])) : ''}<div class="container">${inner}</div></section>`;
+const phero = (inner, tags) => `<section class="phero"><div class="pattern" aria-hidden="true"></div><div class="pattern lit" aria-hidden="true"></div>${tags ? floaters(tags.map((t, i) => [t, (i % 3) + 1]), { inner: true }) : ''}<div class="container">${inner}</div></section>`;
 
 // ---------- home ----------
 function home() {
@@ -146,8 +154,9 @@ function home() {
     ['Plain language', 'You get an explanation of what is being filed and why, in words a business owner can use, not only an acknowledgement number.'],
     ['Records ready for scrutiny', 'Banks, investors, auditors and officers ask for the same papers. We keep them organised so that you can hand them over the same day.'],
   ];
-  const tabs = SERVICES.map((s, i) => `<button type="button" role="tab" id="t-${s.slug}" aria-controls="p-${s.slug}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(s.icon, 20)}<span>${esc(s.name)}</span></button>`).join('');
-  const panels = SERVICES.map((s) => `<article class="epanel" role="tabpanel" id="p-${s.slug}" aria-labelledby="t-${s.slug}"><span class="ico big">${icon(s.icon, 30)}</span><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><ul class="checks">${s.includes.slice(0, 4).map(([t]) => `<li>${icon('check', 18)}<span>${esc(t)}</span></li>`).join('')}</ul><div class="actions"><a class="btn dark" href="/services/${s.slug}/">Explore ${esc(s.name)}</a><a class="btn outline" href="${wa(s.wa)}" rel="noopener">Ask on WhatsApp</a></div></article>`).join('');
+  const hue = (i) => (215 + i * 53) % 360;
+  const tabs = SERVICES.map((s, i) => `<button type="button" role="tab" style="--h:${hue(i)}" id="t-${s.slug}" aria-controls="p-${s.slug}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(s.icon, 20)}<span>${esc(s.name)}</span></button>`).join('');
+  const panels = SERVICES.map((s, i) => `<article class="epanel" style="--h:${hue(i)}" role="tabpanel" id="p-${s.slug}" aria-labelledby="t-${s.slug}"><span class="ico big">${icon(s.icon, 30)}</span><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><ul class="checks">${s.includes.slice(0, 4).map(([t]) => `<li>${icon('check', 18)}<span>${esc(t)}</span></li>`).join('')}</ul><div class="actions"><a class="btn dark" href="/services/${s.slug}/">Explore ${esc(s.name)}</a><a class="btn outline" href="${wa(s.wa)}" rel="noopener">Ask on WhatsApp</a></div></article>`).join('');
   const body = `
 <section class="hero">
   <div class="pattern" aria-hidden="true"></div><div class="pattern lit" aria-hidden="true"></div>
@@ -168,7 +177,8 @@ function home() {
   ${marq(MARQUEE[0], false)}${marq(MARQUEE[1], true)}
 </section>
 
-<section class="section" id="services">
+<section class="section handle" id="services">
+  <div class="bgdeco" aria-hidden="true"><i class="orb o1"></i><i class="orb o2"></i><i class="orb o3"></i><i class="shp ring"></i><i class="shp plus"></i><i class="shp sq"></i><i class="shp dots"></i><i class="shp tri"></i></div>
   <div class="container">
     <div class="head reveal"><p class="eyebrow dark">What we handle</p><h2>Everything a growing Indian business has to file.</h2><p>Thirteen service areas, one point of contact. Pick one to see what is included.</p></div>
     <div class="explorer reveal">
@@ -178,10 +188,11 @@ function home() {
   </div>
 </section>
 
-<section class="section alt">
+<section class="section why">
+  <div class="pattern" aria-hidden="true"></div><div class="bgdeco" aria-hidden="true"><i class="orb w1"></i><i class="orb w2"></i></div>
   <div class="container">
-    <div class="head reveal"><p class="eyebrow dark">Why Apbiz</p><h2>Compliance that stays out of your way.</h2></div>
-    <div class="grid4">${why.map(([t, d], i) => `<div class="wcard glow reveal" style="--rd:${i * 80}ms"><span class="wnum">0${i + 1}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`).join('')}</div>
+    <div class="head reveal"><p class="eyebrow">Why Apbiz</p><h2>Compliance that stays out of your way.</h2><p>Four things we promise every client, whatever the size of the business.</p></div>
+    <div class="grid4 whygrid">${why.map(([t, d], i) => `<div class="wcard glow reveal" style="--rd:${i * 90}ms"><span class="bignum" aria-hidden="true">0${i + 1}</span><span class="wicon">${icon(["users", "clock", "chat", "folder"][i], 24)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`).join('')}</div>
   </div>
 </section>
 

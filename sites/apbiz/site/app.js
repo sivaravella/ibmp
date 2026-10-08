@@ -32,7 +32,7 @@
         cx += (tx - cx) * 0.08; cy += (ty - cy) * 0.08;
         hero.style.setProperty('--mx', (cx * 100).toFixed(2) + '%'); hero.style.setProperty('--my', (cy * 100).toFixed(2) + '%');
         const dx = cx - 0.5, dy = cy - 0.5;
-        for (const g of tags) { const k = Number(g.style.getPropertyValue('--k')) || 1; g.style.transform = `translate3d(${(-dx * k * 46).toFixed(1)}px, ${(-dy * k * 34).toFixed(1)}px, 0)`; }
+        for (const g of tags) { const k = Number(g.style.getPropertyValue('--k')) || 1; g.style.transform = `translate3d(${(-dx * k * 12).toFixed(1)}px, ${(-dy * k * 9).toFixed(1)}px, 0)`; }
       }
       requestAnimationFrame(tick);
     };
