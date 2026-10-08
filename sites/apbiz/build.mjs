@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ABOUT, BADGES, FAQ_HOME, HERO_TAGS, MARQUEE, SERVICES, SERVICE_TAGS, SITE } from './content.mjs';
+import { ABOUT, STAGES, BADGES, FAQ_HOME, HERO_TAGS, MARQUEE, SERVICES, SERVICE_TAGS, SITE } from './content.mjs';
 import { POSTS } from './blog.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -212,6 +212,40 @@ function home() {
   <div class="container">
     <div class="head reveal"><p class="eyebrow">Why Apbiz</p><h2>Compliance that stays out of your way.</h2><p>Four things we promise every client, whatever the size of the business.</p></div>
     <div class="grid4 whygrid">${why.map(([t, d], i) => `<div class="wcard glow reveal" style="--rd:${i * 90}ms"><span class="bignum" aria-hidden="true">0${i + 1}</span><span class="wicon">${icon(["users", "clock", "chat", "folder"][i], 24)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`).join('')}</div>
+  </div>
+</section>
+
+<section class="section stages">
+  <div class="bgdeco" aria-hidden="true"><i class="orb s1"></i><i class="orb s2"></i>${RINGS}<i class="shp plus"></i><i class="shp dots"></i></div>
+  <div class="container">
+    <div class="head reveal"><h2>Built for every stage of your <span class="grad">business</span>.</h2><p>Whether you registered last month or have been filing for twenty years, Apbiz fits the way you work.</p></div>
+    <div class="stagebox reveal">
+      <div class="stagevis" aria-hidden="true">
+        <div class="svis on" data-s="0"><div class="scard"><div class="schead"><strong>Startup set-up</strong><span class="spill">4 of 6 done</span></div>
+          <ul class="srows">
+            <li class="done"><i></i><span>Company incorporated</span><em>Done</em></li>
+            <li class="done"><i></i><span>PAN, TAN and bank account</span><em>Done</em></li>
+            <li class="done"><i></i><span>GST registration</span><em>Done</em></li>
+            <li class="done"><i></i><span>Books and bank feeds</span><em>Done</em></li>
+            <li class="doing"><i></i><span>DPIIT recognition</span><em>In progress</em></li>
+            <li><i></i><span>Investor-ready records</span><em>Next</em></li>
+          </ul><div class="sbar"><b style="width:66%"></b></div></div><p class="scap">Illustration</p></div>
+        <div class="svis" data-s="1"><div class="scard"><div class="schead"><strong>This month’s filings</strong><span class="spill ok">On track</span></div>
+          <ul class="srows tags">
+            <li><span>GSTR-1</span><em class="t green">Filed</em></li>
+            <li><span>GSTR-3B</span><em class="t green">Filed</em></li>
+            <li><span>TDS return</span><em class="t amber">Reminder sent</em></li>
+            <li><span>PF and ESI</span><em class="t blue">In progress</em></li>
+            <li><span>Payroll</span><em class="t violet">Ready to approve</em></li>
+          </ul><div class="sbar"><b style="width:72%"></b></div></div><p class="scap">Illustration</p></div>
+        <div class="svis" data-s="2"><div class="scard"><div class="schead"><strong>Audit readiness</strong><span class="spill ok">Ready</span></div>
+          <div class="sring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" class="trk"/><circle cx="60" cy="60" r="50" class="val"/></svg><div><b>94%</b><small>records ready</small></div></div>
+          <ul class="stiles"><li><i></i>ROC filings</li><li><i></i>Books reconciled</li><li><i></i>Valuation report</li><li><i></i>ISO documents</li></ul></div><p class="scap">Illustration</p></div>
+      </div>
+      <div class="slist">
+        ${STAGES.map((s, i) => `<div class="sitem${i === 0 ? ' open' : ''}" data-s="${i}"><button type="button" class="shead" id="sh-${i}" aria-expanded="${i === 0}" aria-controls="sb-${i}"><span class="stag">${esc(s.tag)}</span><span class="stitle">${esc(s.title)}</span><span class="chev" aria-hidden="true"></span></button><div class="sbody" id="sb-${i}" role="region" aria-labelledby="sh-${i}"><div><p>${esc(s.text)}</p><a class="slink" href="${s.link}">${esc(s.label)} ${icon('arrow', 16)}</a></div></div></div>`).join('')}
+      </div>
+    </div>
   </div>
 </section>
 

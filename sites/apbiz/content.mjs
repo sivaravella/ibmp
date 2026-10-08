@@ -545,3 +545,10 @@ export const SERVICE_TAGS = {
   valuation: ['DCF', 'Share valuation', 'ESOP', 'Fundraising', 'Merger', 'Cap table', 'Registered valuer'],
   'iso-certification': ['ISO 9001', 'ISO 14001', 'ISO 27001', 'ISO 22000', 'HACCP', 'GMP', 'CE mark'],
 };
+
+// "Built for every stage of your business": one accordion item per stage; build.mjs draws the matching illustration.
+export const STAGES = [
+  { tag: 'Startups', title: 'Your first compliance partner.', text: 'No one owns compliance when you are just starting out. That is fine until an investor, a bank or a notice asks for it. Apbiz sets up your company, GST and bank records, applies for DPIIT recognition and keeps your filings and books clean from day one.', link: '/services/startup-india/', label: 'See startup services' },
+  { tag: 'Growing businesses', title: 'Compliance on autopilot.', text: 'Now there are GST returns, TDS, PF and ESI, payroll and customers who ask for papers. Apbiz runs all of it as one monthly routine, with reminders before every deadline and a confirmation after every filing, instead of a recurring scramble.', link: '/services/', label: 'See all services' },
+  { tag: 'Established companies', title: 'A defensible record. Always.', text: 'As you grow, scrutiny grows with you: auditors, lenders, notices and certifications. Apbiz keeps your books reconciled, your ROC filings current and your documents ready, and supports valuations, ISO certification and replies to departmental notices.', link: '/services/company-law/', label: 'See company services' },
+];

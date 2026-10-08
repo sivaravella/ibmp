@@ -68,6 +68,14 @@
     show(0);
   });
 
+  // "Built for every stage": one accordion item open at a time; the illustration on the left follows the open item.
+  $$('.stagebox').forEach((box) => {
+    const items = $$('.sitem', box), vis = $$('.svis', box);
+    const open = (i) => items.forEach((it, j) => { const on = j === i; it.classList.toggle('open', on); $('.shead', it).setAttribute('aria-expanded', String(on)); if (vis[j]) vis[j].classList.toggle('on', on); });
+    items.forEach((it, i) => $('.shead', it).addEventListener('click', () => open(i)));
+    open(0);
+  });
+
   // Cards glow where the pointer is.
   $$('.glow').forEach((c) => c.addEventListener('pointermove', (e) => { const r = c.getBoundingClientRect(); c.style.setProperty('--gx', (e.clientX - r.left) + 'px'); c.style.setProperty('--gy', (e.clientY - r.top) + 'px'); }, { passive: true }));
 })();
