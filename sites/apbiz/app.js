@@ -39,19 +39,32 @@
     requestAnimationFrame(tick);
   }
 
-  // Service explorer on the home page: tabs on the left, the chosen service on the right (arrow keys work).
+  // Service explorer on the home page: a row of tabs above, the chosen service below; arrow keys and the prev/next buttons also work.
   $$('.explorer').forEach((ex) => {
-    const tabs = $$('[role=tab]', ex), panels = $$('[role=tabpanel]', ex);
-    const show = (i) => { tabs.forEach((t, j) => { t.setAttribute('aria-selected', String(j === i)); t.tabIndex = j === i ? 0 : -1; }); panels.forEach((p, j) => { p.hidden = j !== i; }); };
+    const tabs = $$('[role=tab]', ex), panels = $$('[role=tabpanel]', ex), bar = $('.eprog i', ex);
+    let cur = 0;
+    const show = (i, focus) => {
+      cur = (i + tabs.length) % tabs.length;
+      tabs.forEach((t, j) => { t.setAttribute('aria-selected', String(j === cur)); t.tabIndex = j === cur ? 0 : -1; });
+      panels.forEach((p, j) => { p.hidden = j !== cur; });
+      if (bar) bar.style.width = ((cur + 1) / tabs.length * 100).toFixed(1) + '%';
+      if (focus) tabs[cur].focus();
+      const t = tabs[cur], box = t.parentElement;
+      if (box.scrollWidth > box.clientWidth) box.scrollTo({ left: t.offsetLeft - (box.clientWidth - t.offsetWidth) / 2, behavior: reduce ? 'auto' : 'smooth' });
+    };
     tabs.forEach((t, i) => {
       t.addEventListener('click', () => show(i));
       t.addEventListener('keydown', (e) => {
-        let n = null;
-        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') n = (i + 1) % tabs.length;
-        if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') n = (i - 1 + tabs.length) % tabs.length;
-        if (n !== null) { e.preventDefault(); show(n); tabs[n].focus(); }
+        const k = e.key;
+        if (k === 'ArrowDown' || k === 'ArrowRight') { e.preventDefault(); show(i + 1, true); }
+        else if (k === 'ArrowUp' || k === 'ArrowLeft') { e.preventDefault(); show(i - 1, true); }
+        else if (k === 'Home') { e.preventDefault(); show(0, true); }
+        else if (k === 'End') { e.preventDefault(); show(tabs.length - 1, true); }
       });
     });
+    const prev = $('.eprev', ex), next = $('.enext', ex);
+    if (prev) prev.addEventListener('click', () => show(cur - 1));
+    if (next) next.addEventListener('click', () => show(cur + 1));
     show(0);
   });
 

@@ -39,9 +39,22 @@ const seal = `<svg class="seal" viewBox="0 0 24 24" aria-hidden="true"><circle c
 const jsonld = (obj) => `<script type="application/ld+json">${JSON.stringify(obj)}</script>`;
 const faqSchema = (faq) => ({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) });
 const crumbSchema = (items) => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items.map(([name, url], i) => ({ '@type': 'ListItem', position: i + 1, name, item: SITE.url + url })) });
-const orgSchema = { '@context': 'https://schema.org', '@type': 'ProfessionalService', name: SITE.name, legalName: SITE.legal, url: SITE.url, email: SITE.email, telephone: SITE.phone, areaServed: { '@type': 'Country', name: 'India' }, description: 'Compliance services for Indian businesses: GST, income tax, TDS, company law, PF, ESI, payroll, DPIIT and Startup India, MSME, FSSAI and licences, valuation and ISO certification.' };
+const orgSchema = { '@context': 'https://schema.org', '@type': 'ProfessionalService', name: SITE.name, legalName: SITE.legal, url: SITE.url, email: SITE.email, telephone: SITE.phone, sameAs: Object.values(SITE.social).filter(Boolean), areaServed: { '@type': 'Country', name: 'India' }, description: 'Compliance services for Indian businesses: GST, income tax, TDS, company law, PF, ESI, payroll, DPIIT and Startup India, MSME, FSSAI and licences, valuation and ISO certification.' };
 
 const FOOT_GROUPS = [['Tax and accounting', ['gst', 'income-tax', 'tds', 'accounting']], ['Company and startups', ['company-law', 'startup-india', 'valuation']], ['Licences and certification', ['registrations', 'msme', 'fssai-licences', 'iso-certification']], ['Payroll and labour', ['pf-esi', 'payroll']]];
+const SOCIAL_ICONS = {
+  linkedin: ['LinkedIn', 'M4.98 3.5a2.5 2.5 0 11-.01 5 2.5 2.5 0 01.01-5zM3 9.75h4V21H3zM9.5 9.75h3.8v1.6h.05c.55-1 1.9-2 3.9-2 4.1 0 4.75 2.7 4.75 6.2V21h-4v-4.9c0-1.2 0-2.7-1.7-2.7s-1.9 1.3-1.9 2.6V21h-4z', true],
+  facebook: ['Facebook', 'M14 8.5V6.8c0-.8.2-1.3 1.4-1.3H17V2.2C16.7 2.1 15.8 2 14.7 2 12.2 2 10.5 3.5 10.5 6.3v2.2H8v3.5h2.5V22H14V12h2.7l.4-3.5H14z', true],
+  instagram: ['Instagram', 'M7 3h10a4 4 0 014 4v10a4 4 0 01-4 4H7a4 4 0 01-4-4V7a4 4 0 014-4zM12 8a4 4 0 100 8 4 4 0 000-8zM17.5 6.5h.01', false],
+  x: ['X', 'M17.5 3h3.2l-7 8 8.3 10h-6.5l-5-6.2L4.8 21H1.6l7.5-8.6L1.2 3h6.6l4.6 5.7L17.5 3zm-1.1 16h1.8L6.7 4.9H4.8L16.4 19z', true],
+  youtube: ['YouTube', 'M21.6 7.2a2.5 2.5 0 00-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 002.4 7.2C2 8.8 2 12 2 12s0 3.2.4 4.8a2.5 2.5 0 001.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 001.8-1.8c.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3z', true],
+};
+const socialLink = (name, href, label, d, filled) => `<a href="${href}" rel="noopener me" aria-label="${label}" title="${label}"><svg width="20" height="20" viewBox="0 0 24 24" ${filled ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'} aria-hidden="true"><path d="${d}"/></svg></a>`;
+const SOCIALS = [
+  ...Object.entries(SOCIAL_ICONS).filter(([k]) => SITE.social[k]).map(([k, [label, d, filled]]) => socialLink(k, SITE.social[k], label, d, filled)),
+  socialLink('whatsapp', wa('compliance'), 'WhatsApp', ICONS.whatsapp, false),
+  socialLink('email', `mailto:${SITE.email}`, 'Email', 'M3 6h18v12H3zM3 7l9 6 9-6', false),
+].join('');
 const NAV_MENU = SERVICES.map((s) => `<a href="/services/${s.slug}/">${esc(s.name)}</a>`).join('');
 
 function page({ path: p, title, desc, body, schema = [], noindex = false, home = false }) {
@@ -97,9 +110,7 @@ ${body}
   <div class="pattern" aria-hidden="true"></div>
   <div class="container fgrid">
     <div class="fleft">
-      <a class="brand light" href="/" aria-label="Apbiz home"><span class="mark">A</span><span>Apbiz</span></a>
-      <div class="fcard"><h3>Never miss a deadline</h3><p>Message us on WhatsApp and we will set up reminders for the filings that apply to your business.</p><a class="btn white small" href="${wa('deadline reminders')}" rel="noopener">${icon('whatsapp', 16)} Get reminders</a></div>
-      <a class="fcard flinkcard" href="${SITE.software}/" rel="noopener"><span class="fic">${icon('shield', 22)}</span><span><strong>IBMP software</strong><small>GST, ledger, payroll and TDS in one place</small></span><span class="go">${icon('arrow', 18)}</span></a>
+      <div class="fsocial"><span>Follow us</span><div>${SOCIALS}</div></div>
       <div class="fcard fplain"><span class="fic gold">${seal}</span><span><strong>Online, across India</strong><small>${esc(SITE.phone)}<br><a href="mailto:${SITE.email}">${SITE.email}</a></small></span></div>
     </div>
     <div class="fcols">
@@ -110,7 +121,6 @@ ${body}
   </div>
   <div class="container legal">
     <div class="lrow"><p>&copy; 2026 ${esc(SITE.legal)}. All rights reserved.</p><nav aria-label="Legal"><a href="${SITE.software}/privacy">Privacy Policy</a><a href="${SITE.software}/terms">Terms of Service</a><a href="/sitemap.xml">Sitemap</a></nav></div>
-    <p>The information on this website is general and is not legal or tax advice for your situation. Tax rates, limits and due dates change, so we confirm the current position for you before you rely on it.</p>
   </div>
   <div class="wordmark" aria-hidden="true">Apbiz</div>
 </footer>
@@ -160,8 +170,13 @@ function home() {
     ['Records ready for scrutiny', 'Banks, investors, auditors and officers ask for the same papers. We keep them organised so that you can hand them over the same day.'],
   ];
   const hue = (i) => (215 + i * 53) % 360;
-  const tabs = SERVICES.map((s, i) => `<button type="button" role="tab" style="--h:${hue(i)}" id="t-${s.slug}" aria-controls="p-${s.slug}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(s.icon, 20)}<span>${esc(s.name)}</span></button>`).join('');
-  const panels = SERVICES.map((s, i) => `<article class="epanel" style="--h:${hue(i)}" role="tabpanel" id="p-${s.slug}" aria-labelledby="t-${s.slug}"><span class="ico big">${icon(s.icon, 30)}</span><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><ul class="checks">${s.includes.slice(0, 4).map(([t]) => `<li>${icon('check', 18)}<span>${esc(t)}</span></li>`).join('')}</ul><div class="actions"><a class="btn dark" href="/services/${s.slug}/">Explore ${esc(s.name)}</a><a class="btn outline" href="${wa(s.wa)}" rel="noopener">Ask on WhatsApp</a></div></article>`).join('');
+  const TAB = { gst: 'GST', 'income-tax': 'Income tax', tds: 'TDS / TCS', 'company-law': 'Company law', 'pf-esi': 'PF / ESI / PT', payroll: 'Payroll', registrations: 'Registrations', accounting: 'Accounting', 'startup-india': 'Startup India', msme: 'MSME', 'fssai-licences': 'FSSAI and licences', valuation: 'Valuation', 'iso-certification': 'ISO' };
+  const pad = (n) => String(n).padStart(2, '0');
+  const tabs = SERVICES.map((s, i) => `<button type="button" role="tab" style="--h:${hue(i)}" id="t-${s.slug}" aria-controls="p-${s.slug}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${icon(s.icon, 20)}<span>${esc(TAB[s.slug] || s.name)}</span></button>`).join('');
+  const panels = SERVICES.map((s, i) => `<article class="epanel" style="--h:${hue(i)}" role="tabpanel" id="p-${s.slug}" aria-labelledby="t-${s.slug}">
+    <div class="eleft"><span class="ico big">${icon(s.icon, 30)}</span><p class="enum">${pad(i + 1)} / ${pad(SERVICES.length)}</p><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><div class="actions"><a class="btn dark" href="/services/${s.slug}/">Explore ${esc(TAB[s.slug] || s.name)}</a><a class="btn outline" href="${wa(s.wa)}" rel="noopener">Ask on WhatsApp</a></div></div>
+    <div class="eright"><h4>What we do</h4><ul class="checks">${s.includes.slice(0, 5).map(([t]) => `<li>${icon('check', 18)}<span>${esc(t)}</span></li>`).join('')}</ul><div class="etags" aria-hidden="true">${(SERVICE_TAGS[s.slug] || []).slice(0, 6).map((t) => `<span>${esc(t)}</span>`).join('')}</div></div>
+  </article>`).join('');
   const body = `
 <section class="hero">
   <div class="pattern" aria-hidden="true"></div><div class="pattern lit" aria-hidden="true"></div>
@@ -189,6 +204,7 @@ function home() {
     <div class="explorer reveal">
       <div class="etabs" role="tablist" aria-label="Services">${tabs}</div>
       <div class="epanels">${panels}</div>
+      <div class="enav" aria-label="Browse services"><button type="button" class="eprev" aria-label="Previous service">${icon("arrow", 18)}</button><div class="eprog" aria-hidden="true"><i></i></div><button type="button" class="enext" aria-label="Next service">${icon("arrow", 18)}</button></div>
     </div>
   </div>
 </section>
