@@ -41,7 +41,7 @@ const faqSchema = (faq) => ({ '@context': 'https://schema.org', '@type': 'FAQPag
 const crumbSchema = (items) => ({ '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items.map(([name, url], i) => ({ '@type': 'ListItem', position: i + 1, name, item: SITE.url + url })) });
 const orgSchema = { '@context': 'https://schema.org', '@type': 'ProfessionalService', name: SITE.name, legalName: SITE.legal, url: SITE.url, email: SITE.email, telephone: SITE.phone, areaServed: { '@type': 'Country', name: 'India' }, description: 'Compliance services for Indian businesses: GST, income tax, TDS, company law, PF, ESI, payroll, DPIIT and Startup India, MSME, FSSAI and licences, valuation and ISO certification.' };
 
-const FOOT_SERVICES = SERVICES.map((s) => `<li><a href="/services/${s.slug}/">${esc(s.name)}</a></li>`).join('');
+const FOOT_GROUPS = [['Tax and accounting', ['gst', 'income-tax', 'tds', 'accounting']], ['Company and startups', ['company-law', 'startup-india', 'valuation']], ['Licences and certification', ['registrations', 'msme', 'fssai-licences', 'iso-certification']], ['Payroll and labour', ['pf-esi', 'payroll']]];
 const NAV_MENU = SERVICES.map((s) => `<a href="/services/${s.slug}/">${esc(s.name)}</a>`).join('');
 
 function page({ path: p, title, desc, body, schema = [], noindex = false, home = false }) {
@@ -94,20 +94,25 @@ ${schema.map(jsonld).join('\n')}
 ${body}
 </main>
 <footer class="foot">
-  <div class="container cols">
-    <div class="fbrand">
-      <a class="brand light" href="/"><span class="mark">A</span><span>Apbiz</span></a>
-      <p>Compliance for Indian businesses: GST, income tax, TDS, company law, PF, ESI and payroll, filed on time and explained clearly.</p>
-      <p><a class="plain" href="${wa('compliance')}" rel="noopener">WhatsApp ${esc(SITE.phone)}</a><br><a class="plain" href="mailto:${SITE.email}">${SITE.email}</a></p>
+  <div class="pattern" aria-hidden="true"></div>
+  <div class="container fgrid">
+    <div class="fleft">
+      <a class="brand light" href="/" aria-label="Apbiz home"><span class="mark">A</span><span>Apbiz</span></a>
+      <div class="fcard"><h3>Never miss a deadline</h3><p>Message us on WhatsApp and we will set up reminders for the filings that apply to your business.</p><a class="btn white small" href="${wa('deadline reminders')}" rel="noopener">${icon('whatsapp', 16)} Get reminders</a></div>
+      <a class="fcard flinkcard" href="${SITE.software}/" rel="noopener"><span class="fic">${icon('shield', 22)}</span><span><strong>IBMP software</strong><small>GST, ledger, payroll and TDS in one place</small></span><span class="go">${icon('arrow', 18)}</span></a>
+      <div class="fcard fplain"><span class="fic gold">${seal}</span><span><strong>Online, across India</strong><small>${esc(SITE.phone)}<br><a href="mailto:${SITE.email}">${SITE.email}</a></small></span></div>
     </div>
-    <div><h3>Services</h3><ul>${FOOT_SERVICES}</ul></div>
-    <div><h3>Resources</h3><ul><li><a href="/services/">All services</a></li><li><a href="/blog/">Blog</a></li><li><a href="${SITE.software}/" rel="noopener">Login to IBMP</a></li></ul>
-      <h3>Company</h3><ul><li><a href="/about/">About Apbiz</a></li><li><a href="/contact/">Contact</a></li><li><a href="${SITE.software}/privacy">Privacy Policy</a></li><li><a href="${SITE.software}/terms">Terms of Service</a></li></ul></div>
+    <div class="fcols">
+      ${FOOT_GROUPS.map(([h, slugs]) => `<div><h3>${h}</h3><ul>${slugs.map((s) => `<li><a href="/services/${s}/">${esc(service(s).name)}</a></li>`).join('')}</ul></div>`).join('')}
+      <div><h3>Guides</h3><ul>${POSTS.map((p) => `<li><a href="/blog/${p.slug}/">${esc(p.label)}</a></li>`).join('')}<li><a class="allink" href="/blog/">All articles</a></li></ul></div>
+      <div><h3>Company</h3><ul><li><a href="/about/">About Apbiz</a></li><li><a href="/contact/">Contact</a></li><li><a href="/services/">All services</a></li><li><a href="/blog/">Blog</a></li><li><a href="${SITE.software}/" rel="noopener">Login to IBMP</a></li></ul></div>
+    </div>
   </div>
   <div class="container legal">
-    <p>&copy; 2026 ${esc(SITE.legal)}. All rights reserved.</p>
+    <div class="lrow"><p>&copy; 2026 ${esc(SITE.legal)}. All rights reserved.</p><nav aria-label="Legal"><a href="${SITE.software}/privacy">Privacy Policy</a><a href="${SITE.software}/terms">Terms of Service</a><a href="/sitemap.xml">Sitemap</a></nav></div>
     <p>The information on this website is general and is not legal or tax advice for your situation. Tax rates, limits and due dates change, so we confirm the current position for you before you rely on it.</p>
   </div>
+  <div class="wordmark" aria-hidden="true">Apbiz</div>
 </footer>
 </body>
 </html>

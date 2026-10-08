@@ -2,7 +2,7 @@
 // Keep them evergreen: explain how things work and what to ask, and avoid rates, limits and dates that change.
 export const POSTS = [
   {
-    slug: 'gstr-1-gstr-3b-gstr-9-explained', date: '2026-10-08', category: 'GST', minutes: 5, service: 'gst',
+    slug: 'gstr-1-gstr-3b-gstr-9-explained', label: 'GST returns explained', date: '2026-10-08', category: 'GST', minutes: 5, service: 'gst',
     title: 'GSTR-1, GSTR-3B and GSTR-9 Explained in Plain Words',
     desc: 'What GSTR-1, GSTR-3B and the annual GSTR-9 return are, how they differ, and how to keep your sales, input credit and tax payments in line.',
     h1: 'GSTR-1, GSTR-3B and GSTR-9: what each return is for',
@@ -16,7 +16,7 @@ export const POSTS = [
     faq: [['Which return do I file first?', 'GSTR-1 reports your sales and is generally filed before GSTR-3B, which summarises and pays the tax.'], ['Can I skip a return if I had no sales?', 'No. A nil return still needs to be filed for the period. We help you file nil returns correctly.']],
   },
   {
-    slug: 'compliance-checklist-new-private-limited-company', date: '2026-10-08', category: 'Company law', minutes: 5, service: 'company-law',
+    slug: 'compliance-checklist-new-private-limited-company', label: 'New company checklist', date: '2026-10-08', category: 'Company law', minutes: 5, service: 'company-law',
     title: 'New Private Limited Company: Your First-Year Checklist',
     desc: 'A practical checklist of what a newly incorporated Indian private limited company must set up and file in its first year, from bank account to annual returns.',
     h1: 'First-year compliance checklist for a new private limited company',
@@ -30,7 +30,7 @@ export const POSTS = [
     faq: [['When must the first auditor be appointed?', 'The law sets a short window after incorporation for the first auditor. We check the current period for your company and handle the appointment.'], ['Do I need a GST number straight away?', 'It depends on your turnover and what you sell. Some businesses must register regardless of turnover. We tell you whether it applies to you.']],
   },
   {
-    slug: 'what-is-dpiit-recognition-and-who-can-get-it', date: '2026-10-08', category: 'Startup India', minutes: 5, service: 'startup-india',
+    slug: 'what-is-dpiit-recognition-and-who-can-get-it', label: 'DPIIT recognition', date: '2026-10-08', category: 'Startup India', minutes: 5, service: 'startup-india',
     title: 'DPIIT Recognition: What It Is and Who Can Get It',
     desc: 'What DPIIT startup recognition under Startup India means, which businesses can apply, what benefits it opens up and how the application works.',
     h1: 'DPIIT recognition: what it is and who can get it',
@@ -44,7 +44,7 @@ export const POSTS = [
     faq: [['Does recognition cost anything?', 'The recognition has no government fee. Professional fees, if you use us, are agreed up front.'], ['Is a sole proprietorship eligible?', 'Recognition is for registered entities such as a company, LLP or registered partnership, not for a sole proprietorship.']],
   },
   {
-    slug: 'which-fssai-licence-do-you-need', date: '2026-10-08', category: 'Licences', minutes: 4, service: 'fssai-licences',
+    slug: 'which-fssai-licence-do-you-need', label: 'Which FSSAI licence', date: '2026-10-08', category: 'Licences', minutes: 4, service: 'fssai-licences',
     title: 'Which FSSAI Licence Do You Need? Registration vs Licence',
     desc: 'FSSAI basic registration, state licence and central licence: how they differ, who needs which, and what to do about renewals and annual returns.',
     h1: 'Which FSSAI licence do you need?',
@@ -58,7 +58,7 @@ export const POSTS = [
     faq: [['Is an FSSAI licence needed for a small tea stall?', 'Small food businesses generally need at least a basic registration. We check the rule for your size and activity.'], ['Can one licence cover several outlets?', 'Usually each premises needs its own, though some multi-location businesses can use a central licence. We advise on the best structure.']],
   },
   {
-    slug: 'which-iso-standard-is-right-for-your-business', date: '2026-10-08', category: 'Certification', minutes: 4, service: 'iso-certification',
+    slug: 'which-iso-standard-is-right-for-your-business', label: 'Choosing an ISO standard', date: '2026-10-08', category: 'Certification', minutes: 4, service: 'iso-certification',
     title: 'Which ISO Standard Is Right for Your Business?',
     desc: 'ISO 9001, 14001, 45001, 27001 and 22000 compared in plain language, with guidance on which certification your customers or tenders are likely to ask for.',
     h1: 'Which ISO standard is right for your business?',
@@ -72,7 +72,7 @@ export const POSTS = [
     faq: [['Can I get several ISO certificates together?', 'Yes. Many businesses combine standards, since they share common elements such as document control and internal audits.'], ['Is ISO certification mandatory?', 'Usually not by law, but it is often required by customers and tenders.']],
   },
   {
-    slug: 'what-to-do-when-you-get-a-tax-notice', date: '2026-10-08', category: 'Tax', minutes: 4, service: 'income-tax',
+    slug: 'what-to-do-when-you-get-a-tax-notice', label: 'Handling a tax notice', date: '2026-10-08', category: 'Tax', minutes: 4, service: 'income-tax',
     title: 'Got a GST or Income Tax Notice? Do These Six Things First',
     desc: 'A calm six-step approach to a GST or income tax notice: read it, note the deadline, gather records, reply on the portal, and know when to ask for help.',
     h1: 'Received a GST or income tax notice? Start here.',
