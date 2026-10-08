@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.21.2
+- Deployed to https://ibmp.apbiz.in on the shared server next to parcelbox (see docs/DEPLOY.md): own containers and database, routed through the existing nginx with a Let's Encrypt certificate and weekly renewal, nightly database backups with a tested restore, memory limits and swap so parcelbox is not affected.
+
 ## 1.21.1
 - `tools/perf-seed.mjs`: fills a throwaway company with thousands of invoices and times the main endpoints. At 20,000 invoices every endpoint answers in under half a second and the invoice screen stays responsive (see the README scale check).
 
