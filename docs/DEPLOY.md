@@ -9,8 +9,16 @@ IBMP runs on the shared server `168.144.90.151` (Ubuntu 22.04, 1 CPU, 1.9 GB RAM
 | `/opt/ibmp/docker-compose.yml`, `/opt/ibmp/.env` (mode 600) | The IBMP stack and its secrets (database password, JWT secret, encryption key, admin key, SMTP, social sign-in). Never commit or copy `.env` anywhere. |
 | containers `ibmp-ibmp-app-1` (limit 600 MB), `ibmp-ibmp-db-1` (PostgreSQL 17, limit 300 MB) | Own network and database volume `ibmp_ibmp-db`; nothing is published on the host. The app also joins `parcellbox_default` (alias `ibmp-app`) so parcelbox's nginx can reach it. |
 | `/opt/parcellbox/nginx/nginx.conf` | Parcelbox's nginx (it owns ports 80 and 443). Two `server` blocks for `ibmp.apbiz.in` were appended at the end: port 80 (certificate challenge and redirect) and port 443 (proxy to `ibmp-app:4000`, looked up per request so nginx starts even if IBMP is down). Backups of the file before each change: `nginx.conf.bak-ibmp-*` in the same folder. |
-| `/opt/parcellbox/certbot/conf/live/ibmp.apbiz.in/` | The Let's Encrypt certificate (expires 2027-01-06). `/opt/ibmp/renew-cert.sh` runs weekly from `/etc/cron.d/ibmp-cert-renew` and reloads nginx only if it renewed. It does not touch parcelbox's certificate (`parcellbox.in`, expires 2026-12-02, no automatic renewal found). |
+| `/opt/parcellbox/certbot/conf/live/ibmp.apbiz.in/` | The Let's Encrypt certificate (expires 2027-01-06). `/opt/ibmp/renew-cert.sh` (covering this certificate and the one for apbiz.in) runs weekly from `/etc/cron.d/ibmp-cert-renew` and reloads nginx only if it renewed. It does not touch parcelbox's certificate (`parcellbox.in`, expires 2026-12-02, no automatic renewal found). |
 | `/opt/ibmp/backup.sh`, `/etc/cron.d/ibmp-backup` | Nightly 02:30 UTC dump to `/opt/ibmp/backups/ibmp-*.sql.gz`, 14 days kept; log in `/var/log/ibmp-backup.log`. Restore was tested into a scratch database (same 51 tables, 27 migrations). |
+
+## The Apbiz website (apbiz.in, deployed 8 October 2026)
+
+A static page (the `sites/apbiz/` folder of this repository) served by a tiny nginx container, `apbiz-site-site-1`, defined in `/opt/apbiz-site/docker-compose.yml` with the files in `/opt/apbiz-site/html`. Like IBMP it joins `parcellbox_default` (alias `apbiz-site`) and is reached only through parcelbox's nginx, which has three more `server` blocks (port 80 for `apbiz.in` and `www.apbiz.in`, port 443 for `www` (redirect to the bare domain) and for `apbiz.in`). Its certificate (`apbiz.in` plus `www.apbiz.in`, expires 2027-01-06) is renewed by the same weekly job. DNS: A records for `@` and `www` at GoDaddy point to 168.144.90.151.
+
+To publish a change: edit `sites/apbiz/`, then `tar -cf apbiz-site.tar -C sites apbiz`, copy it to the server and unpack it over `/opt/apbiz-site/html` (no restart needed; nginx reads the files on each request).
+
+**Certbot hook note:** parcelbox keeps a deploy hook (`certbot/conf/renewal-hooks/deploy/parcellbox-sync.sh`: rsync, then restart its nginx) in the shared certbot folder. It cannot run inside a throwaway certbot container and reports an error there (harmless: nothing restarts). `/opt/ibmp/renew-cert.sh` passes `--no-directory-hooks` and does a graceful nginx reload itself. Parcelbox's own renewals on the host still run that hook as before.
 
 ## Updating to a new version
 
