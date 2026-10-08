@@ -31,6 +31,7 @@ const ICONS = {
   users: 'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8',
   clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
   chat: 'M21 12a8 8 0 01-11.5 7.2L4 20l1-4.5A8 8 0 1121 12zM9 11h6M9 14h4',
+  bell: 'M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9zM13.7 21a2 2 0 01-3.4 0',
   folder: 'M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z',
 };
 const icon = (n, size = 22) => `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -50,6 +51,7 @@ const SOCIAL_ICONS = {
   youtube: ['YouTube', 'M21.6 7.2a2.5 2.5 0 00-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.5 2.5 0 002.4 7.2C2 8.8 2 12 2 12s0 3.2.4 4.8a2.5 2.5 0 001.8 1.8C5.8 19 12 19 12 19s6.2 0 7.8-.4a2.5 2.5 0 001.8-1.8c.4-1.6.4-4.8.4-4.8s0-3.2-.4-4.8zM10 15V9l5.2 3z', true],
 };
 const socialLink = (name, href, label, d, filled) => `<a href="${href}" rel="noopener me" aria-label="${label}" title="${label}"><svg width="20" height="20" viewBox="0 0 24 24" ${filled ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"'} aria-hidden="true"><path d="${d}"/></svg></a>`;
+const RINGS = '<svg class="rings" viewBox="0 0 600 600" fill="none" aria-hidden="true"><circle cx="300" cy="300" r="110"/><circle cx="300" cy="300" r="180"/><circle cx="300" cy="300" r="250"/><circle cx="300" cy="300" r="290"/></svg>';
 const SOCIALS = [
   ...Object.entries(SOCIAL_ICONS).filter(([k]) => SITE.social[k]).map(([k, [label, d, filled]]) => socialLink(k, SITE.social[k], label, d, filled)),
   socialLink('whatsapp', wa('compliance'), 'WhatsApp', ICONS.whatsapp, false),
@@ -136,7 +138,7 @@ ${body}
 const crumbs = (items) => `<nav class="crumbs" aria-label="Breadcrumb">${items.map(([n, u], i) => (i === items.length - 1 ? `<span aria-current="page">${esc(n)}</span>` : `<a href="${u}">${esc(n)}</a>`)).join('<span class="sep">/</span>')}</nav>`;
 const faqHtml = (faq) => `<div class="faq">${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join('')}</div>`;
 const checks = (list) => `<ul class="checks">${list.map((x) => `<li>${icon('check', 18)}<span>${esc(x)}</span></li>`).join('')}</ul>`;
-const cta = (title, text, about = 'compliance') => `<section class="cta"><div class="pattern" aria-hidden="true"></div><div class="container reveal"><h2>${esc(title)}</h2><p>${esc(text)}</p><a class="btn white big" href="${wa(about)}" rel="noopener">${icon('whatsapp', 20)} Chat with us on WhatsApp</a><p class="alt">or write to <a href="mailto:${SITE.email}">${SITE.email}</a></p></div></section>`;
+const cta = (title, text, about = 'compliance') => `<section class="cta"><div class="pattern" aria-hidden="true"></div>${RINGS}<div class="container reveal"><h2>${esc(title)}</h2><p>${esc(text)}</p><a class="btn white big" href="${wa(about)}" rel="noopener">${icon('whatsapp', 20)} Chat with us on WhatsApp</a><p class="alt">or write to <a href="mailto:${SITE.email}">${SITE.email}</a></p></div></section>`;
 const serviceCard = (s) => `<a class="svc glow reveal" href="/services/${s.slug}/"><span class="ico">${icon(s.icon, 24)}</span><h3>${esc(s.name)}</h3><p>${esc(s.short)}</p><span class="more">Learn more ${icon('arrow', 16)}</span></a>`;
 
 // Floating tags. They live in two side gutters (home: both sides, one tag per row; inner pages: two columns on the right), so they never sit behind
@@ -217,35 +219,43 @@ function home() {
   </div>
 </section>
 
-<section class="section">
+<section class="section how">
+  <div class="bgdeco" aria-hidden="true"><i class="orb h1"></i><i class="orb h2"></i>${RINGS}<i class="shp ring"></i><i class="shp plus"></i><i class="shp dots"></i></div>
   <div class="container">
-    <div class="head reveal"><p class="eyebrow dark">How it works</p><h2>Three steps, then it runs.</h2></div>
-    <ol class="steps line reveal">
-      <li><span class="n">1</span><h3>Tell us about your business</h3><p>What you sell, where you are registered and how many people you employ. A short WhatsApp conversation is enough to begin.</p></li>
-      <li><span class="n">2</span><h3>We take over your filings</h3><p>We list every filing that applies, take over the ones you hand to us and agree what we need from you and when.</p></li>
-      <li><span class="n">3</span><h3>You stay informed, not busy</h3><p>Reminders before every deadline, a confirmation after every filing and a tidy record whenever you need it.</p></li>
+    <div class="head reveal"><p class="eyebrow dark">How it works</p><h2>Three steps, then it runs.</h2><p>No long onboarding and no forms to fill. You start with a conversation.</p></div>
+    <ol class="flow reveal">
+      ${[['chat', 'Tell us about your business', 'What you sell, where you are registered and how many people you employ. A short WhatsApp conversation is enough to begin.'], ['filecheck', 'We take over your filings', 'We list every filing that applies, take over the ones you hand to us and agree what we need from you and when.'], ['bell', 'You stay informed, not busy', 'Reminders before every deadline, a confirmation after every filing and a tidy record whenever you need it.']].map(([ic, t, d], i) => `<li class="fstep" style="--h:${[225, 268, 36][i]}"><span class="fn">${i + 1}</span><span class="fico">${icon(ic, 26)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></li>`).join('')}
     </ol>
   </div>
 </section>
 
-<section class="section alt">
+<section class="section who">
+  <div class="bgdeco" aria-hidden="true"><i class="orb x1"></i><i class="orb x2"></i><i class="shp sq"></i><i class="shp tri"></i></div>
   <div class="container">
     <div class="head reveal"><p class="eyebrow dark">Who we work with</p><h2>Built for how Indian businesses actually run.</h2></div>
-    <div class="grid4">${who.map(([ic, t, d], i) => `<div class="wcard glow reveal" style="--rd:${i * 80}ms"><span class="ico">${icon(ic, 24)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p></div>`).join('')}</div>
+    <div class="grid4">${who.map(([ic, t, d], i) => `<div class="wcard whocard glow reveal" style="--rd:${i * 80}ms;--h:${[225, 160, 330, 36][i]}"><span class="ico">${icon(ic, 24)}</span><h3>${esc(t)}</h3><p>${esc(d)}</p><span class="wline" aria-hidden="true"></span></div>`).join('')}</div>
   </div>
 </section>
 
-<section class="section">
-  <div class="container narrow">
-    <div class="head reveal"><p class="eyebrow dark">Questions</p><h2>Frequently asked questions.</h2></div>
+<section class="section faq-sec">
+  <div class="bgdeco" aria-hidden="true"><svg class="squig" viewBox="0 0 400 120" fill="none" stroke-linecap="round"><path d="M4 70c40-60 80 50 120 0s80-50 120 0 80 50 150-30"/></svg><i class="shp ring"></i><i class="shp dots"></i></div>
+  <div class="container faqwrap">
+    <div class="faqside reveal">
+      <p class="eyebrow dark">Questions</p><h2>Frequently asked questions.</h2>
+      <p>Straight answers to what owners ask us most. Cannot find yours? Ask us directly and we will reply in plain words.</p>
+      <a class="btn wa" href="${wa('a question')}" rel="noopener">${icon('whatsapp', 18)} Ask on WhatsApp</a>
+    </div>
     <div class="reveal">${faqHtml(FAQ_HOME)}</div>
   </div>
 </section>
 
 <section class="section software-sec">
-  <div class="container software reveal">
-    <div><p class="eyebrow dark">Software</p><h2>Prefer to keep your own books?</h2><p>IBMP is our software for Indian businesses: GST invoices and returns, purchases, ledger, payroll, TDS and reminders, in one place. Use it yourself, or let us work inside it for you.</p><a class="btn dark" href="${SITE.software}" rel="noopener">Try IBMP</a></div>
-    <div class="chipcloud" aria-hidden="true"><span>GST invoices</span><span>Returns</span><span>Ledger</span><span>Payroll</span><span>TDS</span><span>Reminders</span><span>E-way bills</span><span>Reports</span></div>
+  <div class="container">
+    <div class="swpanel reveal">
+      <div class="pattern" aria-hidden="true"></div>${RINGS}
+      <div class="swtext"><p class="eyebrow">Software</p><h2>Prefer to keep your own books?</h2><p>IBMP is our software for Indian businesses: GST invoices and returns, purchases, ledger, payroll, TDS and reminders, in one place. Use it yourself, or let us work inside it for you.</p><div class="actions"><a class="btn white" href="${SITE.software}/" rel="noopener">Try IBMP</a><a class="btn ghost" href="${SITE.software}/" rel="noopener">Login</a></div></div>
+      <div class="chipcloud" aria-hidden="true"><span>GST invoices</span><span>Returns</span><span>Ledger</span><span>Payroll</span><span>TDS</span><span>Reminders</span><span>E-way bills</span><span>Reports</span></div>
+    </div>
   </div>
 </section>
 ${cta('Tell us what you need.', 'One message on WhatsApp is the easiest way to start. Tell us about your business and we will tell you which filings apply.')}`;
