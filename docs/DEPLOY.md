@@ -20,6 +20,8 @@ To publish a change: edit `sites/apbiz/content.mjs` (or the styles), run `node s
 
 **Certbot hook note:** parcelbox keeps a deploy hook (`certbot/conf/renewal-hooks/deploy/parcellbox-sync.sh`: rsync, then restart its nginx) in the shared certbot folder. It cannot run inside a throwaway certbot container and reports an error there (harmless: nothing restarts). `/opt/ibmp/renew-cert.sh` passes `--no-directory-hooks` and does a graceful nginx reload itself. Parcelbox's own renewals on the host still run that hook as before.
 
+Current production version: 1.22.0 (apbiz brand kit, deployed 8 October 2026).
+
 ## Updating to a new version
 
 The server is too small to build the image, so build it on a workstation and send it:
@@ -49,9 +51,9 @@ docker compose up -d
 
 ## Settings still to complete
 
-- **Email (Brevo):** SMTP login is accepted but Brevo answers `525 5.7.1 Unauthorized IP address` until `168.144.90.151` is added under Brevo → Security → Authorised IPs. Sender: `IBMP Support <sivaravella@o2labs.com>`.
+- **Email (Brevo):** working. `168.144.90.151` is authorised under Brevo → Security → Authorised IPs and a test message was accepted on 8 October 2026. Sender: `IBMP Support <sivaravella@o2labs.com>`.
 - **Platform owner console** (`/platform`): create the owner on the server: `docker exec ibmp-ibmp-app-1 node scripts/create-platform-admin.js --email <email> --name "<name>"` (prints a generated password once). Do not seed the demo accounts here.
-- **Google and LinkedIn sign-in:** fill the four `IBMP_GOOGLE_*` / `IBMP_LINKEDIN_*` values in `/opt/ibmp/.env`, then `docker compose up -d`. Redirect URIs to register: `https://ibmp.apbiz.in/v1/auth/social/google/callback` and `https://ibmp.apbiz.in/v1/auth/social/linkedin/callback`. See `docs/SOCIAL_LOGIN.md`.
+- **Google and LinkedIn sign-in:** configured in `/opt/ibmp/.env` (both buttons show). A full login with each provider is still to be confirmed by the owner. Redirect URIs: `https://ibmp.apbiz.in/v1/auth/social/google/callback` and `https://ibmp.apbiz.in/v1/auth/social/linkedin/callback`. See `docs/SOCIAL_LOGIN.md`.
 - **Not configured:** online payments (Razorpay), the GST portal connection (GSP), SMS and WhatsApp reminders. Simulators are off, so those features report "not set up".
 
 ## Server notes
