@@ -111,10 +111,6 @@ ${body}
 <footer class="foot">
   <div class="pattern" aria-hidden="true"></div>
   <div class="container fgrid">
-    <div class="fleft">
-      <div class="fsocial"><span>Follow us</span><div>${SOCIALS}</div></div>
-      <div class="fcard fplain"><span class="fic gold">${seal}</span><span><strong>Online, across India</strong><small>${esc(SITE.phone)}<br><a href="mailto:${SITE.email}">${SITE.email}</a></small></span></div>
-    </div>
     <div class="fcols">
       ${FOOT_GROUPS.map(([h, slugs]) => `<div><h3>${h}</h3><ul>${slugs.map((s) => `<li><a href="/services/${s}/">${esc(service(s).name)}</a></li>`).join('')}</ul></div>`).join('')}
       <div><h3>Guides</h3><ul>${POSTS.map((p) => `<li><a href="/blog/${p.slug}/">${esc(p.label)}</a></li>`).join('')}<li><a class="allink" href="/blog/">All articles</a></li></ul></div>
@@ -122,7 +118,7 @@ ${body}
     </div>
   </div>
   <div class="container legal">
-    <div class="lrow"><p>&copy; 2026 ${esc(SITE.legal)}. All rights reserved.</p><nav aria-label="Legal"><a href="${SITE.software}/privacy">Privacy Policy</a><a href="${SITE.software}/terms">Terms of Service</a><a href="/sitemap.xml">Sitemap</a></nav></div>
+    <div class="lrow"><div class="lleft"><p>&copy; 2026 ${esc(SITE.legal)}. All rights reserved.</p><nav aria-label="Legal"><a href="${SITE.software}/privacy">Privacy Policy</a><a href="${SITE.software}/terms">Terms of Service</a><a href="/sitemap.xml">Sitemap</a></nav></div><div class="fsocial">${SOCIALS}</div></div>
   </div>
   <div class="wordmark" aria-hidden="true">Apbiz</div>
 </footer>
