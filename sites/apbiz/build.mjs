@@ -183,7 +183,7 @@ function home() {
   ${floaters(HERO_TAGS)}
   <div class="container heroin">
     <p class="eyebrow">Compliance services for Indian businesses</p>
-    <h1>Every Indian deadline, <span class="hl">handled</span> before it arrives.</h1>
+    <h1>We handle <span class="hl">compliance</span>.<br>You focus on business.</h1>
     <p class="lead">Apbiz looks after tax, company law, payroll, licences, Startup India, MSME, valuation and ISO certification for startups, traders and growing companies, so you can run the business instead of the paperwork.</p>
     <div class="ctawrap">
       <a class="btn white big" href="${wa('compliance')}" rel="noopener">${icon('whatsapp', 20)} Chat on WhatsApp</a>
