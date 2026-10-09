@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.23.1
+- GSTIN lookup: the Appyflow request now sends `gstNo` as that service documents. A **GST portal** button on the Add party and Business profile screens opens the government's own taxpayer search (it needs a captcha and bot defence, so a server cannot call it) and copies the GSTIN. The Google Search Console verification file for ibmp.apbiz.in is part of the app. NorthAlley demo data script (`scripts/seed-northalley.js`).
+
 ## 1.23.0
 - Enhancements v1 (from the owner's review of the live app, against the v6.3 prototype). **Business profile** screen with the full entity details (type, CIN/LLPIN, PAN, TAN, Udyam, address, contact, bank) and a completeness meter. **The GSTIN can now be added or corrected after sign-up** (it carries the state and the PAN; a changed state needs confirmation once invoices exist). **Fetch details** on a GSTIN no longer ends in "Something went wrong on our side": `GET /gstin/:gstin` always answers, filling state, PAN and kind of taxpayer from the number, and legal name and address too when a GST data provider is configured (`IBMP_GSTIN_LOOKUP`, `IBMP_GSTIN_LOOKUP_KEY`; not configured on the server yet). A vendor or customer can be **added from inside the new bill and new invoice forms** (GSTIN with Fetch details, or name, address, email and mobile). **Reports**: Profit and Loss, Balance Sheet and Outstanding (aged) from the ledger, with Excel, CSV and print-to-PDF. **Task manager**: board and list, checklists, comments, assignees, due dates. **Excel and CSV import and export** of sales invoices and purchase bills with template, preview, error report and register export. Migration 028. New dependency: exceljs.
 
