@@ -68,7 +68,7 @@ export function resolveGstinLookup(env = {}, fetchFn = globalThis.fetch) {
   const key = env.GSTIN_LOOKUP_KEY ?? env.IBMP_GSTIN_LOOKUP_KEY;
   if (!kind || !key) return null;
   let urlFor, headers = {};
-  if (kind === 'appyflow') urlFor = (g) => `https://appyflow.in/api/verifyGST?gst_no=${encodeURIComponent(g)}&key_secret=${encodeURIComponent(key)}`;
+  if (kind === 'appyflow') urlFor = (g) => `https://appyflow.in/api/verifyGST?gstNo=${encodeURIComponent(g)}&key_secret=${encodeURIComponent(key)}`;
   else if (kind === 'custom') {
     const tpl = env.GSTIN_LOOKUP_URL ?? env.IBMP_GSTIN_LOOKUP_URL;
     if (!tpl) return null;

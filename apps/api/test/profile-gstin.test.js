@@ -63,7 +63,7 @@ test('resolveGstinLookup builds the Appyflow request and treats "not found" as a
   const fetchFn = async (url) => { seen.push(String(url)); return { ok: true, status: 200, json: async () => ({ error: true, message: 'GSTIN not found' }) }; };
   const p = resolveGstinLookup({ IBMP_GSTIN_LOOKUP: 'appyflow', IBMP_GSTIN_LOOKUP_KEY: 'k3y' }, fetchFn);
   assert.equal(await p.lookup('37ATQPK0472R1ZU'), null);
-  assert.match(seen[0], /appyflow\.in\/api\/verifyGST\?gst_no=37ATQPK0472R1ZU&key_secret=k3y/);
+  assert.match(seen[0], /appyflow\.in\/api\/verifyGST\?gstNo=37ATQPK0472R1ZU&key_secret=k3y/);
   assert.equal(resolveGstinLookup({}), null);
 });
 
