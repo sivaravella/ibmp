@@ -1,6 +1,6 @@
 {
   "name": "@ibmp/web",
-  "version": "1.23.1",
+  "version": "1.24.0",
   "description": "IBMP web portal: React + Vite",
   "private": true,
   "type": "module",

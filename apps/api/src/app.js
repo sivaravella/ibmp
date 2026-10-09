@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { authRoutes } from './routes/auth.js';
 import { socialRoutes } from './social.js';
+import { onboardingRoutes, onboardingAuthedRoutes } from './routes/onboarding.js';
 import { masterRoutes } from './routes/masters.js';
 import { invoiceRoutes } from './routes/invoices.js';
 import { purchaseRoutes } from './routes/purchases.js';
@@ -122,11 +123,12 @@ export function createApp(pool, { gateway = resolveGateway(), gsp = resolveGsp()
   });
   app.use('/v1/auth/social', socialRoutes(pool, { providers: social, publicUrl: config?.publicUrl, bcryptRounds: config?.bcryptRounds, fetchFn: socialFetch }));
   app.use('/v1/auth', authRoutes(pool, { bcryptRounds: config?.bcryptRounds }));
+  app.use('/v1/onboarding', onboardingRoutes(pool, { channels, bcryptRounds: config?.bcryptRounds }));
   app.use('/v1/webhooks', webhookRoutes(pool, gateway));
   app.use('/v1/admin', adminRoutes(pool, { bcryptRounds: config?.bcryptRounds }));
   app.use('/v1/platform', platformRoutes(pool));
   app.use('/v1', requireAuth, subscriptionGate(pool), masterRoutes(pool), invoiceRoutes(pool, { channels, pdf, baseUrl: `http://127.0.0.1:${config?.port ?? process.env.PORT ?? 4000}`, emailsPerHour }), analyticsRoutes(pool), purchaseRoutes(pool), returnRoutes(pool), ledgerRoutes(pool),
-    gst, filingRoutes(pool, { gsp, reports: gst.reports }), profileRoutes(pool), taskRoutes(pool), reportRoutes(pool), importExportRoutes(pool), edocRoutes(pool, { gsp }), tdsRoutes(pool), tdsNsRoutes(pool), statutoryRoutes(pool), compliance, reminderRoutes(pool, { channels, openItems: compliance.openItems, appUrl: config?.publicUrl || null }),
+    gst, filingRoutes(pool, { gsp, reports: gst.reports }), profileRoutes(pool), onboardingAuthedRoutes(pool), taskRoutes(pool), reportRoutes(pool), importExportRoutes(pool), edocRoutes(pool, { gsp }), tdsRoutes(pool), tdsNsRoutes(pool), statutoryRoutes(pool), compliance, reminderRoutes(pool, { channels, openItems: compliance.openItems, appUrl: config?.publicUrl || null }),
     companyRoutes(pool, { complianceSummary: compliance.summaryFor }), payrollRoutes(pool), attendanceRoutes(pool), leaveRoutes(pool), billingRoutes(pool, gateway));
   app.use('/v1', (_req, res) => res.status(404).json({ error: 'Not found' }));
 

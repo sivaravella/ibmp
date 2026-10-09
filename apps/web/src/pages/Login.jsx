@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api, setToken } from '../api.js';
 import { Icon } from '../ui/icons.jsx';
 import { Segmented } from '../ui/kit.jsx';
+import Onboarding from './Onboarding.jsx';
 
 import { SECTOR_LIST } from '../ui/sectors.js';
 const POINTS = [
@@ -28,6 +29,7 @@ export default function Login({ onAuth }) {
   const consultant = f.accountType === 'consultant';
   const [providers, setProviders] = useState({});
   const [pending, setPending] = useState(null);       // a first-time Google/LinkedIn sign-in: { token, email, name, providerName }
+  const wizard = (mode === 'register' || mode === 'social') && !consultant;   // Business Owners get the step-by-step wizard
 
   // The provider sends the person back to "/#social=<session>", "/#social-signup=<token>" or "/#social-error=<message>".
   useEffect(() => {
@@ -82,6 +84,27 @@ export default function Login({ onAuth }) {
         <small>© IBMP. Your data stays in your account. · <a href="/privacy" style={{ color: 'inherit' }}>Privacy</a> · <a href="/terms" style={{ color: 'inherit' }}>Terms</a></small>
       </section>
       <div className="auth-side">
+        {wizard ? (
+          <div className="onb-shell">
+            <h2>{mode === 'social' ? `Welcome, ${pending.name.split(' ')[0]}` : 'Create your account'}</h2>
+            <p className="lead">{mode === 'social' ? `One last step: tell us about your business. You are signing up with ${pending.providerName} as ${pending.email}.` : 'Start a free 14-day trial. No card needed.'}</p>
+            <Segmented label="Account type" value={f.accountType} onChange={(v) => setF({ ...f, accountType: v })} options={[['individual', 'Business Owner'], ['consultant', 'CA / CS / CMA']]} />
+            <Onboarding pending={mode === 'social' ? pending : null} onAuth={onAuth} onSignIn={() => { setErr(''); setPending(null); setMode('login'); }}
+              socialSlot={mode === 'register' && <>
+                <div className="social-row">
+                  {SOCIAL.map(([k, label, Logo]) => (providers[k]
+                    ? <a key={k} className="social-btn" href={`/v1/auth/social/${k}/start`}><Logo /> Sign up with {label}</a>
+                    : <button key={k} type="button" className="social-btn" onClick={() => setErr(`${label} sign-in is not switched on for this site yet. Use your email below for now, or ask your administrator to add the ${label} credentials.`)}><Logo /> Sign up with {label}</button>))}
+                </div>
+                {err && <p className="err" role="alert">{err}</p>}
+                <div className="auth-or"><span>or use your email</span></div>
+              </>} />
+            <p className="auth-switch">
+              {mode === 'social' ? '' : 'Already have an account? '}
+              <a href="#" onClick={(e) => { e.preventDefault(); setErr(''); setPending(null); setMode(mode === 'social' ? 'register' : 'login'); }}>{mode === 'social' ? 'Cancel' : 'Sign in'}</a>
+            </p>
+          </div>
+        ) : (
         <form className="auth" onSubmit={submit}>
           <h2>{mode === 'link' ? 'Confirm it is you' : mode === 'login' ? 'Welcome back' : mode === 'social' ? `Welcome, ${pending.name.split(' ')[0]}` : 'Create your account'}</h2>
           <p className="lead">{mode === 'link' ? `An IBMP account for ${pending.email} already exists. Enter its password once to link ${pending.providerName} to it.` : mode === 'login' ? 'Sign in to continue to your dashboard.' : mode === 'social' ? `One last step: tell us about your business. You are signing up with ${pending.providerName} as ${pending.email}.` : 'Start a free 14-day trial. No card needed.'}</p>
@@ -118,6 +141,7 @@ export default function Login({ onAuth }) {
             <a href="#" onClick={(e) => { e.preventDefault(); setErr(''); setPending(null); setMode(mode === 'login' ? 'register' : 'login'); }}>{mode === 'login' ? 'Create an account' : mode === 'social' || mode === 'link' ? 'Cancel' : 'Sign in'}</a>
           </p>
         </form>
+        )}
       </div>
     </div>
   );

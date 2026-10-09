@@ -289,3 +289,6 @@ From the owner's *Enhancements v1* list (reference prototype v6.3).
 - **Reports** (`/reports/profit-loss`, `/reports/balance-sheet`, `/reports/outstanding`): built from the posted ledger entries, with comparatives, Excel and CSV downloads and print to PDF.
 - **Task manager** (`/tasks`): board and list views, assignee, priority, due dates, checklists and comments. Owner-only for now; the schema allows assigning to employees later.
 - **Import and export of sales and purchases** (`/import/*`, `/export/*`): Excel or CSV in the same one-row-per-line layout as the template, with a preview that shows every error before anything is saved.
+
+## v1.24 - New-business onboarding wizard
+Six steps for Business Owner sign-ups (CA/CS/CMA keep the short form): verify the email with a real code, entity type and nature of business, industry, GSTIN and business details with logo, plan preference, done. Text PDFs of the GST registration certificate, Certificate of Incorporation or MCA master data fill the details in (`POST /onboarding/extract`; nothing is stored). `scripts/dev-web.js` serves the built web app on an in-memory database with simulated email (the code is shown on screen) for safe trials.

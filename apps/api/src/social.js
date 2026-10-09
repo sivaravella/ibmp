@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { signPurposeToken, verifyPurposeToken } from './auth.js';
 import { createAccount, loginToken, needsConsultant, registerBase } from './routes/auth.js';
 import { h, httpError } from './util.js';
+import { WIZARD_KEYS, parseBusiness, registerBusiness } from './onboarding.js';
 
 export const PROVIDERS = {
   google: { name: 'Google', auth: 'https://accounts.google.com/o/oauth2/v2/auth', token: 'https://oauth2.googleapis.com/token', userinfo: 'https://openidconnect.googleapis.com/v1/userinfo', scope: 'openid email profile' },
@@ -107,6 +108,21 @@ export function socialRoutes(pool, { providers = {}, publicUrl = '', bcryptRound
   }));
 
   r.post('/complete', h(async (req, res) => {
+    // The new-business wizard sends its extra fields (entity type, nature, industry, ...): the same final step as POST /v1/onboarding/complete,
+    // with the email and name taken from the provider's token. A compact sign-up (company and sector only) takes the original path below.
+    const body = req.body ?? {};
+    if (Object.keys(body).some((k) => WIZARD_KEYS.has(k) && body[k] !== '' && body[k] != null)) {
+      const { token, name: _name, email: _email, password: _password, ...fields } = z.object({ token: z.string().min(10) }).passthrough().parse(body);
+      const s = pending(token);
+      const out = await registerBusiness(pool, {
+        email: s.email, name: s.name, b: parseBusiness(fields), passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), bcryptRounds),     // no password: they sign in with the provider
+        afterCreate: async (client, u) => {
+          await client.query('INSERT INTO user_identities (user_id, provider, subject, email) VALUES ($1,$2,$3,$4)', [u.id, s.p, s.sub, s.email]);
+          await client.query('UPDATE users SET password_set=false WHERE id=$1', [u.id]);
+        },
+      });
+      return res.status(201).json({ token: out.token, company: out.company, summary: out.summary });
+    }
     const { token, ...b } = completeSchema.parse(req.body);
     const s = pending(token);
     const u = await createAccount(pool, { ...b, name: s.name, email: s.email }, await bcrypt.hash(crypto.randomBytes(32).toString('hex'), bcryptRounds));     // no password: they sign in with the provider

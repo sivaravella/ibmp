@@ -13,7 +13,7 @@ const pin = z.string().regex(PIN_RE, 'PIN code must be 6 digits').nullable();
 
 export const ENTITY_TYPES = ['proprietorship', 'partnership', 'llp', 'private_limited', 'public_limited', 'opc', 'huf', 'trust', 'society', 'other'];
 
-const profileSchema = z.object({
+export const profileSchema = z.object({
   legalName: text(100), tradeName: text(100), addr1: text(100), addr2: text(100), loc: text(50), pin,
   phone: z.string().regex(/^\d{6,12}$/, 'Phone must be 6 to 12 digits').nullable(), email: z.string().email().nullable(),
   // printed on tax invoices

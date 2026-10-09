@@ -2,6 +2,9 @@
 
 Versions follow semantic versioning. Feature history before 1.5.0 is in README.md (v0.2 to v1.5).
 
+## 1.24.0
+- New-business onboarding wizard, as in the v6.3 reference: 1 Verify (a real emailed 6-digit code; the mobile number is saved but marked not verified until SMS is set up; optional upload of the GST registration certificate, Certificate of Incorporation or MCA master data, which fills in the details from text PDFs), 2 Entity type and nature of business, 3 Industry (69 industries, searchable, or add your own), 4 GSTIN, business details and logo, 5 Plan (a preference only; the 14-day trial always starts), 6 Done (30 accounts, invoice template, compliance calendar from the start of the financial year). Google and LinkedIn first sign-ins join the wizard at step 2. CA, CS and CMA sign-ups keep the short form. API: `/onboarding/meta`, `email-otp`, `verify-email`, `extract`, `complete`, `GET /company/onboarding`; migration 029; new dependency pdfjs-dist. `scripts/dev-web.js` runs the whole app on an in-memory database with simulated email for trying sign-up safely.
+
 ## 1.23.1
 - GSTIN lookup: the Appyflow request now sends `gstNo` as that service documents. A **GST portal** button on the Add party and Business profile screens opens the government's own taxpayer search (it needs a captcha and bot defence, so a server cannot call it) and copies the GSTIN. The Google Search Console verification file for ibmp.apbiz.in is part of the app. NorthAlley demo data script (`scripts/seed-northalley.js`).
 
