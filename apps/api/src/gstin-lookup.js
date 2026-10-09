@@ -105,5 +105,5 @@ export async function describeGstin(input, { provider = null } = {}) {
       return { ...base, message: 'The GST lookup service did not answer just now. State and PAN were filled from the number; please type the name, or try Fetch again in a minute.' };
     }
   }
-  return { ...base, message: 'Live GST lookup is not switched on for this account, so the name and address cannot be fetched. The state and PAN were filled from the GSTIN; please type the name.' };
+  return { ...base, message: 'Live GST lookup is not switched on for this account, so the name and address cannot be fetched. The state and PAN were filled from the GSTIN. To see the registered name and address, use the GST portal button (the official government search, which asks for a captcha) and type them here.' };
 }

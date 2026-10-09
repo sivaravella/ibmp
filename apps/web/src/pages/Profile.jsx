@@ -4,6 +4,7 @@ import { Icon } from '../ui/icons.jsx';
 import { Badge, PageHeader, Panel, Skeleton } from '../ui/kit.jsx';
 import { Field, Notice } from '../ui/forms.jsx';
 import { useStates } from './Parties.jsx';
+import { openGstPortal } from '../ui/gst.js';
 
 const ENTITY_TYPES = [['proprietorship', 'Proprietorship'], ['partnership', 'Partnership firm'], ['llp', 'Limited liability partnership (LLP)'], ['private_limited', 'Private limited company'],
   ['public_limited', 'Public limited company'], ['opc', 'One person company'], ['huf', 'Hindu undivided family'], ['trust', 'Trust'], ['society', 'Society or association'], ['other', 'Other']];
@@ -88,6 +89,7 @@ export default function Profile() {
               <div className="row" style={{ marginBottom: 0, flexWrap: 'nowrap' }}>
                 <input value={f.gstin} onChange={(e) => { setF({ ...f, gstin: e.target.value }); setCheck(null); }} maxLength={15} placeholder="37ABCDE1234F1Z5" style={{ textTransform: 'uppercase' }} autoComplete="off" />
                 {gstin.length === 15 && <button type="button" onClick={checkGstin} disabled={checking}>{checking ? 'Checking…' : 'Check GSTIN'}</button>}
+                {gstin.length === 15 && <button type="button" onClick={() => openGstPortal(gstin)} title="Opens the government's GST taxpayer search in a new tab and copies the GSTIN">GST portal ↗</button>}
               </div>
             </Field>
             {check && <div className="span2"><Notice tone={check.found ? 'info' : 'warn'}>

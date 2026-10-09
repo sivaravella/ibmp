@@ -4,6 +4,7 @@ import { Icon } from '../ui/icons.jsx';
 import { Badge, EmptyState, KpiCard, PageHeader, Segmented, Skeleton } from '../ui/kit.jsx';
 import { Cell, Drawer, Field, Notice, Pager, Toolbar, useTable } from '../ui/forms.jsx';
 import { num } from '../ui/format.js';
+import { openGstPortal } from '../ui/gst.js';
 
 const hasAddress = (p) => !!(p.addr1 && p.loc && p.pin);
 const panOf = (p) => p.pan || (p.gstin ? p.gstin.slice(2, 12) : null);
@@ -134,6 +135,7 @@ export function NewParty({ onClose, onDone, fixedType = null, subtitle = 'A cust
           <div className="row" style={{ marginBottom: 0, flexWrap: 'nowrap' }}>
             <input value={f.gstin} onChange={(e) => { setF({ ...f, gstin: e.target.value }); setFound(null); setErr(''); }} placeholder="37ABCDE1234F1Z5" maxLength={15} style={{ textTransform: 'uppercase' }} autoComplete="off" />
             {gstin.length === 15 && <button type="button" onClick={fetchGstin} disabled={looking}>{looking ? 'Fetching…' : 'Fetch details'}</button>}
+            {gstin.length === 15 && <button type="button" onClick={() => openGstPortal(gstin)} title="Opens the government's GST taxpayer search in a new tab and copies the GSTIN. Enter the captcha there, then type or paste the name and address here.">GST portal ↗</button>}
           </div>
         </Field>
         {found && <Notice tone={found.found && (!found.status || /active/i.test(found.status)) ? 'info' : 'warn'}>
