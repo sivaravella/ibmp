@@ -29,20 +29,23 @@ const Tds = page(() => import('./pages/Tds.jsx'));
 const Statutory = page(() => import('./pages/Statutory.jsx'));
 const Companies = page(() => import('./pages/Companies.jsx'));
 const Security = page(() => import('./pages/Security.jsx'));
+const Tasks = page(() => import('./pages/Tasks.jsx'));
+const Reports = page(() => import('./pages/Reports.jsx'));
+const Profile = page(() => import('./pages/Profile.jsx'));
 
 // [id, label, icon, page, feature the plan must include (omit = always available)], grouped for the sidebar.
 const NAV = [
-  ['Overview', [['dashboard', 'Dashboard', 'dashboard', Dashboard]]],
+  ['Overview', [['dashboard', 'Dashboard', 'dashboard', Dashboard], ['tasks', 'Task manager', 'tasks', Tasks]]],
   ['Sales & purchases', [
     ['invoices', 'Invoices', 'file', Invoices], ['purchases', 'Purchases', 'cart', Purchases], ['returns', 'Returns', 'undo', Returns],
     ['parties', 'Parties', 'users', Parties], ['items', 'Items', 'package', Items]]],
   ['Accounts & tax', [
-    ['ledger', 'Ledger', 'book', Ledger], ['gst', 'GST reports', 'chart', GstReports], ['filing', 'GST filing', 'send', Filing],
+    ['ledger', 'Ledger', 'book', Ledger], ['reports', 'Reports', 'file', Reports], ['gst', 'GST reports', 'chart', GstReports], ['filing', 'GST filing', 'send', Filing],
     ['edocs', 'E-invoice & e-way', 'zap', EDocs], ['tds', 'TDS & Form 16', 'receipt', Tds], ['compliance', 'Compliance', 'calendar', Compliance]]],
   ['People', [
     ['payroll', 'Payroll', 'briefcase', Payroll, 'hr'], ['attendance', 'Attendance', 'userCheck', Attendance, 'hr'],
     ['leave', 'Leave', 'sun', Leave, 'hr'], ['statutory', 'PF & ESI', 'landmark', Statutory, 'hr']]],
-  ['Account', [['companies', 'Companies', 'building', Companies], ['billing', 'Billing', 'card', Billing], ['security', 'Sign-in & security', 'shield', Security]]],
+  ['Account', [['profile', 'Business profile', 'landmark', Profile], ['companies', 'Companies', 'building', Companies], ['billing', 'Billing', 'card', Billing], ['security', 'Sign-in & security', 'shield', Security]]],
 ];
 // Screens reached from another screen rather than the sidebar; the sidebar keeps the entry they belong to highlighted.
 const InvoiceNew = page(() => import('./pages/InvoiceNew.jsx'));
