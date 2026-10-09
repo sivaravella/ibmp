@@ -111,7 +111,7 @@ export default function InvoiceNew({ go, params }) {
         <button onClick={() => setSettings(true)}><Icon name="panel" size={14} /> Invoice settings</button>
       </PageHeader>
       {flash && <Notice tone="ok">{flash}</Notice>}
-      {missing.length > 0 && <Notice tone="warn">Your invoice header is missing your {missing.join(', ')}. A GST invoice needs them. <a href="#" onClick={(e) => { e.preventDefault(); setSettings(true); }}>Complete it now</a>.</Notice>}
+      {missing.length > 0 && <Notice tone="warn">Your invoice header is missing your {missing.join(', ')}. A GST invoice needs them. <a href="#/profile">Complete it in Business profile</a> (you can add or correct your GSTIN there at any time).</Notice>}
       <Notice>{err}</Notice>
 
       <div className="inv-panes"><Segmented label="Show" value={pane} onChange={setPane} options={[['form', 'Details'], ['preview', 'Preview']]} /></div>
@@ -203,7 +203,7 @@ export default function InvoiceNew({ go, params }) {
       </div>
 
       {settings && <InvoiceSettings profile={profile} onClose={() => setSettings(false)} onSaved={(p) => { setProfile((x) => ({ ...x, ...p })); setSettings(false); api('GET', '/company/profile').then(setProfile); }} />}
-      {newParty && <NewParty onClose={() => setNewParty(false)} onDone={(p) => { setNewParty(false); loadParties().then(() => setF((x) => ({ ...x, partyId: String(p.id) }))); }} />}
+      {newParty && <NewParty fixedType="customer" subtitle="Add the customer here and carry on with the invoice" onClose={() => setNewParty(false)} onDone={(p) => { setNewParty(false); loadParties().then(() => setF((x) => ({ ...x, partyId: String(p.id) }))); }} />}
     </>
   );
 }

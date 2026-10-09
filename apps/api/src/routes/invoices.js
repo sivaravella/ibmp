@@ -9,6 +9,7 @@ import { A, post, taxLines } from '../ledger.js';
 import { STATES, stateName } from '../states.js';
 import { splitLineTax } from '../gst.js';
 import { fyOf, parseFy } from '../compliance.js';
+import { createInvoice } from '../docs.js';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const invoiceSchema = z.object({
@@ -155,59 +156,7 @@ export function invoiceRoutes(pool, { channels = null, pdf = null, baseUrl = 'ht
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      await assertPeriodOpen(client, cid, ['GSTR1', 'GSTR3B'], b.date, 'sales invoice');
-      const company = (await client.query('SELECT * FROM companies WHERE id=$1', [cid])).rows[0];
-      const party = (await client.query(
-        "SELECT * FROM parties WHERE id=$1 AND company_id=$2 AND type='customer'", [b.partyId, cid])).rows[0];
-      if (!party) throw httpError(400, 'Unknown customer');
-
-      const lines = [];
-      for (const l of b.lines) {
-        const it = (await client.query('SELECT * FROM items WHERE id=$1 AND company_id=$2', [l.itemId, cid])).rows[0];
-        if (!it) throw httpError(400, `Unknown item ${l.itemId}`);
-        if (Number(it.stock) < l.qty) throw httpError(400, `Insufficient stock for ${it.name}`);
-        lines.push({ item: it, qty: l.qty, rate: l.rate ?? Number(it.rate), gst_pct: Number(it.gst_pct), discount_pct: l.discountPct ?? 0, description: l.description ?? it.name });
-      }
-      // Freight, packing and the like: extra lines without an item, taxed at the highest rate of the goods (see computeInvoice).
-      for (const c of b.charges ?? []) lines.push({ item: null, charge: true, hsn: c.hsn ?? '9965', qty: 1, rate: c.amount, gst_pct: 0, discount_pct: 0, description: c.label });
-      if (b.dueDate && b.dueDate < b.date) throw httpError(400, 'The due date cannot be before the invoice date.');
-      const pos = b.placeOfSupply ?? party.state_code;       // the state the supply is made in decides CGST+SGST or IGST
-      const dueDate = b.dueDate === undefined ? (Number(company.payment_days) > 0 ? new Date(Date.parse(b.date) + Number(company.payment_days) * 86400000).toISOString().slice(0, 10) : null) : b.dueDate;
-      const calc = computeInvoice(lines, company.state_code, pos, b.discountPct ?? 0);
-
-      const prefix = company.invoice_prefix || 'INV';
-      let number;
-      if (company.invoice_numbering === 'financial_year') {
-        // One counter per financial year, started from the invoices already issued in that year so a company that switches mid-year carries on.
-        const fy = fyOf(b.date), s0 = parseFy(fy);
-        const seq = (await client.query(
-          `INSERT INTO invoice_sequences (company_id, fy, seq)
-           VALUES ($1, $2, (SELECT count(*) FROM invoices WHERE company_id=$1 AND date >= $3 AND date <= $4) + 1)
-           ON CONFLICT (company_id, fy) DO UPDATE SET seq = invoice_sequences.seq + 1 RETURNING seq`, [cid, fy, `${s0}-04-01`, `${s0 + 1}-03-31`])).rows[0].seq;
-        number = `${prefix}/${fy.slice(2)}/${String(seq).padStart(4, '0')}`;
-      } else {
-        const seq = (await client.query('UPDATE companies SET invoice_seq = invoice_seq + 1 WHERE id=$1 RETURNING invoice_seq', [cid])).rows[0].invoice_seq;
-        number = `${prefix}-${String(seq).padStart(4, '0')}`;
-      }
-      const inv = (await client.query(
-        `INSERT INTO invoices (company_id,party_id,number,date,place_of_supply,taxable,cgst,sgst,igst,total,due_date,reference,notes,ship_to,discount,dispatched_through,destination,payment_terms,other_refs,discount_pct)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
-        [cid, party.id, number, b.date, pos, calc.taxable, calc.cgst, calc.sgst, calc.igst, calc.total, dueDate, b.reference || null, b.notes || null, b.shipTo || null, calc.discount, b.dispatchedThrough || null, b.destination || null, b.paymentTerms || null, b.otherRefs || null, b.discountPct ?? 0])).rows[0];
-
-      for (const l of calc.lines) {
-        await client.query(
-          `INSERT INTO invoice_lines (invoice_id,item_id,description,hsn,qty,rate,gst_pct,taxable,discount_pct,discount,cgst,sgst,igst,unit) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
-          [inv.id, l.item?.id ?? null, l.description, l.item ? l.item.hsn : l.hsn, l.qty, l.rate, l.gst_pct, l.taxable, l.discount_pct, l.discount, l.cgst, l.sgst, l.igst, l.item ? l.item.unit : 'OTH']);
-        if (l.item) await client.query('UPDATE items SET stock = stock - $1 WHERE id=$2', [l.qty, l.item.id]);
-      }
-      await post(client, {
-        companyId: cid, date: b.date, sourceType: 'invoice', sourceId: inv.id, narration: `Sales invoice ${number}`,
-        lines: [
-          { code: A.DEBTORS, debit: calc.total, partyId: party.id },
-          { code: A.SALES, credit: calc.taxable },
-          ...taxLines(calc, 'out', 'credit'),
-        ],
-      });
+      const inv = await createInvoice(client, cid, b);
       await client.query('COMMIT');
       res.status(201).json(inv);
     } catch (e) {

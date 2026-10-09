@@ -280,3 +280,12 @@ In a headless browser at 20,000 invoices the invoice screen shows its first rows
 
 ## Next
 A real GSP adapter. **Blocked on the provider:** Masters India's public docs lack response formats, the OTP/EVC session flow and the e-invoice and e-way bill endpoints, and Tera publishes none. It needs the full API documentation and sandbox credentials (see `apps/api/src/gsp.js` for the interface to implement).
+
+## v1.23 - Business profile, reports, task manager, Excel import and export
+From the owner's *Enhancements v1* list (reference prototype v6.3).
+- **Business profile** (`/company/profile`, screen *Business profile*): legal and trade name, type of business, CIN or LLPIN, PAN, TAN, Udyam, address, contact, bank. The **GSTIN can be added or corrected at any time** (check-character validated, sets the state and PAN; changing the state once books exist asks for confirmation).
+- **GSTIN lookup** (`GET /gstin/:gstin`): always answers for a well-formed GSTIN with state, PAN and kind of taxpayer read from the number; legal name and address come from a GST data provider when one is configured (`IBMP_GSTIN_LOOKUP=appyflow` + `IBMP_GSTIN_LOOKUP_KEY`, or `custom` + `IBMP_GSTIN_LOOKUP_URL`; see docs/DEPLOY.md). The party screens' *Fetch details* uses it and no longer fails with a server error.
+- **Add a party from the bill or invoice form** (GSTIN with Fetch details, or name, address, email and mobile; the rest can be completed later in Parties).
+- **Reports** (`/reports/profit-loss`, `/reports/balance-sheet`, `/reports/outstanding`): built from the posted ledger entries, with comparatives, Excel and CSV downloads and print to PDF.
+- **Task manager** (`/tasks`): board and list views, assignee, priority, due dates, checklists and comments. Owner-only for now; the schema allows assigning to employees later.
+- **Import and export of sales and purchases** (`/import/*`, `/export/*`): Excel or CSV in the same one-row-per-line layout as the template, with a preview that shows every error before anything is saved.

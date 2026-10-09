@@ -77,8 +77,11 @@ export function parseCsv(text) {
     else f += c;
   }
   if (f !== '' || row.length) { row.push(f); rows.push(row); }
-  return rows.filter((r) => r.some((x) => String(x).trim() !== ''));
+  return withRowNumbers(rows.filter((r) => r.some((x) => String(x).trim() !== '')), rows.map((r, i) => (r.some((x) => String(x).trim() !== '') ? i + 1 : 0)).filter(Boolean));
 }
+
+/** Remember each kept row's real row number in the file (a hidden property, so comparing or copying the array is unaffected). */
+const withRowNumbers = (rows, numbers) => Object.defineProperty(rows, 'rowNumbers', { value: numbers, enumerable: false });
 
 const cellValue = (v) => {
   if (v === null || v === undefined) return '';
@@ -103,11 +106,11 @@ export async function readTable(buffer, kind) {
   await wb.xlsx.load(buffer);
   const ws = wb.worksheets[0];
   if (!ws) return [];
-  const out = [];
+  const out = [], numbers = [];
   ws.eachRow({ includeEmpty: false }, (row) => {
     const cells = [];
     for (let i = 1; i <= row.cellCount; i += 1) cells.push(cellValue(row.getCell(i).value));
-    if (cells.some((c) => String(c).trim() !== '')) out.push(cells);
+    if (cells.some((c) => String(c).trim() !== '')) { out.push(cells); numbers.push(row.number); }
   });
-  return out;
+  return withRowNumbers(out, numbers);
 }

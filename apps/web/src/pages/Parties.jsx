@@ -78,53 +78,80 @@ export default function Parties() {
   );
 }
 
-export function NewParty({ onClose, onDone }) {
-  const [f, setF] = useState({ type: 'customer', name: '', gstin: '', stateCode: '', pan: '', phone: '', email: '' });
+// States for the "no GSTIN" case, fetched once.
+let statesCache = null;
+export function useStates() {
+  const [list, setList] = useState(statesCache ?? []);
+  useEffect(() => { if (!statesCache) api('GET', '/meta/states').then((s) => { statesCache = s; setList(s); }).catch(() => {}); }, []);
+  return list;
+}
+
+/**
+ * Add a customer or vendor. Used on the Parties screen and from the new invoice and new bill forms, so a party can be added without leaving
+ * the form: GSTIN with Fetch details, or just name, address, email and mobile. Anything left out can be completed later in Parties.
+ * fixedType ('customer' | 'vendor') hides the type switch when the caller already knows which one is needed.
+ */
+export function NewParty({ onClose, onDone, fixedType = null, subtitle = 'A customer you invoice or a vendor you buy from' }) {
+  const [f, setF] = useState({ type: fixedType ?? 'customer', name: '', gstin: '', stateCode: '', pan: '', phone: '', email: '', addr1: '', addr2: '', loc: '', pin: '' });
   const [found, setFound] = useState(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [looking, setLooking] = useState(false);
+  const states = useStates();
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const gstin = f.gstin.trim().toUpperCase();
+  const stateOfGstin = gstin.length >= 2 ? states.find((s) => s.code === gstin.slice(0, 2)) : null;
 
   async function fetchGstin() {
-    setErr(''); setFound(null);
+    setErr(''); setFound(null); setLooking(true);
     try {
-      const g = await api('GET', `/filing/gstin/${f.gstin.trim()}`);
+      const g = await api('GET', `/gstin/${gstin}`);
       setFound(g);
-      setF({ ...f, gstin: g.gstin, name: f.name || g.tradeName || g.legalName });
-    } catch (e) { setErr(e.message); }
+      // Only fill what is still empty: whatever the person typed wins.
+      setF((x) => ({ ...x, gstin: g.gstin, name: x.name || g.tradeName || g.legalName || '', addr1: x.addr1 || g.addr1 || '', addr2: x.addr2 || g.addr2 || '', loc: x.loc || g.loc || '', pin: x.pin || g.pin || '', pan: x.pan || '' }));
+    } catch (e) { setErr(e.message); } finally { setLooking(false); }
   }
   async function submit(e) {
     e.preventDefault(); setErr(''); setBusy(true);
     try {
       onDone(await api('POST', '/parties', {
-        type: f.type, name: f.name,
-        ...(f.gstin ? { gstin: f.gstin.toUpperCase() } : { stateCode: f.stateCode }),
+        type: f.type, name: f.name.trim(),
+        ...(gstin ? { gstin } : { stateCode: f.stateCode }),
         ...(f.type === 'vendor' && f.pan ? { pan: f.pan.toUpperCase() } : {}),
         ...(f.phone ? { phone: f.phone } : {}), ...(f.email ? { email: f.email } : {}),
+        ...(f.addr1 ? { addr1: f.addr1 } : {}), ...(f.addr2 ? { addr2: f.addr2 } : {}), ...(f.loc ? { loc: f.loc } : {}), ...(f.pin ? { pin: f.pin } : {}),
       }));
-    } catch (e2) { setErr(e2.message); setBusy(false); }
+    } catch (e2) { setErr(e2.issues?.map((i) => i.message).join(' ') || e2.message); setBusy(false); }
   }
 
   return (
-    <Drawer open title="Add a party" subtitle="A customer you invoice or a vendor you buy from" onClose={onClose}
-      footer={<><button type="button" onClick={onClose}>Cancel</button><button className="primary" form="party-form" disabled={busy}>{busy ? 'Saving…' : 'Add party'}</button></>}>
+    <Drawer open title={fixedType === 'vendor' ? 'Add a vendor' : fixedType === 'customer' ? 'Add a customer' : 'Add a party'} subtitle={subtitle} onClose={onClose}
+      footer={<><button type="button" onClick={onClose}>Cancel</button><button className="primary" form="party-form" disabled={busy}>{busy ? 'Saving…' : fixedType === 'vendor' ? 'Add vendor' : fixedType === 'customer' ? 'Add customer' : 'Add party'}</button></>}>
       <form id="party-form" onSubmit={submit} style={{ display: 'contents' }}>
-        <Segmented wide label="Type" value={f.type} onChange={(v) => setF({ ...f, type: v })} options={[['customer', 'Customer'], ['vendor', 'Vendor']]} />
+        {!fixedType && <Segmented wide label="Type" value={f.type} onChange={(v) => setF({ ...f, type: v })} options={[['customer', 'Customer'], ['vendor', 'Vendor']]} />}
         <Notice>{err}</Notice>
-        <Field label="GSTIN" hint="Leave empty for an unregistered party and give the state instead">
+        <Field label="GSTIN" hint="Enter the GSTIN and press Fetch details, or leave it empty for an unregistered party and choose the state instead">
           <div className="row" style={{ marginBottom: 0, flexWrap: 'nowrap' }}>
-            <input value={f.gstin} onChange={(e) => { setF({ ...f, gstin: e.target.value }); setFound(null); }} placeholder="29ABCDE1234F1Z5" maxLength={15} style={{ textTransform: 'uppercase' }} />
-            {f.gstin.length === 15 && <button type="button" onClick={fetchGstin}>Fetch details</button>}
+            <input value={f.gstin} onChange={(e) => { setF({ ...f, gstin: e.target.value }); setFound(null); setErr(''); }} placeholder="37ABCDE1234F1Z5" maxLength={15} style={{ textTransform: 'uppercase' }} autoComplete="off" />
+            {gstin.length === 15 && <button type="button" onClick={fetchGstin} disabled={looking}>{looking ? 'Fetching…' : 'Fetch details'}</button>}
           </div>
         </Field>
-        {found && <Notice tone={found.status === 'Active' ? 'info' : 'warn'}>{found.simulated && <b>SIMULATED, not real taxpayer data. </b>}{found.legalName} · {found.status} · state {found.stateCode}{found.status !== 'Active' && ' · this GSTIN is not active'}</Notice>}
+        {found && <Notice tone={found.found && (!found.status || /active/i.test(found.status)) ? 'info' : 'warn'}>
+          {found.found ? <><b>{found.legalName}</b>{found.tradeName && found.tradeName !== found.legalName ? ` (${found.tradeName})` : ''} · {found.status ?? 'status not given'} · {found.stateName}. The details below are filled in: please check them.</> : <>{found.stateName} · PAN {found.pan}{found.panKind ? ` (${found.panKind.toLowerCase()})` : ''}.</>}
+          {found.message && <> {found.message}</>}
+        </Notice>}
+        {!found && stateOfGstin && gstin.length === 15 && <p className="muted" style={{ margin: '-4px 0 8px', fontSize: 12.5 }}>State {stateOfGstin.name} · PAN {gstin.slice(2, 12)}</p>}
         <div className="form-grid">
-          <Field label="Name" className="span2"><input value={f.name} onChange={set('name')} required /></Field>
-          {!f.gstin && <Field label="State code" hint="Two digits, for example 29 for Karnataka"><input value={f.stateCode} onChange={set('stateCode')} maxLength={2} required /></Field>}
-          {f.type === 'vendor' && <Field label="PAN" hint="Used for TDS; taken from the GSTIN if you leave it empty"><input value={f.pan} onChange={set('pan')} maxLength={10} style={{ textTransform: 'uppercase' }} /></Field>}
-          <Field label="Phone"><input value={f.phone} onChange={set('phone')} /></Field>
+          <Field label="Name" className="span2"><input value={f.name} onChange={set('name')} required placeholder="As on the invoice or bill" /></Field>
+          {!gstin && <Field label="State" className="span2"><select value={f.stateCode} onChange={set('stateCode')} required><option value="">Select the state…</option>{states.map((s) => <option key={s.code} value={s.code}>{s.name} ({s.code})</option>)}</select></Field>}
+          <Field label="Mobile"><input value={f.phone} onChange={set('phone')} inputMode="tel" /></Field>
           <Field label="Email"><input type="email" value={f.email} onChange={set('email')} /></Field>
+          <Field label="Address line 1" className="span2"><input value={f.addr1} onChange={set('addr1')} /></Field>
+          <Field label="Town / city"><input value={f.loc} onChange={set('loc')} /></Field>
+          <Field label="PIN code"><input value={f.pin} onChange={set('pin')} maxLength={6} inputMode="numeric" /></Field>
+          {f.type === 'vendor' && <Field label="PAN" hint="Used for TDS; taken from the GSTIN if you leave it empty" className="span2"><input value={f.pan} onChange={set('pan')} maxLength={10} style={{ textTransform: 'uppercase' }} /></Field>}
         </div>
+        <p className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>Only the name and the GSTIN or state are needed to start. You can add the rest later from Parties.</p>
       </form>
     </Drawer>
   );

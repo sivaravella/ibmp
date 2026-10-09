@@ -81,7 +81,7 @@ export function InvoiceSettings({ profile, onClose, onSaved }) {
     try { onSaved(await api('PUT', '/company/profile', { ...f, logo, invoicePrefix: f.invoicePrefix || 'INV', paymentDays: Number(f.paymentDays || 0) })); } catch (e2) { setErr(e2.issues?.map((i) => i.message).join(' ') || e2.message); setBusy(false); }
   }
   return (
-    <Drawer open wide title="Invoice settings" subtitle="What is printed on every invoice. The GSTIN and state come from your registration." onClose={onClose}
+    <Drawer open wide title="Invoice settings" subtitle="What is printed on every invoice. Your GSTIN, PAN and address are kept in Business profile." onClose={onClose}
       footer={<><button type="button" onClick={onClose}>Cancel</button><button className="primary" form="inv-settings" disabled={busy}>{busy ? 'Saving…' : 'Save settings'}</button></>}>
       <form id="inv-settings" onSubmit={save} style={{ display: 'contents' }}>
         <Notice>{err}</Notice>

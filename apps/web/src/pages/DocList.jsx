@@ -7,6 +7,8 @@ import { Cell, Drawer, Field, Notice, Pager, StatusBadge, Toolbar, useTable } fr
 import { fmtDate, inr, inrCompact, monthLabel } from '../ui/format.js';
 import PayForm from './PayForm.jsx';
 import ReturnForm from './ReturnForm.jsx';
+import { NewParty } from './Parties.jsx';
+import ImportExport from './ImportExport.jsx';
 
 const SLABS = [0, 5, 12, 18, 28];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -70,6 +72,7 @@ export default function DocList({ kind, go }) {
   const [items, setItems] = useState([]);
   const [drawer, setDrawer] = useState(null);       // { type: 'new' } | { type: 'pay', doc } | { type: 'return', doc }
   const [flash, setFlash] = useState('');
+  const [io, setIo] = useState(false);               // the import and export drawer
   const [err, setErr] = useState('');
 
   const load = () => api('GET', `/${K.base}`).then(setRows).catch((e) => setErr(e.message));
@@ -122,6 +125,7 @@ export default function DocList({ kind, go }) {
   return (
     <>
       <PageHeader title={K.title} subtitle={K.subtitle}>
+        <button onClick={() => setIo(true)}><Icon name="upload" size={15} /> Import / Export</button>
         <button onClick={exportCsv} disabled={!pre.length}>Export CSV</button>
         <button className="primary" onClick={newDoc}><Icon name="plus" size={15} /> {K.newLabel}</button>
       </PageHeader>
@@ -179,6 +183,7 @@ export default function DocList({ kind, go }) {
         </>
       )}
 
+      {io && <ImportExport kind={kind} onClose={() => setIo(false)} onImported={() => done(`${K.title} imported from your file.`)} />}
       {drawer?.type === 'new' && <NewDoc K={K} purchase={purchase} parties={parties} items={items} go={go} onClose={() => setDrawer(null)} onDone={(d) => done(`${K.docLabel} ${d.number} ${K.created}.`)} />}
       <Drawer open={drawer?.type === 'pay'} title={`${K.payTitle}: ${drawer?.doc?.number ?? ''}`} subtitle={drawer?.doc?.partyName} onClose={() => setDrawer(null)}>
         {drawer?.type === 'pay' && <PayForm base={K.base} doc={drawer.doc} onDone={() => done(`${purchase ? 'Payment' : 'Receipt'} recorded against ${drawer.doc.number}.`)} onClose={() => setDrawer(null)} />}
@@ -191,7 +196,11 @@ export default function DocList({ kind, go }) {
 }
 
 /** The drawer that creates an invoice or a vendor bill, with a live estimate of the totals. */
-function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
+function NewDoc({ K, purchase, parties: known, items, go, onClose, onDone }) {
+  // A vendor (or customer) can be added from inside this form; it joins the list and is selected, so nothing typed here is lost.
+  const [addParty, setAddParty] = useState(false);
+  const [added, setAdded] = useState([]);
+  const parties = [...known, ...added.filter((a) => !known.some((p) => p.id === a.id))];
   const blank = () => ({ itemId: '', qty: 1, rate: '', gstPct: '' });
   const [partyId, setPartyId] = useState('');
   const [billNo, setBillNo] = useState('');
@@ -222,13 +231,13 @@ function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
   }
 
   return (
-    <Drawer open title={K.newLabel} subtitle={purchase ? 'Stock and input GST are updated when you save' : 'GST, stock and the ledger are updated when you save'} onClose={onClose}
+    <><Drawer open title={K.newLabel} subtitle={purchase ? 'Stock and input GST are updated when you save' : 'GST, stock and the ledger are updated when you save'} onClose={onClose}
       footer={<><span className="total">{rcm ? 'Payable to vendor' : 'Total'} <b>{inr(rcm ? taxable : taxable + tax)}</b></span><button type="button" onClick={onClose}>Cancel</button><button className="primary" form="doc-form" disabled={busy}>{busy ? 'Saving…' : purchase ? 'Save bill' : 'Create invoice'}</button></>}>
       <form id="doc-form" onSubmit={submit} style={{ display: 'contents' }}>
         <Notice>{err}</Notice>
-        {!parties.length && <Notice tone="info">You have no {K.partyLabel.toLowerCase()}s yet. <a href="#" onClick={(e) => { e.preventDefault(); go?.('parties'); }}>Add one in Parties</a> first.</Notice>}
+        {!parties.length && <Notice tone="info">You have no {K.partyLabel.toLowerCase()}s yet. Use <b>New {K.partyLabel.toLowerCase()}</b> below to add one without leaving this form.</Notice>}
         <div className="form-grid">
-          <Field label={K.partyLabel} className="span2"><select value={partyId} onChange={(e) => setPartyId(e.target.value)} required><option value="">Select {K.partyLabel.toLowerCase()}…</option>{parties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
+          <Field label={K.partyLabel} className="span2"><div className="row" style={{ marginBottom: 0, flexWrap: 'nowrap' }}><select value={partyId} onChange={(e) => setPartyId(e.target.value)} required><option value="">Select {K.partyLabel.toLowerCase()}…</option>{parties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select><button type="button" onClick={() => setAddParty(true)} style={{ whiteSpace: 'nowrap' }}><Icon name="plus" size={14} /> New {K.partyLabel.toLowerCase()}</button></div></Field>
           {purchase && <Field label="Vendor's bill number"><input value={billNo} onChange={(e) => setBillNo(e.target.value)} required /></Field>}
           <Field label={`${K.docLabel} date`} className={purchase ? '' : 'span2'}><input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></Field>
         </div>
@@ -254,5 +263,7 @@ function NewDoc({ K, purchase, parties, items, go, onClose, onDone }) {
         <div className="totals"><div><span>Taxable value</span><span>{inr(taxable)}</span></div><div><span>{rcm ? 'GST you assess and pay yourself' : `GST${purchase ? '' : ' (estimate: split into CGST/SGST or IGST on save)'}`}</span><span>{inr(tax)}</span></div><div className="grand"><span>{rcm ? 'Payable to the vendor' : 'Total'}</span><span>{inr(rcm ? taxable : taxable + tax)}</span></div></div>
       </form>
     </Drawer>
+    {addParty && <NewParty fixedType={K.partyType} subtitle={purchase ? 'Add the vendor here and carry on with the bill' : undefined} onClose={() => setAddParty(false)} onDone={(p) => { setAdded((a) => [...a, p]); setPartyId(String(p.id)); setAddParty(false); }} />}
+    </>
   );
 }

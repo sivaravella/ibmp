@@ -4,6 +4,9 @@ import { h, httpError } from '../util.js';
 import { GSTIN_RE, stateFromGstin } from '../gst.js';
 import { PAN_RE } from '../tds.js';
 import { STATES } from '../states.js';
+import { describeGstin, parseGstin, resolveGstinLookup } from '../gstin-lookup.js';
+import { normaliseEnv } from '../config.js';
+import { PIN_RE } from '../einvoice.js';
 
 const partySchema = z.object({
   type: z.enum(['customer', 'vendor']),
@@ -13,6 +16,11 @@ const partySchema = z.object({
   pan: z.string().toUpperCase().regex(PAN_RE, 'PAN must look like ABCDE1234F').optional(),
   phone: z.string().optional(),
   email: z.string().email().optional(),
+  // optional postal details, so a party can be added in full from a bill or invoice screen (they can also be completed later in Parties)
+  addr1: z.string().trim().max(100).optional(),
+  addr2: z.string().trim().max(100).optional(),
+  loc: z.string().trim().max(50).optional(),
+  pin: z.string().regex(PIN_RE, 'PIN code must be 6 digits').optional(),
 });
 
 const itemSchema = z.object({
@@ -24,8 +32,17 @@ const itemSchema = z.object({
   stock: z.number().default(0),
 });
 
-export function masterRoutes(pool) {
+export function masterRoutes(pool, { gstinLookup = resolveGstinLookup(normaliseEnv()) } = {}) {
   const r = Router();
+
+  // What can be learnt from a GSTIN: state, PAN and kind of taxpayer from the number itself, plus legal name and address when a GST data
+  // provider is configured. It always answers for a well-formed GSTIN, so a screen never has to show a server error for it.
+  r.get('/gstin/:gstin', h(async (req, res) => {
+    const p = parseGstin(req.params.gstin);
+    if (!p.formatOk) throw httpError(400, 'A GSTIN has 15 characters, for example 29ABCDE1234F1Z5. Check the number and try again.');
+    if (!p.checkOk) throw httpError(400, 'This GSTIN fails the check-character test, so it is probably mistyped. Check it against the GST certificate.');
+    res.json(await describeGstin(p.gstin, { provider: gstinLookup }));
+  }));
 
   r.get('/parties', h(async (req, res) => {
     const type = req.query.type;
@@ -40,8 +57,8 @@ export function masterRoutes(pool) {
     const state = stateFromGstin(b.gstin) || b.stateCode;
     if (!state) throw httpError(400, 'Provide a GSTIN or a stateCode');
     const { rows } = await pool.query(
-      `INSERT INTO parties (company_id,type,name,gstin,state_code,phone,email,pan) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [req.user.companyId, b.type, b.name, b.gstin || null, state, b.phone || null, b.email || null, b.pan || null]);
+      `INSERT INTO parties (company_id,type,name,gstin,state_code,phone,email,pan,addr1,addr2,loc,pin) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+      [req.user.companyId, b.type, b.name, b.gstin || null, state, b.phone || null, b.email || null, b.pan || null, b.addr1 || null, b.addr2 || null, b.loc || null, b.pin || null]);
     res.status(201).json(rows[0]);
   }));
 
